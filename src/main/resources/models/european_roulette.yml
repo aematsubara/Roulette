@@ -1,0 +1,3009 @@
+parts:
+  PART_1:
+    offset:
+      x: -1.779
+      y: -1.0
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 9c4ccb83813a3bcdcf72bfeed0cdcd710802f0782565497973023d115d82c9db
+  PART_2:
+    offset:
+      x: -1.186
+      y: -1.0
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: ac82febeb5ecdc49aef9483120d9cc9223ff62c491c15186c86c726ca2e0021f
+  PART_3:
+    offset:
+      x: -0.593
+      y: -1.0
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 50e23e45e2bdff6f18145fd600e5fd0e73d4e79d648ecb2f69c349bca7c0a42c
+  PART_4:
+    offset:
+      x: 0.0
+      y: -1.0
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: fed81842d19ab80777ee2d0707a128cb58bcf7f561dbe6828739f8496ea15760
+  PART_5:
+    offset:
+      x: 0.593
+      y: -1.0
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: fd9688933422478b6bb936fbe05f132b1dfcbf0de743b3166a39abc77836f35f
+  PART_6:
+    offset:
+      x: 1.186
+      y: -1.0
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: d9efd5586c2413847b5930e12c103eaf788b9bc9f13389b0b6164c1cf94315b1
+  PART_7:
+    offset:
+      x: 1.779
+      y: -1.0
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 6bd69fefd30930200eb2eb49738acb44c182f26f76ca1feea022655e75f8c4d5
+  PART_8:
+    offset:
+      x: -1.779
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 99dcf9e97714e9294c92f2e0e4e38b0541523d8fcce35d93c0c3fd9513c97120
+  PART_9:
+    offset:
+      x: -1.186
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: ad2d442a3d08f9aa9d07513bbc07e72b27dd598f991246412b07a8eaba7e5617
+  PART_10:
+    offset:
+      x: -0.593
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 158e22754a694251c82c5077dc6f0ddebc5f4905d45b8afa1886a12ccad4370b
+  PART_11:
+    offset:
+      x: 0.0
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 25debf11e12c1ec74bf4deb17ff55eba0eb4d7c23055de74ca5205798204ce0f
+  PART_12:
+    offset:
+      x: 0.593
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: ad2d442a3d08f9aa9d07513bbc07e72b27dd598f991246412b07a8eaba7e5617
+  PART_13:
+    offset:
+      x: 1.186
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 158e22754a694251c82c5077dc6f0ddebc5f4905d45b8afa1886a12ccad4370b
+  PART_14:
+    offset:
+      x: 1.779
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: f0b05700dd0eefdbd595fd75400ba969605d62249fa3df333a653e814a3d7776
+  PART_15:
+    offset:
+      x: -1.779
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: dcd9bf37a36019a92e6bdca577bcc6601aed6317f1c5b09799f1f7fa00edcb7d
+  PART_16:
+    offset:
+      x: -1.186
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 753197a604c3452b0210c601fb902ad045b0e98585ec1e563b63d77ac5b717c1
+  PART_17:
+    offset:
+      x: -0.593
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: c42ddacdfd9f389668bce1ca7f9840f80b9f23dcabee804e6839467879fd0704
+  PART_18:
+    offset:
+      x: 0.0
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: f52de0bbe26b67d13017f18b0d67259f48e3f14f7ec37389663e01f17846de83
+  PART_19:
+    offset:
+      x: 0.593
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 753197a604c3452b0210c601fb902ad045b0e98585ec1e563b63d77ac5b717c1
+  PART_20:
+    offset:
+      x: 1.186
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: c42ddacdfd9f389668bce1ca7f9840f80b9f23dcabee804e6839467879fd0704
+  PART_21:
+    offset:
+      x: 1.779
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 4fc94663fc58921da8bcb196507701a711e2161f1fb2739a09a69aae2830958c
+  PART_22:
+    offset:
+      x: -2.965
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 7af91b2da78a013b79e112b8fbaa78bde299997cc2a0605c1eb54be793b4ca6f
+  PART_23:
+    offset:
+      x: -2.965
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 35efc936873314d13ffd7ee5b305233e43fe3c404a6ee3c3b81f0e47d3a53367
+  PART_24:
+    offset:
+      x: -2.372
+      y: -1.0
+      z: 0.0
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 2763a1c8abb7b2d41d851142ca71667f4e0b7af9839dac871b22737761fe15e7
+  PART_25:
+    offset:
+      x: -2.372
+      y: -1.0
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: PLAYER_HEAD
+        url: 5aac6a06d223aa6e96acfdf1a8898b0fcbca0dcce04e8b621aadcb7b32dd3d2e
+  SIDE_1:
+    offset:
+      x: -2.076
+      y: -0.7
+      z: 0.952
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_2:
+    offset:
+      x: -1.451
+      y: -0.7
+      z: 0.952
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_3:
+    offset:
+      x: -0.826
+      y: -0.7
+      z: 0.952
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_4:
+    offset:
+      x: -0.201
+      y: -0.7
+      z: 0.952
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_5:
+    offset:
+      x: 0.424
+      y: -0.7
+      z: 0.952
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_6:
+    offset:
+      x: 1.049
+      y: -0.7
+      z: 0.952
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_7:
+    offset:
+      x: 1.674
+      y: -0.7
+      z: 0.952
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_8:
+    offset:
+      x: 2.075
+      y: -0.7
+      z: 0.952
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_9:
+    offset:
+      x: 2.138
+      y: -0.7
+      z: 0.8884
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_10:
+    offset:
+      x: 2.138
+      y: -0.7
+      z: 0.3604
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_11:
+    offset:
+      x: 2.138
+      y: -0.7
+      z: -0.2646
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_12:
+    offset:
+      x: 2.138
+      y: -0.7
+      z: -0.8896
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_13:
+    offset:
+      x: 1.985
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_14:
+    offset:
+      x: 1.36
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_15:
+    offset:
+      x: 0.735
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_16:
+    offset:
+      x: 0.11
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_17:
+    offset:
+      x: -0.515
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_18:
+    offset:
+      x: -1.14
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_19:
+    offset:
+      x: -1.765
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_20:
+    offset:
+      x: -2.39
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_21:
+    offset:
+      x: -3.016
+      y: -0.7
+      z: -0.952
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_22:
+    offset:
+      x: -3.3246
+      y: -0.7
+      z: -0.8895
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_23:
+    offset:
+      x: -3.3246
+      y: -0.7
+      z: -0.2645
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_24:
+    offset:
+      x: -3.3246
+      y: -0.7
+      z: 0.2965
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_25:
+    offset:
+      x: -3.262
+      y: -0.7
+      z: 0.359
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_26:
+    offset:
+      x: -2.701
+      y: -0.7
+      z: 0.359
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SIDE_27:
+    offset:
+      x: -2.1386
+      y: -0.7
+      z: 0.609
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  SPINNER_1:
+    offset:
+      x: -2.668
+      y: 0.594
+      z: -0.296
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: false
+      small: true
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+  SPINNER_2:
+    offset:
+      x: -2.668
+      y: 0.594
+      z: -0.296
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: false
+      small: true
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+  FEET_1:
+    offset:
+      x: -1.779
+      y: -0.69
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  FEET_2:
+    offset:
+      x: 1.779
+      y: -0.69
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  FEET_3:
+    offset:
+      x: 1.779
+      y: -0.69
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  FEET_4:
+    offset:
+      x: -1.779
+      y: -0.69
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  DECO_1:
+    offset:
+      x: -3.474
+      y: 0.6
+      z: -0.361
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: a7de569743d1e7c080ad0f590d539aa573a0af4ba7be23ec8d793269fe927088
+  DECO_2:
+    offset:
+      x: -3.474
+      y: 0.73
+      z: -0.361
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: a7de569743d1e7c080ad0f590d539aa573a0af4ba7be23ec8d793269fe927088
+  DECO_3:
+    offset:
+      x: -3.474
+      y: 0.86
+      z: -0.361
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: a7de569743d1e7c080ad0f590d539aa573a0af4ba7be23ec8d793269fe927088
+  DECO_4:
+    offset:
+      x: -3.474
+      y: 0.6
+      z: -0.561
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: 13444e6349cb549e2e800c23ca206d2360f129e45ca3130d587ff97507a46462
+  DECO_5:
+    offset:
+      x: -3.474
+      y: 0.73
+      z: -0.561
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: 13444e6349cb549e2e800c23ca206d2360f129e45ca3130d587ff97507a46462
+  DECO_6:
+    offset:
+      x: -3.474
+      y: 0.86
+      z: -0.561
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: 13444e6349cb549e2e800c23ca206d2360f129e45ca3130d587ff97507a46462
+  DECO_7:
+    offset:
+      x: -3.474
+      y: 0.6
+      z: -0.761
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: b0458d58c030cfabd8b19e4944bbe2860f6617a77ec6c9488593e2a473db6758
+  DECO_8:
+    offset:
+      x: -3.474
+      y: 0.73
+      z: -0.761
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: b0458d58c030cfabd8b19e4944bbe2860f6617a77ec6c9488593e2a473db6758
+  DECO_9:
+    offset:
+      x: -3.474
+      y: 0.86
+      z: -0.761
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      left-arm:
+        x: 315.0
+        y: 45.0
+        z: 0.0
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+    equipment:
+      main-hand:
+        material: PLAYER_HEAD
+        url: b0458d58c030cfabd8b19e4944bbe2860f6617a77ec6c9488593e2a473db6758
+  MONEY_SLOT:
+    offset:
+      x: -1.736
+      y: -0.165
+      z: 0.704
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: TRIPWIRE_HOOK
+  CHAIR_1:
+    offset:
+      x: -1.779
+      y: -0.69
+      z: 1.779
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_2:
+    offset:
+      x: -1.779
+      y: -0.95
+      z: 1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_3:
+    offset:
+      x: -1.779
+      y: -0.64
+      z: 1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_4:
+    offset:
+      x: -0.593
+      y: -0.69
+      z: 1.779
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_5:
+    offset:
+      x: -0.593
+      y: -0.95
+      z: 1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_6:
+    offset:
+      x: -0.593
+      y: -0.64
+      z: 1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_7:
+    offset:
+      x: 0.593
+      y: -0.69
+      z: 1.779
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_8:
+    offset:
+      x: 0.593
+      y: -0.95
+      z: 1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_9:
+    offset:
+      x: 0.593
+      y: -0.64
+      z: 1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_10:
+    offset:
+      x: 1.779
+      y: -0.69
+      z: 1.779
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_11:
+    offset:
+      x: 1.779
+      y: -0.95
+      z: 1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_12:
+    offset:
+      x: 1.779
+      y: -0.64
+      z: 1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_13:
+    offset:
+      x: 2.965
+      y: -0.69
+      z: 0.593
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_14:
+    offset:
+      x: 2.965
+      y: -0.95
+      z: 0.593
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_15:
+    offset:
+      x: 2.965
+      y: -0.64
+      z: 0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_16:
+    offset:
+      x: 2.965
+      y: -0.69
+      z: -0.593
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_17:
+    offset:
+      x: 2.965
+      y: -0.95
+      z: -0.593
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_18:
+    offset:
+      x: 2.965
+      y: -0.64
+      z: -0.593
+      yaw: 270.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_19:
+    offset:
+      x: 1.779
+      y: -0.69
+      z: -1.779
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_20:
+    offset:
+      x: 1.779
+      y: -0.95
+      z: -1.779
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_21:
+    offset:
+      x: 1.779
+      y: -0.64
+      z: -1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_22:
+    offset:
+      x: 0.593
+      y: -0.69
+      z: -1.779
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_23:
+    offset:
+      x: 0.593
+      y: -0.95
+      z: -1.779
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_24:
+    offset:
+      x: 0.593
+      y: -0.64
+      z: -1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_25:
+    offset:
+      x: -0.593
+      y: -0.69
+      z: -1.779
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_26:
+    offset:
+      x: -0.593
+      y: -0.95
+      z: -1.779
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_27:
+    offset:
+      x: -0.593
+      y: -0.64
+      z: -1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  CHAIR_28:
+    offset:
+      x: -1.779
+      y: -0.69
+      z: -1.779
+      yaw: 90.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: false
+      fire: true
+      marker: true
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_PLANKS
+  CHAIR_29:
+    offset:
+      x: -1.779
+      y: -0.95
+      z: -1.779
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: SPRUCE_SLAB
+  CHAIR_30:
+    offset:
+      x: -1.779
+      y: -0.64
+      z: -1.779
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: true
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    equipment:
+      helmet:
+        material: RED_CARPET
+  SLOT_0:
+    offset:
+      x: -1.9465
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_1:
+    offset:
+      x: -1.6495
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_2:
+    offset:
+      x: -1.6495
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_3:
+    offset:
+      x: -1.6495
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_4:
+    offset:
+      x: -1.353
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_5:
+    offset:
+      x: -1.353
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_6:
+    offset:
+      x: -1.353
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_7:
+    offset:
+      x: -1.0565
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_8:
+    offset:
+      x: -1.0565
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_9:
+    offset:
+      x: -1.0565
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_10:
+    offset:
+      x: -0.76
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_11:
+    offset:
+      x: -0.76
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_12:
+    offset:
+      x: -0.76
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_13:
+    offset:
+      x: -0.464
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_14:
+    offset:
+      x: -0.464
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_15:
+    offset:
+      x: -0.464
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_16:
+    offset:
+      x: -0.1675
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_17:
+    offset:
+      x: -0.1675
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_18:
+    offset:
+      x: -0.1675
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_19:
+    offset:
+      x: 0.129
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_20:
+    offset:
+      x: 0.129
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_21:
+    offset:
+      x: 0.129
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_22:
+    offset:
+      x: 0.4255
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_23:
+    offset:
+      x: 0.4255
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_24:
+    offset:
+      x: 0.4255
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_25:
+    offset:
+      x: 0.7215
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_26:
+    offset:
+      x: 0.7215
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_27:
+    offset:
+      x: 0.7215
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_28:
+    offset:
+      x: 1.018
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_29:
+    offset:
+      x: 1.018
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_30:
+    offset:
+      x: 1.018
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_31:
+    offset:
+      x: 1.3145
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_32:
+    offset:
+      x: 1.3145
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_33:
+    offset:
+      x: 1.3145
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_34:
+    offset:
+      x: 1.611
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_35:
+    offset:
+      x: 1.611
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_36:
+    offset:
+      x: 1.611
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_COLUMN_1:
+    offset:
+      x: 1.8705
+      y: 0.5833
+      z: 0.0035
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_COLUMN_2:
+    offset:
+      x: 1.8705
+      y: 0.5833
+      z: -0.441
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_COLUMN_3:
+    offset:
+      x: 1.8705
+      y: 0.5833
+      z: -0.8855
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_DOZEN_1:
+    offset:
+      x: -1.205
+      y: 0.5833
+      z: 0.3355
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_DOZEN_2:
+    offset:
+      x: -0.0195
+      y: 0.5833
+      z: 0.3355
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_DOZEN_3:
+    offset:
+      x: 1.166
+      y: 0.5833
+      z: 0.3355
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_LOW:
+    offset:
+      x: -1.5015
+      y: 0.5833
+      z: 0.5215
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_EVEN:
+    offset:
+      x: -0.9085
+      y: 0.5833
+      z: 0.5215
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_RED:
+    offset:
+      x: -0.316
+      y: 0.5833
+      z: 0.5215
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_BLACK:
+    offset:
+      x: 0.277
+      y: 0.5833
+      z: 0.5215
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_ODD:
+    offset:
+      x: 0.8695
+      y: 0.5833
+      z: 0.5215
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  SLOT_HIGH:
+    offset:
+      x: 1.4625
+      y: 0.5833
+      z: 0.5215
+      yaw: 0.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: true
+      baseplate: false
+      arms: true
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      right-arm:
+        x: 315.0
+        y: 315.0
+        z: 0.0
+  BALL:
+    offset:
+      x: -2.668
+      y: -1.169
+      z: -0.296
+      yaw: 180.0
+      pitch: 0.0
+    settings:
+      invisible: true
+      small: false
+      baseplate: false
+      arms: false
+      fire: false
+      marker: false
+      glow: false
+    pose:
+      head:
+        x: 300.0
+        y: 0.0
+        z: 0.0

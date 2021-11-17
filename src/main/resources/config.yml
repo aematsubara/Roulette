@@ -1,0 +1,309 @@
+#  _____             _      _   _
+# |  __ \           | |    | | | |
+# | |__) |___  _   _| | ___| |_| |_ ___
+# |  _  // _ \| | | | |/ _ \ __| __/ _ \
+# | | \ \ (_) | |_| | |  __/ |_| ||  __/
+# |_|  \_\___/ \__,_|_|\___|\__|\__\___|
+#
+# Developed by Matsuneitor.
+# :)
+
+# The render distance for the models. Default: 96, good distance to prevent seeing players lonely.
+render-distance: 96
+
+# Whether to allow players to swap chairs before the game starts. If false, you can bypass this with 'roulette.swap_chair' permission.
+# if false, players will be seated in the first empty chair.
+swap-chair: true
+
+# Whether to instantly explode the fireworks.
+instant-explode: true
+
+# Whether to fix the camera when changing chairs so the player looks forward.
+fix-chair-camera: false
+
+# The delay before you can move your chip / from chair (in millis).
+move-interval: 150
+
+# Whether to allow players to hit other players within a game.
+hit-on-game: false
+
+croupier-ball:
+  # The material that'll be used as a ball by the croupier.
+  material: SNOWBALL
+  # The speed of the ball (rotation speed).
+  speed: 35.0
+
+# The countdown of each part of the game (in seconds), must be a multiple of 5.
+countdown:
+  # Starts after reaching the minimum amount of players.
+  # This time is set by default, you can change it for each game with the game editor GUI, by right-clicking an NPC.
+  waiting: 30
+  # Starts at the end of the previous countdown, time for players to choose their bet.
+  selecting: 30
+  # Starts at the end of the previous countdown, where the roulette begins to spin.
+  sorting: 10
+
+# Here you can modify the restart time and the amount of fireworks.
+# Be CAREFUL with this, as the fireworks'll be launched based on the restart time.
+# If you want to restart the game in 5s and launch 10 fireworks, then: 5 / 10 = 0.5, this means that every 0.5s a firework'll be launched.
+# NOTE: Both values must be a multiple of 5, if you don't want fireworks to be launched, set @fireworks to 0.
+restart:
+  # In how many seconds the game must be restarted.
+  time: 5
+  # How many fireworks'll be launched (only if there are winners).
+  fireworks: 10
+
+# The sound that'll play when you click an item in the chip inventory.
+sound.click: BLOCK_NOTE_BLOCK_PLING
+
+# The sound that'll play along with the countdown messages.
+sound.countdown: ENTITY_EXPERIENCE_ORB_PICKUP
+
+# The sound that'll play when the roulette starts to spin.
+sound.spinning: BLOCK_METAL_PRESSURE_PLATE_CLICK_ON
+
+# The sound that'll play when swapping chairs.
+sound.swap-chair: ENTITY_PLAYER_ATTACK_CRIT
+
+# The sound that'll play when selecting a slot in the table (when moving the chip).
+sound.select: BLOCK_WOOL_PLACE
+
+# Here you can disable the slots of the table that you want.
+# https://github.com/aematsubara/Roulette/blob/master/src/main/java/me/matsubara/roulette/game/data/Slot.java
+disabled-slots: []
+
+# Whether to give a map (or "casino voucher") to the winner of a game.
+# The image must be named "image.png" and must be 128x128 (otherwise will be resized).
+# Text format: LINE, TEXT
+#
+# Available placeholders:
+# %player% - the player who won.
+# %money% - the amount of money.
+map-image:
+  enabled: true
+  text:
+    - 15, %player%
+    - 105, %money%
+
+# The word that must be typed to cancel an input request (account name / NPC name / NPC texture).
+cancel-word: cancel
+
+# Name to display in the hologram of each slot.
+# %number% - the number if the slot is single.
+slots:
+  single:
+    zero: "&a&l%number% &a(Green)"
+    red: "&c&l%number% &c(Red)"
+    black: "&0&l%number% &0(Black)"
+  column:
+    1: "&6&l1st &6(column)"
+    2: "&6&l2nd &6(column)"
+    3: "&6&l3rd &6(column)"
+  dozen:
+    1: "&6&l1st &6(dozen)"
+    2: "&6&l2nd &6(dozen)"
+    3: "&6&l3rd &6(dozen)"
+  other:
+    low: "&6&l1-18 &6(Low)"
+    high: "&6&l19-36 &6(High)"
+    even: "&6&l2, 4... &6(Even)"
+    odd: "&6&l1, 3... &6(Odd)"
+    red: "&c&lRed"
+    black: "&0&lBlack"
+
+# The name of the %type% variable depending on the type of the game for the join hologram.
+type.european: "&a(European)"
+type.american: "&a(American)"
+
+confirmation-gui:
+  # The title of the confirmation GUI.
+  title: "Are you sure?"
+  # The display name of the confirmation item.
+  confirm: "&aConfirm"
+  # The display name of the cancel item.
+  cancel: "&cCancel"
+
+# The hologram of the game.
+# %name% - the name of the game.
+# %playing% - amount of players in the game.
+# %max% - the maximum amount of players allowed.
+# %type% - the type of the table, can be european or american (see @join-hologram.european and @join-hologram.american).
+join-hologram:
+  - "%type%"
+  - "&e%name% (%playing%/%max%)"
+  - "&6&l¡CLICK TO PLAY!"
+
+# The line that'll appear on the spinning hologram.
+spin-holograms:
+  spinning: "&6Spinning..."
+  winning-number: "&6Winning number:"
+
+# The hologram that'll appear above the player's chip.
+# %player% - the name of the player.
+# %bet% - the selected bet of the player.
+select-hologram:
+  - "&e%player%"
+  - "&aBET: %bet%"
+
+# This item replaces the shop chip that is clicked without having enough money.
+not-enough-money:
+  material: BARRIER
+  display-name: "&c¡NOT ENOUGH MONEY!"
+  lore: []
+
+# Here you can modify each item within the inventory of the game editor, accessible by right-clicking an NPC.
+# %name% - the name of the game. (@title)
+# %player% - the name of the player. (@account.display-name and no-account.display-name)
+# %state% - the state of the bet-all option. (@bet-all.display-name)
+# %croupier-name% - the name of the croupier. (@croupier.display-name)
+game-menu:
+  title: "Editing: %name%"
+  account:
+    display-name: "&aCurrent account: &e%player%"
+    lore:
+      - "&7All the money that players lose in this game"
+      - "&7will be sent to the account of the selected player."
+      - "&7"
+      - "&6Click to change."
+      - "&6Right click to delete."
+  no-account:
+    material: BARRIER
+    display-name: "&cNo player account"
+    lore:
+      - "&7All the money that players lose in this game"
+      - "&7will be sent to the account of the selected player."
+      - "&7"
+      - "&6Click to change."
+  min-amount:
+    material: MINECART
+    display-name: "&aMinimum amount"
+    lore:
+      - "&7The minimum number of players"
+      - "&7required to start a game."
+      - "&7"
+      - "&6Left click to increase."
+      - "&6Right click to reduce."
+  max-amount:
+    material: CHEST_MINECART
+    display-name: "&aMaximum amount"
+    lore:
+      - "&7The maximum number of players"
+      - "&7this game can have."
+      - "&7"
+      - "&6Left click to increase."
+      - "&6Right click to reduce."
+  start-time:
+    material: CLOCK
+    display-name: "&aStart time: &e%seconds% seconds"
+    lore:
+      - "&7When the minimum number of players"
+      - "&7required is reached, the game will start"
+      - "&7at the time that has been set."
+      - "&7"
+      - "&6Left click to reduce 5 seconds."
+      - "&6Right click to increase 5 seconds."
+  la-partage:
+    display-name: "&aLa Partage"
+    lore:
+      - "&7Once a single zero is spun, the"
+      - "&7even-money bet will immediately be"
+      - "&7divided by two."
+      - "&7"
+      - "&7This way 50% of the bet will be"
+      - "&7recovered to the player, while the"
+      - "&7other 50% will be surrendered"
+      - "&7to the house."
+      - "&7"
+      - "&6Click to enable/disable."
+  en-prison:
+    display-name: "&aEn Prison"
+    lore:
+      - "&7Gives players an opportunity to"
+      - "&7recovertheir even-money stakes"
+      - "&7after the zero is spun."
+      - "&7"
+      - "&7The stake remains on the losing"
+      - "&7even-money bet for the next spin"
+      - "&7and if the player wins the second"
+      - "&7time around, they get their original"
+      - "&7stake back."
+      - "&7"
+      - "&6Click to enable/disable."
+  surrender:
+    display-name: "&aSurrender"
+    lore:
+      - "&7It's basically the same as La Partage"
+      - "&7as it is enforced whenever 0 or 00 win,"
+      - "&7in which case the player “surrenders”"
+      - "&7half of their original stake and"
+      - "&7retains the rest."
+      - "&7"
+      - "&6Click to enable/disable."
+  last-winning-numbers:
+    display-name: "&aLast winning numbers"
+    lore:
+      - "&7Here you can see the last winning"
+      - "&7numbers in this game."
+  croupier:
+    display-name: "&aCroupier: &e%croupier-name%"
+    lore:
+      - "&7Here you can change some options"
+      - "&7of the npc."
+      - "&7"
+      - "&6Left click to change name."
+      - "&6Right click to change texture."
+      - "&7"
+      - "&cShift left click to reset name."
+      - "&cShifft right click to reset texture."
+  close:
+    material: BARRIER
+    display-name: "&cClose"
+    lore:
+      - "&7Click to close."
+
+# Text added to the surrender rule item if the table being edited isn't american.
+only-american: "&c(Only for american)"
+
+# Text added to the croupier settings item when has no name.
+unnamed-croupier: "&cUnnamed"
+
+# Here you can modify each item within the inventory of purchase of chips.
+# You can't change the material of @chip, as this will use a head with the chip skin, defined in @chips.yml.
+# %page% - the current page. (@title)
+# %max% - the amount of pages. (@title)
+# %money% - the money involved. (@chip.display-name and @money.display-name)
+shop:
+  title: "Chips (%page%/%max%)"
+  chip:
+    display-name: "&a%money%"
+    lore:
+      - "&7Click to buy one chip."
+  previous:
+    url: "bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9"
+    material: PLAYER_HEAD
+    display-name: "&6Previous"
+    lore:
+      - "&7Click to go to the previous page."
+  money:
+    url: "6e7e3e8ab060e64d0256b3688e62d433eab341a157f2a733ed43450fee4e7264"
+    material: PLAYER_HEAD
+    display-name: "&6Your wallet: &e%money%"
+    lore: []
+  bet-all:
+    url: "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852"
+    material: PLAYER_HEAD
+    display-name: "&aBet all"
+    lore:
+      - "&7Bet all your money on this game."
+      - "&c(you'll have to confirm)"
+  exit:
+    material: BARRIER
+    display-name: "&cExit"
+    lore:
+      - "&7Click to exit the game."
+  next:
+    url: "19bf3292e126a105b54eba713aa1b152d541a1d8938829c56364d178ed22bf"
+    material: PLAYER_HEAD
+    display-name: "&6Next"
+    lore:
+      - "&7Click to go to the next page."

@@ -1,0 +1,69 @@
+# Here you can create all the chips for the games.
+#
+# For the URL, you can go to https://minecraft-heads.com/, select a custom head,
+# scroll all the way down and click on "Copy" on the last box, under the name Minecraft-URL.
+#
+# If you want to use custom heads, you can go to https://mineskin.org/, select the file of the skin and upload it,
+# when it's done it'll show you some weird strings, go to the one called "Texture URL" and copy it,
+# you need to remove "http://textures.minecraft.net/texture/", we just need the last string.
+#
+# You can set differents names and lore for all chips, like this:
+#
+# PURPLE:
+#   display-name: "&5Purple &lCHIP"
+#   lore:
+#     - "&7This is a purple chip, worth 5$"
+#   url: "a9d68bcb0ef127f58fd93b85a7b0a47a3cff5ca688a86cc5e4bdd110e7ec717c"
+#   price: 50.0
+#
+# Otherwise, it'll use the name and lore of the config.yml.
+
+chips:
+  PURPLE:
+    url: "a9d68bcb0ef127f58fd93b85a7b0a47a3cff5ca688a86cc5e4bdd110e7ec717c"
+    price: 50.0
+  LIGHT_GRAY:
+    url: "d1a32fc038ad9aa1da99f6b82ae4a1919213925e7454f3343aa0be2e13da6f29"
+    price: 100.0
+  LIGHT_BLUE:
+    url: "f752f74c0f16789ba5b2c8c8a8ef2a16fdd949906ab6ae46dee653023158abc8"
+    price: 200.0
+  GREEN:
+    url: "a7de569743d1e7c080ad0f590d539aa573a0af4ba7be23ec8d793269fe927088"
+    price: 500.0
+  GRAY:
+    url: "255b5a5b27fe57479087dfe9d99fdcf789a4baa1eb2690a5b5e032bec92c7e50"
+    price: 1000.0
+  CYAN:
+    url: "21bdf484634572adb0c0db1b4fe3307592f5f6af969657cc8c87ec66153a88df"
+    price: 2000.0
+  BROWN:
+    url: "da71835e6ffd654b43896e7c4d852abdd09996d15ec800f6e558beb2728567db"
+    price: 5000.0
+  BLUE:
+    url: "13444e6349cb549e2e800c23ca206d2360f129e45ca3130d587ff97507a46462"
+    price: 7500.0
+  BLACK:
+    url: "33bbac230ba0bd526f83c5100fcfd5cd08dab35a9844416e6d4127fa54618926"
+    price: 10000.0
+  YELLOW:
+    url: "f780bf5789551bf051e74e36052706dd133fcd58ceadeed9ce2afd84c7c9a209"
+    price: 15000.0
+  WHITE:
+    url: "f8dab06bb7d08660aea14be770e9044338753502a5575e2c56f845f8658aee65"
+    price: 20000.0
+  PINK:
+    url: "c828726733fb4e7448a139b8fa4e32b913253301c04fcedd493ddf833f3311a1"
+    price: 25000.0
+  ORANGE:
+    url: "1a316db9820b3e29c556318065d610231fbb5abce97dcb9b35ebf62ff3ba5d41"
+    price: 30000.0
+  RED:
+    url: "b0458d58c030cfabd8b19e4944bbe2860f6617a77ec6c9488593e2a473db6758"
+    price: 40000.0
+  MAGENTA:
+    url: "caa685ebb65420ba6eb808c715978e10edb1414ca783e0c702fef4af74aed113"
+    price: 50000.0
+  LIME:
+    url: "8bad26ccb4f8937ffcfe9e0ef49b7cea7672c98f68ead7f8f901a22349029301"
+    price: 100000.0
