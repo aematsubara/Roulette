@@ -60,6 +60,8 @@
                             <excludes>
                                 <exclude>META-INF/*.MF</exclude>
                                 <!-- Exclude unused XSeries utilities. -->
+                                <exclude>com/cryptomorin/xseries/particles/ParticleDisplay*</exclude>
+                                <exclude>com/cryptomorin/xseries/particles/XParticle*</exclude>
                                 <exclude>com/cryptomorin/xseries/XBiome*</exclude>
                                 <exclude>com/cryptomorin/xseries/NMSExtras*</exclude>
                                 <exclude>com/cryptomorin/xseries/NoteBlockMusic*</exclude>
