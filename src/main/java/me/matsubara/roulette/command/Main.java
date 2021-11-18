@@ -77,6 +77,9 @@ public final class Main implements CommandExecutor, TabCompleter {
                     plugin.getMessageManager().send(sender, MessageManager.Message.RELOAD);
                     return true;
                 case "map":
+                    // If player doesn't have permission to get a map, send @no-permission message.
+                    if (!hasPermission(player, "roulette.map")) return true;
+
                     ThreadLocalRandom random = ThreadLocalRandom.current();
                     Map.Entry<Integer, ItemStack> entry = plugin.getWinnerManager().renderMap(null, player.getName(), random.nextDouble(100000d));
                     if (entry != null) player.getInventory().addItem(entry.getValue());
