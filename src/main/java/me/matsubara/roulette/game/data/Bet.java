@@ -5,7 +5,7 @@ import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.model.stand.StandSettings;
-import me.matsubara.roulette.stand.PacketStand;
+import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

@@ -3,7 +3,7 @@ package me.matsubara.roulette.manager;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Bet;
-import me.matsubara.roulette.stand.PacketStand;
+import me.matsubara.roulette.model.stand.PacketStand;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

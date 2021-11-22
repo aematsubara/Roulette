@@ -11,7 +11,7 @@ import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.gui.ConfirmGUI;
-import me.matsubara.roulette.stand.PacketStand;
+import me.matsubara.roulette.model.stand.PacketStand;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 

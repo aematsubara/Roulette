@@ -235,8 +235,6 @@ public final class InventoryClick implements Listener {
         if (npcName == null) npcName = ConfigManager.Config.UNNAMED_CROUPIER.asString();
         String croupier = plugin.getConfigManager().getDisplayName("game-menu", "croupier").replace("%croupier-name%", npcName);
 
-        plugin.getLogger().info("CLICKED ON CROUPIER ITEM ON GAMEGUI ? = " + (hasDisplayName && displayName.equalsIgnoreCase(croupier)));
-
         if (hasDisplayName && (displayName.equalsIgnoreCase(minAmount) || displayName.equalsIgnoreCase(maxAmount))) {
             setLimitPlayers(event, game, min, max, displayName.equalsIgnoreCase(maxAmount));
         } else if (isAccountItem(current) || (hasDisplayName && displayName.equalsIgnoreCase(noAccount))) {

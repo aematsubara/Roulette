@@ -4,7 +4,7 @@ import com.cryptomorin.xseries.SkullUtils;
 import com.cryptomorin.xseries.XMaterial;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.model.stand.StandSettings;
-import me.matsubara.roulette.stand.PacketStand;
+import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;

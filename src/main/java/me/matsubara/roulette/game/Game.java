@@ -18,7 +18,7 @@ import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.runnable.MoneyAnimation;
-import me.matsubara.roulette.stand.PacketStand;
+import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.util.PluginUtils;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.apache.commons.lang.ArrayUtils;
@@ -62,6 +62,7 @@ public final class Game {
 
     // The maximum amount of players allowed in this game.
     private int maxPlayers;
+
 
     // Players in this game.
     private final Map<Player, Bet> players;

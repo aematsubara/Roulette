@@ -10,6 +10,7 @@ depend:
 softdepend:
   - Essentials
   - PlaceholderAPI
+  - ViaVersion
 
 commands:
   roulette:

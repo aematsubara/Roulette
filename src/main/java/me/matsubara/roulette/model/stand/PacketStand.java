@@ -1,8 +1,8 @@
-package me.matsubara.roulette.stand;
+package me.matsubara.roulette.model.stand;
 
 import com.cryptomorin.xseries.ReflectionUtils;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.model.stand.StandSettings;
+import me.matsubara.roulette.hook.ViaExtension;
 import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
@@ -324,7 +324,7 @@ public final class PacketStand {
 
             ignored.remove(player.getUniqueId());
 
-            Bukkit.getScheduler().runTaskAsynchronously(JavaPlugin.getPlugin(RoulettePlugin.class), () -> {
+            Bukkit.getScheduler().runTaskAsynchronously(PLUGIN, () -> {
                 showPassenger(player);
                 updateLocation();
                 updateRotation();
@@ -378,10 +378,10 @@ public final class PacketStand {
             Object packetRotation = packetEntityHeadRotation.newInstance(stand, yaw);
             sendPacket(packetRotation, true);
 
-            if (ReflectionUtils.VER < 17) {
-                Object packetLook = packetEntityLook.newInstance(entityId, yaw, pitch, true);
-                sendPacket(packetLook, true);
-            }
+            //if (ReflectionUtils.VER < 17) {
+            Object packetLook = packetEntityLook.newInstance(entityId, yaw, pitch, true);
+            sendPacket(packetLook, true);
+            //}
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -740,8 +740,17 @@ public final class PacketStand {
     }
 
     private void sendPacket(Object packet, boolean sync) {
+        boolean isEntityLook = packet.getClass().isAssignableFrom(PACKET_ENTITY_LOOK);
+        boolean usingVia = PLUGIN.hasDependency("ViaVersion");
+
         for (Player player : location.getWorld().getPlayers()) {
             if (isIgnored(player)) continue;
+
+            // 755 = 1.17
+            if (isEntityLook && (ReflectionUtils.VER > 16 || (usingVia && ViaExtension.getPlayerVersion(player) > 754))) {
+                continue;
+            }
+
             sendPacket(player, packet, sync);
         }
     }

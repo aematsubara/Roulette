@@ -1,6 +1,7 @@
 package me.matsubara.roulette.util.map;
 
 import com.cryptomorin.xseries.ReflectionUtils;
+import me.matsubara.roulette.RoulettePlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -8,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.*;
 import org.bukkit.map.MapView.Scale;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,6 +19,8 @@ import java.util.List;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class MapBuilder {
+
+    private final RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
 
     private MapView view;
     private BufferedImage image;
@@ -84,7 +88,8 @@ public final class MapBuilder {
      * @return the instance of this class.
      */
     public MapBuilder addText(int x, int y, @NotNull MapFont font, @NotNull String text) {
-        this.texts.add(new Text(x, y, font, text));
+        if (font.isValid(text)) this.texts.add(new Text(x, y, font, text));
+        else PLUGIN.getLogger().warning("The line for the map (\"" + text + "\") contains invalid characters!");
         return this;
     }
 

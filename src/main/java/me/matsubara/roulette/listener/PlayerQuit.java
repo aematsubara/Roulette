@@ -21,7 +21,7 @@ public final class PlayerQuit implements Listener {
         Player player = event.getPlayer();
 
         // Remove player from input.
-        plugin.getInputManager().cancel(player);
+        plugin.getInputManager().remove(player);
 
         // Remove player from game when leaving.
         Game game = plugin.getGameManager().getGameByPlayer(player);

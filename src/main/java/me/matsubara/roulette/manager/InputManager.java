@@ -51,7 +51,7 @@ public final class InputManager implements Listener {
         if (message.equalsIgnoreCase(ConfigManager.Config.CANCEL_WORD.asString())) {
             plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_CANCELLED);
             event.setCancelled(true);
-            cancel(player);
+            remove(player);
             return;
         }
 
@@ -129,7 +129,7 @@ public final class InputManager implements Listener {
             });
         }
 
-        cancel(player);
+        remove(player);
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -137,7 +137,7 @@ public final class InputManager implements Listener {
         if (message.contains(" ")) {
             plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_INVALID);
             players.remove(player.getUniqueId());
-            cancel(player);
+            remove(player);
             return true;
         }
         return false;
@@ -148,7 +148,7 @@ public final class InputManager implements Listener {
         player.setMetadata("rouletteEditing", new FixedMetadataValue(plugin, game.getName()));
     }
 
-    public void cancel(Player player) {
+    public void remove(Player player) {
         players.remove(player.getUniqueId());
         player.removeMetadata("rouletteEditing", plugin);
     }

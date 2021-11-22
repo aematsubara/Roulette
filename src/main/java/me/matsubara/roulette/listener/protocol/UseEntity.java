@@ -11,7 +11,7 @@ import com.earth2me.essentials.User;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.game.Game;
-import me.matsubara.roulette.stand.PacketStand;
+import me.matsubara.roulette.model.stand.PacketStand;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.MetadataValue;
 

@@ -1,7 +1,7 @@
 package me.matsubara.roulette.runnable;
 
 import me.matsubara.roulette.game.Game;
-import me.matsubara.roulette.stand.PacketStand;
+import me.matsubara.roulette.model.stand.PacketStand;
 import org.bukkit.Location;
 import org.bukkit.scheduler.BukkitRunnable;
 

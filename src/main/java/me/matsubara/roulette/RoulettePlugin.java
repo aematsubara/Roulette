@@ -4,20 +4,17 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.cryptomorin.xseries.ReflectionUtils;
 import com.github.juliarn.npc.NPCPool;
 import me.matsubara.roulette.command.Main;
-import me.matsubara.roulette.hook.EssXExtension;
-import me.matsubara.roulette.manager.ChipManager;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.MessageManager;
-import me.matsubara.roulette.manager.WinnerManager;
 import me.matsubara.roulette.game.GameType;
+import me.matsubara.roulette.hook.EssXExtension;
 import me.matsubara.roulette.hook.PAPIExtension;
-import me.matsubara.roulette.listener.*;
+import me.matsubara.roulette.listener.EntityDamageByEntity;
+import me.matsubara.roulette.listener.InventoryClick;
+import me.matsubara.roulette.listener.InventoryClose;
+import me.matsubara.roulette.listener.PlayerQuit;
 import me.matsubara.roulette.listener.npc.PlayerNPCInteract;
 import me.matsubara.roulette.listener.protocol.SteerVehicle;
 import me.matsubara.roulette.listener.protocol.UseEntity;
-import me.matsubara.roulette.manager.GameManager;
-import me.matsubara.roulette.manager.InputManager;
-import me.matsubara.roulette.manager.StandManager;
+import me.matsubara.roulette.manager.*;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -166,6 +163,7 @@ public final class RoulettePlugin extends JavaPlugin {
         RegisteredServiceProvider<Economy> provider = getServer().getServicesManager().getRegistration(Economy.class);
         if (provider == null) return false;
 
+        getLogger().info("Using " + provider.getPlugin().getName() + " as the economy provider.");
         economy = provider.getProvider();
         return true;
     }

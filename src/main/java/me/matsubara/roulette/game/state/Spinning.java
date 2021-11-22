@@ -12,7 +12,7 @@ import me.matsubara.roulette.gui.ChipGUI;
 import me.matsubara.roulette.gui.ConfirmGUI;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
-import me.matsubara.roulette.stand.PacketStand;
+import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
 import org.bukkit.Material;
