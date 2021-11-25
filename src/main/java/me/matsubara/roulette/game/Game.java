@@ -63,7 +63,6 @@ public final class Game {
     // The maximum amount of players allowed in this game.
     private int maxPlayers;
 
-
     // Players in this game.
     private final Map<Player, Bet> players;
 

@@ -20,34 +20,46 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.*;
 
-@SuppressWarnings({"ConstantConditions", "BooleanMethodIsAlwaysInverted"})
+@SuppressWarnings({"unused", "ConstantConditions"})
 public final class PacketStand {
 
-    // Instance of the plugin.
+    // Plugin instance.
     private final static RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
 
-    // Instance of the entity.
+    // Entity instance.
     private Object stand;
 
-    // Current location of the entity.
+    // Entity location.
     private Location location;
 
     // Set with the unique id of the players who aren't seeing the entity due to the distance.
     private Set<UUID> ignored;
 
-    // Entity attributes.
+    // Entity unique id.
     private int entityId;
-    private int[] passengersId = {};
+
+    // Entity passengers.
+    private int[] passengersId;
+
+    // Entity properties.
     private StandSettings settings;
 
-    // Most changes are made since 1.13 version.
-    private final static boolean isMoreThan12 = ReflectionUtils.VER > 12;
+    // Protocol version of the server, only needed for 1.17 and up.
+    private static int PROTOCOL = -1;
 
-    // Craft classes.
+    // Version of the server.
+    private final static int VERSION = ReflectionUtils.VER;
+
+    // Most changes are made since 1.13 version.
+    private final static boolean isMoreThan12 = VERSION > 12;
+
+    // Methods factory.
+    private final static MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+
+    // Classes.
     private final static Class<?> CRAFT_WORLD;
     private final static Class<?> CRAFT_CHAT_MESSAGE;
-
-    // NMS classes.
+    private final static Class<?> CRAFT_ITEM_STACK;
     private final static Class<?> WORLD;
     private final static Class<?> WORLD_SERVER;
     private final static Class<?> I_CHAT_BASE_COMPONENT;
@@ -65,9 +77,10 @@ public final class PacketStand {
     private final static Class<?> PACKET_ENTITY_EQUIPMENT;
     private final static Class<?> ENUM_ITEM_SLOT;
     private final static Class<?> ITEM_STACK;
-    private final static Class<?> CRAFT_ITEM_STACK;
     private final static Class<?> PACKET_ENTITY_DESTROY;
     private final static Class<?> PAIR;
+    private final static Class<?> SHARED_CONSTANTS;
+    private final static Class<?> GAME_VERSION;
 
     // Methods.
     private final static MethodHandle getHandle;
@@ -127,64 +140,42 @@ public final class PacketStand {
         ENUM_ITEM_SLOT = ReflectionUtils.getNMSClass("world.entity", "EnumItemSlot");
         ITEM_STACK = ReflectionUtils.getNMSClass("world.item", "ItemStack");
         PACKET_ENTITY_DESTROY = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityDestroy");
+        PAIR = getUnversionedClass("com.mojang.datafixers.util.Pair");
+        SHARED_CONSTANTS = VERSION > 16 ? ReflectionUtils.getNMSClass("SharedConstants") : null;
+        GAME_VERSION = VERSION > 16 ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
 
-        Class<?> pair;
-        try {
-            pair = Class.forName("com.mojang.datafixers.util.Pair");
-        } catch (ClassNotFoundException exception) {
-            pair = null;
-        }
-        PAIR = pair;
-
-        MethodHandle handle = null;
-        MethodHandle watcher = null;
-        MethodHandle fromString = null;
-        MethodHandle id = null;
-        MethodHandle location = null;
-        MethodHandle invisible = null;
-        MethodHandle arms = null;
-        MethodHandle basePlate = null;
-        MethodHandle small = null;
-        MethodHandle marker = null;
-        MethodHandle name = null;
-        MethodHandle nameVisible = null;
-        MethodHandle head = null;
-        MethodHandle body = null;
-        MethodHandle leftArm = null;
-        MethodHandle rightArm = null;
-        MethodHandle leftLeg = null;
-        MethodHandle rightLeg = null;
-        MethodHandle nmsCopy = null;
-        MethodHandle flag = null;
-        MethodHandle ofPair = null;
+        // Initialize methods.
+        getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
+        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, "getDataWatcher", MethodType.methodType(DATA_WATCHER));
+        fromStringOrNull = !isMoreThan12 ? null : getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true);
+        getId = getMethod(ENTITY_ARMOR_STAND, "getId", MethodType.methodType(int.class));
+        setLocation = getMethod(ENTITY_ARMOR_STAND, "setLocation", MethodType.methodType(void.class, double.class, double.class, double.class, float.class, float.class));
+        setInvisible = getMethod(ENTITY_ARMOR_STAND, "setInvisible", MethodType.methodType(void.class, boolean.class));
+        setArms = getMethod(ENTITY_ARMOR_STAND, "setArms", MethodType.methodType(void.class, boolean.class));
+        setBasePlate = getMethod(ENTITY_ARMOR_STAND, "setBasePlate", MethodType.methodType(void.class, boolean.class));
+        setSmall = getMethod(ENTITY_ARMOR_STAND, "setSmall", MethodType.methodType(void.class, boolean.class));
+        setMarker = getMethod(ENTITY_ARMOR_STAND, VERSION == 8 ? "n" : "setMarker", MethodType.methodType(void.class, boolean.class));
+        setCustomName = getMethod(ENTITY_ARMOR_STAND, "setCustomName", MethodType.methodType(void.class, isMoreThan12 ? I_CHAT_BASE_COMPONENT : String.class));
+        setCustomNameVisible = getMethod(ENTITY_ARMOR_STAND, "setCustomNameVisible", MethodType.methodType(void.class, boolean.class));
+        setHeadPose = getMethod(ENTITY_ARMOR_STAND, "setHeadPose", MethodType.methodType(void.class, VECTOR3F));
+        setBodyPose = getMethod(ENTITY_ARMOR_STAND, "setBodyPose", MethodType.methodType(void.class, VECTOR3F));
+        setLeftArmPose = getMethod(ENTITY_ARMOR_STAND, "setLeftArmPose", MethodType.methodType(void.class, VECTOR3F));
+        setRightArmPose = getMethod(ENTITY_ARMOR_STAND, "setRightArmPose", MethodType.methodType(void.class, VECTOR3F));
+        setLeftLegPose = getMethod(ENTITY_ARMOR_STAND, "setLeftLegPose", MethodType.methodType(void.class, VECTOR3F));
+        setRightLegPose = getMethod(ENTITY_ARMOR_STAND, "setRightLegPose", MethodType.methodType(void.class, VECTOR3F));
+        asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true);
+        setFlag = getMethod(ENTITY_ARMOR_STAND, "setFlag", MethodType.methodType(void.class, int.class, boolean.class));
+        of = PAIR == null ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true);
 
         try {
-            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            // Get protocol version.
+            if (VERSION > 16) {
+                MethodHandle getVersion = getMethod(SHARED_CONSTANTS, "getGameVersion", MethodType.methodType(GAME_VERSION), true);
+                MethodHandle getProtocol = getMethod(GAME_VERSION, "getProtocolVersion", MethodType.methodType(int.class));
 
-            // Initialize methods.
-            handle = lookup.findVirtual(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
-            watcher = lookup.findVirtual(ENTITY_ARMOR_STAND, "getDataWatcher", MethodType.methodType(DATA_WATCHER));
-            fromString = !isMoreThan12 ?
-                    null :
-                    lookup.findStatic(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class));
-            id = lookup.findVirtual(ENTITY_ARMOR_STAND, "getId", MethodType.methodType(int.class));
-            location = lookup.findVirtual(ENTITY_ARMOR_STAND, "setLocation", MethodType.methodType(void.class, double.class, double.class, double.class, float.class, float.class));
-            invisible = lookup.findVirtual(ENTITY_ARMOR_STAND, "setInvisible", MethodType.methodType(void.class, boolean.class));
-            arms = lookup.findVirtual(ENTITY_ARMOR_STAND, "setArms", MethodType.methodType(void.class, boolean.class));
-            basePlate = lookup.findVirtual(ENTITY_ARMOR_STAND, "setBasePlate", MethodType.methodType(void.class, boolean.class));
-            small = lookup.findVirtual(ENTITY_ARMOR_STAND, "setSmall", MethodType.methodType(void.class, boolean.class));
-            marker = lookup.findVirtual(ENTITY_ARMOR_STAND, ReflectionUtils.VER == 8 ? "n" : "setMarker", MethodType.methodType(void.class, boolean.class));
-            name = lookup.findVirtual(ENTITY_ARMOR_STAND, "setCustomName", MethodType.methodType(void.class, isMoreThan12 ? I_CHAT_BASE_COMPONENT : String.class));
-            nameVisible = lookup.findVirtual(ENTITY_ARMOR_STAND, "setCustomNameVisible", MethodType.methodType(void.class, boolean.class));
-            head = lookup.findVirtual(ENTITY_ARMOR_STAND, "setHeadPose", MethodType.methodType(void.class, VECTOR3F));
-            body = lookup.findVirtual(ENTITY_ARMOR_STAND, "setBodyPose", MethodType.methodType(void.class, VECTOR3F));
-            leftArm = lookup.findVirtual(ENTITY_ARMOR_STAND, "setLeftArmPose", MethodType.methodType(void.class, VECTOR3F));
-            rightArm = lookup.findVirtual(ENTITY_ARMOR_STAND, "setRightArmPose", MethodType.methodType(void.class, VECTOR3F));
-            leftLeg = lookup.findVirtual(ENTITY_ARMOR_STAND, "setLeftLegPose", MethodType.methodType(void.class, VECTOR3F));
-            rightLeg = lookup.findVirtual(ENTITY_ARMOR_STAND, "setRightLegPose", MethodType.methodType(void.class, VECTOR3F));
-            nmsCopy = lookup.findStatic(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class));
-            flag = lookup.findVirtual(ENTITY_ARMOR_STAND, "setFlag", MethodType.methodType(void.class, int.class, boolean.class));
-            ofPair = PAIR == null ? null : lookup.findStatic(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class));
+                Object gameVersion = getVersion.invoke();
+                PROTOCOL = (int) getProtocol.invoke(gameVersion);
+            }
 
             // Initialize constructors.
             entityArmorStand = ENTITY_ARMOR_STAND.getConstructor(WORLD, double.class, double.class, double.class);
@@ -194,36 +185,14 @@ public final class PacketStand {
             packetEntityLook = PACKET_ENTITY_LOOK.getConstructor(int.class, byte.class, byte.class, boolean.class);
             vector3f = VECTOR3F.getConstructor(float.class, float.class, float.class);
             packetEntityMetadata = PACKET_ENTITY_METADATA.getConstructor(int.class, DATA_WATCHER, boolean.class);
-            packetMount = ReflectionUtils.VER > 16 ? PACKET_MOUNT.getConstructor(ENTITY) : PACKET_MOUNT.getConstructor();
-            packetEntityEquipment = ReflectionUtils.VER > 15 ?
+            packetMount = VERSION > 16 ? PACKET_MOUNT.getConstructor(ENTITY) : PACKET_MOUNT.getConstructor();
+            packetEntityEquipment = VERSION > 15 ?
                     PACKET_ENTITY_EQUIPMENT.getConstructor(int.class, List.class) :
                     PACKET_ENTITY_EQUIPMENT.getConstructor(int.class, ENUM_ITEM_SLOT, ITEM_STACK);
-            packetEntityDestroy = PACKET_ENTITY_DESTROY.getConstructor(int[].class);
+            packetEntityDestroy = PACKET_ENTITY_DESTROY.getConstructor(PROTOCOL == 755 ? int.class : int[].class);
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
-
-        getHandle = handle;
-        getDataWatcher = watcher;
-        fromStringOrNull = fromString;
-        getId = id;
-        setLocation = location;
-        setInvisible = invisible;
-        setArms = arms;
-        setBasePlate = basePlate;
-        setSmall = small;
-        setMarker = marker;
-        setCustomName = name;
-        setCustomNameVisible = nameVisible;
-        setHeadPose = head;
-        setBodyPose = body;
-        setLeftArmPose = leftArm;
-        setRightArmPose = rightArm;
-        setLeftLegPose = leftLeg;
-        setRightLegPose = rightLeg;
-        asNMSCopy = nmsCopy;
-        setFlag = flag;
-        of = ofPair;
     }
 
     public PacketStand(Location location, StandSettings settings) {
@@ -240,9 +209,8 @@ public final class PacketStand {
             this.stand = entityArmorStand.newInstance(nmsWorld, location.getX(), location.getY(), location.getZ());
             this.location = location;
             this.ignored = new HashSet<>();
-
             this.entityId = (int) getId.invoke(stand);
-
+            this.passengersId = new int[]{};
             this.settings = settings;
 
             // Set the initial location of this entity.
@@ -255,9 +223,7 @@ public final class PacketStand {
             setArms(settings.hasArms());
             setOnFire(settings.isOnFire());
             setMarker(settings.isMarker());
-            if (settings.getCustomName() != null) {
-                setCustomName(settings.getCustomName());
-            }
+            if (settings.getCustomName() != null) setCustomName(settings.getCustomName());
             setCustomNameVisible(settings.isCustomNameVisible());
 
             // Set poses.
@@ -295,12 +261,18 @@ public final class PacketStand {
         return settings;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isInRange(Location location) {
         int renderDistance = PLUGIN.getConfigManager().getRenderDistance();
         double distance = Math.min(renderDistance * renderDistance, Math.pow(Bukkit.getViewDistance() << 4, 2));
 
         if (!this.location.getWorld().equals(location.getWorld())) return false;
-        return this.location.distanceSquared(location) <= distance;
+        try {
+            return this.location.distanceSquared(location) <= distance;
+        } catch (IllegalArgumentException exception) {
+            // Player isn't in the same world, don't show.
+            return false;
+        }
     }
 
     /**
@@ -378,10 +350,8 @@ public final class PacketStand {
             Object packetRotation = packetEntityHeadRotation.newInstance(stand, yaw);
             sendPacket(packetRotation, true);
 
-            //if (ReflectionUtils.VER < 17) {
             Object packetLook = packetEntityLook.newInstance(entityId, yaw, pitch, true);
             sendPacket(packetLook, true);
-            //}
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -444,7 +414,7 @@ public final class PacketStand {
 
     public void setOnFire(boolean fire) {
         // Only works on 1.9+.
-        if (ReflectionUtils.VER < 9) return;
+        if (VERSION < 9) return;
 
         settings.setOnFire(fire);
 
@@ -462,7 +432,7 @@ public final class PacketStand {
 
     public void setGlowing(boolean glow) {
         // Only works on 1.9+.
-        if (ReflectionUtils.VER < 9) return;
+        if (VERSION < 9) return;
 
         settings.setGlowing(glow);
 
@@ -528,7 +498,7 @@ public final class PacketStand {
     private void sendPassenger(@Nullable Player to) {
         try {
             Object packetMount;
-            if (ReflectionUtils.VER > 16) {
+            if (VERSION > 16) {
                 packetMount = PacketStand.packetMount.newInstance(stand);
             } else {
                 packetMount = PacketStand.packetMount.newInstance();
@@ -629,12 +599,12 @@ public final class PacketStand {
 
         public Object get() {
             try {
-                Field field = ENUM_ITEM_SLOT.getField(ReflectionUtils.VER > 16 ? "" + alphabet[ordinal()] : name());
+                Field field = ENUM_ITEM_SLOT.getField(VERSION > 16 ? "" + alphabet[ordinal()] : name());
                 return field.get(null);
             } catch (Throwable exception) {
                 exception.printStackTrace();
+                return null;
             }
-            return null;
         }
     }
 
@@ -650,7 +620,7 @@ public final class PacketStand {
             Object itemStack = asNMSCopy.invoke(item);
 
             Object packetEquipment;
-            if (ReflectionUtils.VER > 15) {
+            if (VERSION > 15) {
                 List<Object> list = new ArrayList<>();
                 list.add(of.invoke(slot.get(), itemStack));
 
@@ -708,12 +678,15 @@ public final class PacketStand {
         ignored.clear();
     }
 
-    @SuppressWarnings("PrimitiveArrayArgumentToVarargsMethod")
+    @SuppressWarnings({"PrimitiveArrayArgumentToVarargsMethod"})
     public void destroy(Player player) {
-        int[] ids = new int[]{entityId};
-
         try {
-            Object packetDestroy = packetEntityDestroy.newInstance(ids);
+            Object packetDestroy;
+            if (PROTOCOL == 755) {
+                packetDestroy = packetEntityDestroy.newInstance(entityId);
+            } else {
+                packetDestroy = packetEntityDestroy.newInstance(new int[]{entityId});
+            }
 
             sendPacket(player, packetDestroy);
             ignored.add(player.getUniqueId());
@@ -747,11 +720,34 @@ public final class PacketStand {
             if (isIgnored(player)) continue;
 
             // 755 = 1.17
-            if (isEntityLook && (ReflectionUtils.VER > 16 || (usingVia && ViaExtension.getPlayerVersion(player) > 754))) {
+            if (isEntityLook && (VERSION > 16 || (usingVia && ViaExtension.getPlayerVersion(player) > 754))) {
                 continue;
             }
 
             sendPacket(player, packet, sync);
+        }
+    }
+
+    private static Class<?> getUnversionedClass(String name) {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException exception) {
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
+    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type) {
+        return getMethod(refc, name, type, false);
+    }
+
+    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic) {
+        try {
+            if (isStatic) return LOOKUP.findStatic(refc, name, type);
+            return LOOKUP.findVirtual(refc, name, type);
+        } catch (ReflectiveOperationException exception) {
+            exception.printStackTrace();
+            return null;
         }
     }
 }

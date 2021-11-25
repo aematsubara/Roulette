@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
@@ -37,13 +38,15 @@ public final class StandManager implements Listener {
         handleStandRender(player, event.getTo(), false);
     }
 
-    @SuppressWarnings("ConstantConditions")
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        handleStandRender(player, player.getLocation(), true);
+    }
+
     private void handleStandRender(Player player, Location location, boolean isSpawn) {
         for (Game game : plugin.getGameManager().getGames()) {
             if (!game.getModel().isModelSpawned()) continue;
-
-            // If the player isn't in the same world of this game, continue.
-            if (!game.getModel().getLocation().getWorld().equals(player.getWorld())) continue;
 
             boolean shouldShow = true;
 

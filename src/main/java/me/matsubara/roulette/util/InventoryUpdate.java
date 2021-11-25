@@ -77,9 +77,7 @@ public final class InventoryUpdate {
         ENTITY_PLAYER_CLASS = ReflectionUtils.getNMSClass("server.level", "EntityPlayer");
         CONTAINER_CLASS = ReflectionUtils.getNMSClass("world.inventory", "Container");
 
-        MethodHandle handle = null;
-        MethodHandle bukkitView = null;
-        MethodHandle update = null;
+        MethodHandle handle = null, bukkitView = null, update = null;
 
         try {
             int version = ReflectionUtils.VER;
