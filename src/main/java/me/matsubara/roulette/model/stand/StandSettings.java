@@ -4,7 +4,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.EulerAngle;
 import org.jetbrains.annotations.NotNull;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public final class StandSettings implements Cloneable {
 
     // Entity settings.
@@ -67,168 +67,189 @@ public final class StandSettings implements Cloneable {
         return invisible;
     }
 
-    public void setInvisible(boolean invisible) {
+    public StandSettings setInvisible(boolean invisible) {
         this.invisible = invisible;
+        return this;
     }
 
     public boolean isSmall() {
         return small;
     }
 
-    public void setSmall(boolean small) {
+    public StandSettings setSmall(boolean small) {
         this.small = small;
+        return this;
     }
 
     public boolean hasBasePlate() {
         return basePlate;
     }
 
-    public void setBasePlate(boolean hasBasePlate) {
+    public StandSettings setBasePlate(boolean hasBasePlate) {
         this.basePlate = hasBasePlate;
+        return this;
     }
 
     public boolean hasArms() {
         return arms;
     }
 
-    public void setArms(boolean hasArms) {
+    public StandSettings setArms(boolean hasArms) {
         this.arms = hasArms;
+        return this;
     }
 
     public boolean isOnFire() {
         return fire;
     }
 
-    public void setOnFire(boolean fire) {
+    public StandSettings setOnFire(boolean fire) {
         this.fire = fire;
+        return this;
     }
 
     public boolean isMarker() {
         return marker;
     }
 
-    public void setMarker(boolean marker) {
+    public StandSettings setMarker(boolean marker) {
         this.marker = marker;
+        return this;
     }
 
     public boolean isGlowing() {
         return glow;
     }
 
-    public void setGlowing(boolean glow) {
+    public StandSettings setGlowing(boolean glow) {
         this.glow = glow;
+        return this;
     }
 
     public String getCustomName() {
         return customName;
     }
 
-    public void setCustomName(String customName) {
+    public StandSettings setCustomName(String customName) {
         this.customName = customName;
+        return this;
     }
 
     public boolean isCustomNameVisible() {
         return customNameVisible;
     }
 
-    public void setCustomNameVisible(boolean customNameVisible) {
+    public StandSettings setCustomNameVisible(boolean customNameVisible) {
         this.customNameVisible = customNameVisible;
+        return this;
     }
 
     public EulerAngle getHeadPose() {
         return headPose;
     }
 
-    public void setHeadPose(EulerAngle headPose) {
+    public StandSettings setHeadPose(EulerAngle headPose) {
         this.headPose = headPose;
+        return this;
     }
 
     public EulerAngle getBodyPose() {
         return bodyPose;
     }
 
-    public void setBodyPose(EulerAngle bodyPose) {
+    public StandSettings setBodyPose(EulerAngle bodyPose) {
         this.bodyPose = bodyPose;
+        return this;
     }
 
     public EulerAngle getLeftArmPose() {
         return leftArmPose;
     }
 
-    public void setLeftArmPose(EulerAngle leftArmPose) {
+    public StandSettings setLeftArmPose(EulerAngle leftArmPose) {
         this.leftArmPose = leftArmPose;
+        return this;
     }
 
     public EulerAngle getRightArmPose() {
         return rightArmPose;
     }
 
-    public void setRightArmPose(EulerAngle rightArmPose) {
+    public StandSettings setRightArmPose(EulerAngle rightArmPose) {
         this.rightArmPose = rightArmPose;
+        return this;
     }
 
     public EulerAngle getLeftLegPose() {
         return leftLegPose;
     }
 
-    public void setLeftLegPose(EulerAngle leftLegPose) {
+    public StandSettings setLeftLegPose(EulerAngle leftLegPose) {
         this.leftLegPose = leftLegPose;
+        return this;
     }
 
     public EulerAngle getRightLegPose() {
         return rightLegPose;
     }
 
-    public void setRightLegPose(EulerAngle rightLegPose) {
+    public StandSettings setRightLegPose(EulerAngle rightLegPose) {
         this.rightLegPose = rightLegPose;
+        return this;
     }
 
     public ItemStack getHelmet() {
         return helmet;
     }
 
-    public void setHelmet(ItemStack helmet) {
+    public StandSettings setHelmet(ItemStack helmet) {
         this.helmet = helmet;
+        return this;
     }
 
     public ItemStack getChestplate() {
         return chestplate;
     }
 
-    public void setChestplate(ItemStack chestplate) {
+    public StandSettings setChestplate(ItemStack chestplate) {
         this.chestplate = chestplate;
+        return this;
     }
 
     public ItemStack getLeggings() {
         return leggings;
     }
 
-    public void setLeggings(ItemStack leggings) {
+    public StandSettings setLeggings(ItemStack leggings) {
         this.leggings = leggings;
+        return this;
     }
 
     public ItemStack getBoots() {
         return boots;
     }
 
-    public void setBoots(ItemStack boots) {
+    public StandSettings setBoots(ItemStack boots) {
         this.boots = boots;
+        return this;
     }
 
     public ItemStack getMainHand() {
         return mainHand;
     }
 
-    public void setMainHand(ItemStack mainHand) {
+    public StandSettings setMainHand(ItemStack mainHand) {
         this.mainHand = mainHand;
+        return this;
     }
 
     public ItemStack getOffHand() {
         return offHand;
     }
 
-    public void setOffHand(ItemStack offHand) {
+    public StandSettings setOffHand(ItemStack offHand) {
         this.offHand = offHand;
+        return this;
     }
 
     public boolean hasEquipment() {

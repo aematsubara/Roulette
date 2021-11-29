@@ -50,9 +50,6 @@ public final class PacketStand {
     // Version of the server.
     private final static int VERSION = ReflectionUtils.VER;
 
-    // Most changes are made since 1.13 version.
-    private final static boolean isMoreThan12 = VERSION > 12;
-
     // Methods factory.
     private final static MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
@@ -120,7 +117,7 @@ public final class PacketStand {
     static {
         // Initialize classes.
         CRAFT_WORLD = ReflectionUtils.getCraftClass("CraftWorld");
-        CRAFT_CHAT_MESSAGE = !isMoreThan12 ? null : ReflectionUtils.getCraftClass("util.CraftChatMessage");
+        CRAFT_CHAT_MESSAGE = (VERSION > 12) ? ReflectionUtils.getCraftClass("util.CraftChatMessage") : null;
         CRAFT_ITEM_STACK = ReflectionUtils.getCraftClass("inventory.CraftItemStack");
         WORLD = ReflectionUtils.getNMSClass("world.level", "World");
         WORLD_SERVER = ReflectionUtils.getNMSClass("server.level", "WorldServer");
@@ -140,22 +137,22 @@ public final class PacketStand {
         ENUM_ITEM_SLOT = ReflectionUtils.getNMSClass("world.entity", "EnumItemSlot");
         ITEM_STACK = ReflectionUtils.getNMSClass("world.item", "ItemStack");
         PACKET_ENTITY_DESTROY = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityDestroy");
-        PAIR = getUnversionedClass("com.mojang.datafixers.util.Pair");
-        SHARED_CONSTANTS = VERSION > 16 ? ReflectionUtils.getNMSClass("SharedConstants") : null;
-        GAME_VERSION = VERSION > 16 ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
+        PAIR = (VERSION > 15) ? getUnversionedClass("com.mojang.datafixers.util.Pair") : null;
+        SHARED_CONSTANTS = (VERSION > 16) ? ReflectionUtils.getNMSClass("SharedConstants") : null;
+        GAME_VERSION = (VERSION > 16) ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
 
         // Initialize methods.
         getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
         getDataWatcher = getMethod(ENTITY_ARMOR_STAND, "getDataWatcher", MethodType.methodType(DATA_WATCHER));
-        fromStringOrNull = !isMoreThan12 ? null : getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true);
+        fromStringOrNull = (CRAFT_CHAT_MESSAGE == null) ? null : getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true);
         getId = getMethod(ENTITY_ARMOR_STAND, "getId", MethodType.methodType(int.class));
         setLocation = getMethod(ENTITY_ARMOR_STAND, "setLocation", MethodType.methodType(void.class, double.class, double.class, double.class, float.class, float.class));
         setInvisible = getMethod(ENTITY_ARMOR_STAND, "setInvisible", MethodType.methodType(void.class, boolean.class));
         setArms = getMethod(ENTITY_ARMOR_STAND, "setArms", MethodType.methodType(void.class, boolean.class));
         setBasePlate = getMethod(ENTITY_ARMOR_STAND, "setBasePlate", MethodType.methodType(void.class, boolean.class));
         setSmall = getMethod(ENTITY_ARMOR_STAND, "setSmall", MethodType.methodType(void.class, boolean.class));
-        setMarker = getMethod(ENTITY_ARMOR_STAND, VERSION == 8 ? "n" : "setMarker", MethodType.methodType(void.class, boolean.class));
-        setCustomName = getMethod(ENTITY_ARMOR_STAND, "setCustomName", MethodType.methodType(void.class, isMoreThan12 ? I_CHAT_BASE_COMPONENT : String.class));
+        setMarker = getMethod(ENTITY_ARMOR_STAND, (VERSION == 8) ? "n" : "setMarker", MethodType.methodType(void.class, boolean.class));
+        setCustomName = getMethod(ENTITY_ARMOR_STAND, "setCustomName", MethodType.methodType(void.class, (CRAFT_CHAT_MESSAGE == null) ? String.class : I_CHAT_BASE_COMPONENT));
         setCustomNameVisible = getMethod(ENTITY_ARMOR_STAND, "setCustomNameVisible", MethodType.methodType(void.class, boolean.class));
         setHeadPose = getMethod(ENTITY_ARMOR_STAND, "setHeadPose", MethodType.methodType(void.class, VECTOR3F));
         setBodyPose = getMethod(ENTITY_ARMOR_STAND, "setBodyPose", MethodType.methodType(void.class, VECTOR3F));
@@ -165,7 +162,7 @@ public final class PacketStand {
         setRightLegPose = getMethod(ENTITY_ARMOR_STAND, "setRightLegPose", MethodType.methodType(void.class, VECTOR3F));
         asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true);
         setFlag = getMethod(ENTITY_ARMOR_STAND, "setFlag", MethodType.methodType(void.class, int.class, boolean.class));
-        of = PAIR == null ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true);
+        of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true);
 
         try {
             // Get protocol version.
@@ -185,8 +182,8 @@ public final class PacketStand {
             packetEntityLook = PACKET_ENTITY_LOOK.getConstructor(int.class, byte.class, byte.class, boolean.class);
             vector3f = VECTOR3F.getConstructor(float.class, float.class, float.class);
             packetEntityMetadata = PACKET_ENTITY_METADATA.getConstructor(int.class, DATA_WATCHER, boolean.class);
-            packetMount = VERSION > 16 ? PACKET_MOUNT.getConstructor(ENTITY) : PACKET_MOUNT.getConstructor();
-            packetEntityEquipment = VERSION > 15 ?
+            packetMount = (VERSION > 16) ? PACKET_MOUNT.getConstructor(ENTITY) : PACKET_MOUNT.getConstructor();
+            packetEntityEquipment = (VERSION > 15) ?
                     PACKET_ENTITY_EQUIPMENT.getConstructor(int.class, List.class) :
                     PACKET_ENTITY_EQUIPMENT.getConstructor(int.class, ENUM_ITEM_SLOT, ITEM_STACK);
             packetEntityDestroy = PACKET_ENTITY_DESTROY.getConstructor(PROTOCOL == 755 ? int.class : int[].class);
@@ -456,7 +453,7 @@ public final class PacketStand {
                 name = "";
                 setCustomNameVisible(false);
             }
-            setCustomName.invoke(stand, isMoreThan12 ? fromStringOrNull.invoke(name) : name);
+            setCustomName.invoke(stand, (CRAFT_CHAT_MESSAGE == null) ? name : fromStringOrNull.invoke(name));
             settings.setCustomName(name);
         } catch (Throwable exception) {
             exception.printStackTrace();

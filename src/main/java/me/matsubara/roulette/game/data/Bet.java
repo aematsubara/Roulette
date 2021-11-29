@@ -39,10 +39,14 @@ public final class Bet {
     // If this bet already was in prison.
     private boolean wasEnPrison;
 
+    // If this bet won.
+    private boolean won;
+
     public Bet(Game game) {
         this.game = game;
         this.isEnPrison = false;
         this.wasEnPrison = false;
+        this.won = false;
     }
 
     /**
@@ -108,15 +112,16 @@ public final class Bet {
         // No need to create another hologram.
         if (!hasHologram()) {
             // Creates a personal hologram at the location of the selected slot.
-            this.hologram = new Hologram(where);
+            this.hologram = new Hologram(game.getPlugin(), where);
             this.hologram.setVisibleByDefault(false);
             this.hologram.showTo(player);
 
             // Add lines.
             for (String line : ConfigManager.Config.SELECT_HOLOGRAM.asList()) {
                 hologram.addLines(line
-                        .replaceAll("%player%", player.getName())
-                        .replaceAll("%bet%", PluginUtils.getSlotName(slot)));
+                        .replace("%player%", player.getName())
+                        .replace("%bet%", PluginUtils.getSlotName(slot))
+                        .replace("%money%", game.getPlugin().getEconomy().format(chip.getPrice())));
             }
         } else {
             hologram.teleport(where);
@@ -125,8 +130,9 @@ public final class Bet {
             List<String> lines = ConfigManager.Config.SELECT_HOLOGRAM.asList();
             for (int i = 0; i < lines.size(); i++) {
                 hologram.setLine(i, lines.get(i)
-                        .replaceAll("%player%", player.getName())
-                        .replaceAll("%bet%", PluginUtils.getSlotName(slot)));
+                        .replace("%player%", player.getName())
+                        .replace("%bet%", PluginUtils.getSlotName(slot))
+                        .replace("%money%", game.getPlugin().getEconomy().format(chip.getPrice())));
             }
         }
     }
@@ -165,6 +171,14 @@ public final class Bet {
 
     public void setWasEnPrison(boolean wasEnPrison) {
         this.wasEnPrison = wasEnPrison;
+    }
+
+    public boolean won() {
+        return won;
+    }
+
+    public void setHasWon(boolean won) {
+        this.won = won;
     }
 
     private void setStand(Slot slot) {

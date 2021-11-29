@@ -11,6 +11,7 @@ softdepend:
   - Essentials
   - PlaceholderAPI
   - ViaVersion
+  - Multiverse-Core
 
 commands:
   roulette:

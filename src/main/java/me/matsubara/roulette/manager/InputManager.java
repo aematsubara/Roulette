@@ -67,10 +67,8 @@ public final class InputManager implements Listener {
             if (target.hasPlayedBefore()) {
                 game.setAccountGiveTo(target.getUniqueId());
 
-                // Save data.
-                plugin.getGameManager().save(game);
-
                 plugin.getMessageManager().send(player, MessageManager.Message.ACCOUNT);
+                plugin.getGameManager().save(game);
             } else {
                 plugin.getMessageManager().send(player, MessageManager.Message.UNKNOWN_ACCOUNT);
             }
@@ -91,6 +89,7 @@ public final class InputManager implements Listener {
 
             game.setNPC(name, texture, signature);
             plugin.getMessageManager().send(player, MessageManager.Message.NPC_RENAMED);
+            plugin.getGameManager().save(game);
         } else {
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 try {
@@ -122,6 +121,7 @@ public final class InputManager implements Listener {
                     String name = game.getNPCName() == null ? "" : game.getNPCName();
                     game.setNPC(name, texture, signature);
                     plugin.getMessageManager().send(player, MessageManager.Message.NPC_TEXTURIZED);
+                    plugin.getGameManager().save(game);
 
                 } catch (IOException throwable) {
                     plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_INVALID);

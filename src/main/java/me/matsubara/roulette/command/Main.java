@@ -138,18 +138,13 @@ public final class Main implements CommandExecutor, TabCompleter {
 
         plugin.getGameManager().add(
                 args[1],
-                null,
-                null,
-                null,
                 1,
                 10,
                 type,
                 UUID.randomUUID(),
                 location,
                 player.getUniqueId(),
-                ConfigManager.Config.COUNTDOWN_WAITING.asInt(),
-                null,
-                null);
+                ConfigManager.Config.COUNTDOWN_WAITING.asInt());
 
         plugin.getMessageManager().send(player, MessageManager.Message.CREATE, message -> message.replace("%name%", args[1]));
 

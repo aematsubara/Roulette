@@ -1,11 +1,14 @@
 package me.matsubara.roulette.hologram;
 
-import me.matsubara.roulette.model.stand.StandSettings;
+import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +17,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class Hologram {
+
+    // Plugin instance.
+    private final RoulettePlugin plugin;
 
     // Text of this hologram.
     private final List<String> lines;
@@ -30,10 +36,23 @@ public final class Hologram {
     // If this hologram is visible by default.
     private boolean visibleByDefault;
 
+    // Task used for rainbow color.
+    private int taskId;
+
     // Space between lines.
     private final static double LINE_DISTANCE = 0.23d;
 
-    public Hologram(Location location) {
+    // Rainbow colors.
+    private final static String[] RAINBOW = arrayToStrings(
+            ChatColor.RED,
+            ChatColor.GOLD,
+            ChatColor.YELLOW,
+            ChatColor.GREEN,
+            ChatColor.AQUA,
+            ChatColor.LIGHT_PURPLE);
+
+    public Hologram(RoulettePlugin plugin, Location location) {
+        this.plugin = plugin;
         this.lines = new ArrayList<>();
         this.stands = new ArrayList<>();
         this.location = location;
@@ -96,7 +115,7 @@ public final class Hologram {
         return visibleByDefault;
     }
 
-    public void update() {
+    public void update(List<String> lines) {
         for (int i = 0; i < stands.size(); i++) {
             PacketStand stand = stands.get(i);
             if (i > lines.size() - 1) stand.destroy();
@@ -136,25 +155,34 @@ public final class Hologram {
     }
 
     public void addLines(String... texts) {
+        // Cancel task before updating.
+        cancelTask();
+
+        // Add lines to list.
         lines.addAll(Arrays.asList(texts));
-        update();
+
+        // Check if task should start, otherwise, update normally.
+        checkForTask();
     }
 
     public void setLine(int index, String text) {
+        // Cancel task before updating.
+        cancelTask();
+
+        // Update line in list.
         lines.set(index, text);
 
-        // Update text of stand.
-        PacketStand stand = stands.get(index);
-        stand.setCustomName(text);
-        stand.updateMetadata();
+        // Check if task should start, otherwise, update normally.
+        checkForTask();
     }
 
     public void teleport(Location location) {
         this.location = location;
-        update();
+        update(lines);
     }
 
     public void destroy() {
+        cancelTask();
         stands.forEach(PacketStand::destroy);
         stands.clear();
         lines.clear();
@@ -175,5 +203,54 @@ public final class Hologram {
 
     public List<PacketStand> getStands() {
         return stands;
+    }
+
+    private void checkForTask() {
+        // Check if the task should be started.
+        boolean startTask = false;
+        for (String line : lines) {
+            if (line.contains("&u")) {
+                startTask = true;
+                break;
+            }
+        }
+
+        if (!startTask) {
+            // Update normally.
+            update(lines);
+            return;
+        }
+
+        // Start task.
+        taskId = new BukkitRunnable() {
+            private int index;
+
+            @Override
+            public void run() {
+                String result = RAINBOW[index];
+
+                index++;
+                if (index == RAINBOW.length) index = 0;
+
+                List<String> copy = new ArrayList<>(lines);
+                copy.replaceAll(line -> line.replace("&u", result));
+                update(copy);
+            }
+        }.runTaskTimer(plugin, 0L, 5L).getTaskId();
+    }
+
+    private void cancelTask() {
+        if (taskId != -1) {
+            Bukkit.getScheduler().cancelTask(taskId);
+            taskId = -1;
+        }
+    }
+
+    private static String[] arrayToStrings(Object... array) {
+        String[] result = new String[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i] != null ? array[i].toString() : null;
+        }
+        return result;
     }
 }

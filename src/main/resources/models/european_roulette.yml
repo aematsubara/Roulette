@@ -494,9 +494,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_2:
     offset:
       x: -1.451
@@ -517,9 +514,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_3:
     offset:
       x: -0.826
@@ -540,9 +534,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_4:
     offset:
       x: -0.201
@@ -563,9 +554,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_5:
     offset:
       x: 0.424
@@ -586,9 +574,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_6:
     offset:
       x: 1.049
@@ -609,9 +594,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_7:
     offset:
       x: 1.674
@@ -632,9 +614,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_8:
     offset:
       x: 2.075
@@ -655,9 +634,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_9:
     offset:
       x: 2.138
@@ -678,9 +654,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_10:
     offset:
       x: 2.138
@@ -701,9 +674,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_11:
     offset:
       x: 2.138
@@ -724,9 +694,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_12:
     offset:
       x: 2.138
@@ -747,9 +714,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_13:
     offset:
       x: 1.985
@@ -770,9 +734,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_14:
     offset:
       x: 1.36
@@ -793,9 +754,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_15:
     offset:
       x: 0.735
@@ -816,9 +774,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_16:
     offset:
       x: 0.11
@@ -839,9 +794,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_17:
     offset:
       x: -0.515
@@ -862,9 +814,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_18:
     offset:
       x: -1.14
@@ -885,9 +834,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_19:
     offset:
       x: -1.765
@@ -908,9 +854,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_20:
     offset:
       x: -2.39
@@ -931,9 +874,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_21:
     offset:
       x: -3.016
@@ -954,9 +894,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_22:
     offset:
       x: -3.3246
@@ -977,9 +914,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_23:
     offset:
       x: -3.3246
@@ -1000,9 +934,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_24:
     offset:
       x: -3.3246
@@ -1023,9 +954,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_25:
     offset:
       x: -3.262
@@ -1046,9 +974,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_26:
     offset:
       x: -2.701
@@ -1069,9 +994,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SIDE_27:
     offset:
       x: -2.1386
@@ -1092,9 +1014,6 @@ parts:
         x: 90.0
         y: 0.0
         z: 0.0
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   SPINNER_1:
     offset:
       x: -2.668
@@ -1140,9 +1059,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   FEET_2:
     offset:
       x: 1.779
@@ -1158,9 +1074,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   FEET_3:
     offset:
       x: 1.779
@@ -1176,9 +1089,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   FEET_4:
     offset:
       x: -1.779
@@ -1194,9 +1104,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   DECO_1:
     offset:
       x: -3.474
@@ -1221,10 +1128,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: a7de569743d1e7c080ad0f590d539aa573a0af4ba7be23ec8d793269fe927088
   DECO_2:
     offset:
       x: -3.474
@@ -1249,10 +1152,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: a7de569743d1e7c080ad0f590d539aa573a0af4ba7be23ec8d793269fe927088
   DECO_3:
     offset:
       x: -3.474
@@ -1277,10 +1176,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: a7de569743d1e7c080ad0f590d539aa573a0af4ba7be23ec8d793269fe927088
   DECO_4:
     offset:
       x: -3.474
@@ -1305,10 +1200,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: 13444e6349cb549e2e800c23ca206d2360f129e45ca3130d587ff97507a46462
   DECO_5:
     offset:
       x: -3.474
@@ -1333,10 +1224,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: 13444e6349cb549e2e800c23ca206d2360f129e45ca3130d587ff97507a46462
   DECO_6:
     offset:
       x: -3.474
@@ -1361,10 +1248,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: 13444e6349cb549e2e800c23ca206d2360f129e45ca3130d587ff97507a46462
   DECO_7:
     offset:
       x: -3.474
@@ -1389,10 +1272,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: b0458d58c030cfabd8b19e4944bbe2860f6617a77ec6c9488593e2a473db6758
   DECO_8:
     offset:
       x: -3.474
@@ -1417,10 +1296,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: b0458d58c030cfabd8b19e4944bbe2860f6617a77ec6c9488593e2a473db6758
   DECO_9:
     offset:
       x: -3.474
@@ -1445,10 +1320,6 @@ parts:
         x: 315.0
         y: 315.0
         z: 0.0
-    equipment:
-      main-hand:
-        material: PLAYER_HEAD
-        url: b0458d58c030cfabd8b19e4944bbe2860f6617a77ec6c9488593e2a473db6758
   MONEY_SLOT:
     offset:
       x: -1.736
@@ -1482,9 +1353,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_2:
     offset:
       x: -1.779
@@ -1500,9 +1368,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_3:
     offset:
       x: -1.779
@@ -1536,9 +1401,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_5:
     offset:
       x: -0.593
@@ -1554,9 +1416,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_6:
     offset:
       x: -0.593
@@ -1590,9 +1449,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_8:
     offset:
       x: 0.593
@@ -1608,9 +1464,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_9:
     offset:
       x: 0.593
@@ -1644,9 +1497,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_11:
     offset:
       x: 1.779
@@ -1662,9 +1512,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_12:
     offset:
       x: 1.779
@@ -1698,9 +1545,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_14:
     offset:
       x: 2.965
@@ -1716,9 +1560,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_15:
     offset:
       x: 2.965
@@ -1752,9 +1593,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_17:
     offset:
       x: 2.965
@@ -1770,9 +1608,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_18:
     offset:
       x: 2.965
@@ -1806,9 +1641,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_20:
     offset:
       x: 1.779
@@ -1824,9 +1656,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_21:
     offset:
       x: 1.779
@@ -1860,9 +1689,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_23:
     offset:
       x: 0.593
@@ -1878,9 +1704,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_24:
     offset:
       x: 0.593
@@ -1914,9 +1737,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_26:
     offset:
       x: -0.593
@@ -1932,9 +1752,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_27:
     offset:
       x: -0.593
@@ -1968,9 +1785,6 @@ parts:
       fire: true
       marker: true
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_PLANKS
   CHAIR_29:
     offset:
       x: -1.779
@@ -1986,9 +1800,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: SPRUCE_SLAB
   CHAIR_30:
     offset:
       x: -1.779

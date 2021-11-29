@@ -131,7 +131,7 @@ confirmation-gui:
 join-hologram:
   - "%type%"
   - "&e%name% (%playing%/%max%)"
-  - "&6&l¡CLICK TO PLAY!"
+  - "&u&l¡CLICK TO PLAY!"
 
 # The line that'll appear on the spinning hologram.
 spin-holograms:
@@ -141,9 +141,11 @@ spin-holograms:
 # The hologram that'll appear above the player's chip.
 # %player% - the name of the player.
 # %bet% - the selected bet of the player.
+# %money% - the amount of money betting.
 select-hologram:
   - "&e%player%"
   - "&aBET: %bet%"
+  - "&6%money%"
 
 # This item replaces the shop chip that is clicked without having enough money.
 not-enough-money:

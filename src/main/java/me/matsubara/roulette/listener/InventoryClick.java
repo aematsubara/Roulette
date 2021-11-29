@@ -292,11 +292,13 @@ public final class InventoryClick implements Listener {
 
                 plugin.getMessageManager().send(player, MessageManager.Message.NPC_RENAMED);
                 game.setNPC("", texture, signature);
+                plugin.getGameManager().save(game);
             } else if (event.getClick() == ClickType.SHIFT_RIGHT) {
                 String name = game.getNPCName() == null ? "" : game.getNPCName();
 
                 plugin.getMessageManager().send(player, MessageManager.Message.NPC_TEXTURIZED);
                 game.setNPC(name, null, null);
+                plugin.getGameManager().save(game);
             }
             closeInventory(player);
         }

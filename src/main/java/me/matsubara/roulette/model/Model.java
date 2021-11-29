@@ -3,9 +3,10 @@ package me.matsubara.roulette.model;
 import com.cryptomorin.xseries.SkullUtils;
 import com.cryptomorin.xseries.XMaterial;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.util.PluginUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -23,6 +24,8 @@ import java.util.AbstractMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.IntStream;
 
 public final class Model {
 
@@ -44,16 +47,52 @@ public final class Model {
     // Some parts of this model aren't stands.
     private final Map<String, Map.Entry<Location, StandSettings>> locations;
 
+    // Type of the planks.
+    private XMaterial planksType;
+
+    // Type of the slabs.
+    private XMaterial slabsType;
+
+    // The pattern of the decoration.
+    private final String[] decoPattern;
+
     // Configuration from model file.
     private FileConfiguration configuration;
 
-    public Model(RoulettePlugin plugin, String name, UUID modelId, Location location) {
+    // All patterns.
+    private final static String[][] PATTERNS = {
+            // Default.
+            {"###", "###", "###"},
+            // Ascendent.
+            {"#  ", "## ", "###"},
+            // Descendent.
+            {"###", "## ", "#  "},
+            // Variant #1
+            {"## ", "###", "## "},
+            // Variant #2
+            {"###", "## ", "###"},
+            // Variant #3
+            {"## ", "###", "#  "},
+            // Variant #4
+            {"#  ", "###", "## "}};
+
+    public Model(
+            RoulettePlugin plugin,
+            String name,
+            UUID modelId,
+            Location location,
+            @Nullable XMaterial planksType,
+            @Nullable XMaterial slabsType,
+            @Nullable String[] decoPattern) {
         this.plugin = plugin;
         this.modelUniqueId = modelId;
         this.name = name;
         this.location = location;
         this.stands = new LinkedHashMap<>();
         this.locations = new LinkedHashMap<>();
+        this.planksType = planksType != null ? planksType : XMaterial.SPRUCE_PLANKS;
+        this.slabsType = slabsType != null ? slabsType : XMaterial.SPRUCE_SLAB;
+        this.decoPattern = decoPattern != null ? decoPattern : PATTERNS[ThreadLocalRandom.current().nextInt(PATTERNS.length)];
 
         loadFile();
         loadModel();
@@ -97,8 +136,43 @@ public final class Model {
         Location finalLocation = copyLocation != null ? copyLocation : location;
         if (yaw != null) finalLocation.setYaw(finalLocation.getYaw() + yaw);
 
-        // Shouldn't have an end rod at spawn, only when spinning.
-        if (name.equalsIgnoreCase("BALL")) settings.setHelmet(null);
+        if (name.startsWith("SIDE")) {
+            settings.setHelmet(slabsType.parseItem());
+        }
+
+        if (name.startsWith("FEET")) {
+            settings.setHelmet(planksType.parseItem());
+        }
+
+        if (name.startsWith("CHAIR")) {
+            int current = Integer.parseInt(name.split("_")[1]);
+            if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray(), current)) {
+                settings.setHelmet(planksType.parseItem());
+            } else if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
+                settings.setHelmet(slabsType.parseItem());
+            }
+        }
+
+        // Spawn random decoration.
+        if (name.startsWith("DECO")) {
+            int current = (name.charAt(name.length() - 1) - '0') - 1;
+            if (current < 3) {
+                // DECO_1 / DECO_2 / DECO_3
+                if (decoPattern[0].charAt(current) == '#') {
+                    settings.setMainHand(PluginUtils.createHead("a7de569743d1e7c080ad0f590d539aa573a0af4ba7be23ec8d793269fe927088"));
+                }
+            } else if (current < 6) {
+                // DECO_4 / DECO_5 / DECO_6
+                if (decoPattern[1].charAt(current - 3) == '#') {
+                    settings.setMainHand(PluginUtils.createHead("13444e6349cb549e2e800c23ca206d2360f129e45ca3130d587ff97507a46462"));
+                }
+            } else {
+                // DECO_7 / DECO_8 / DECO_9
+                if (decoPattern[2].charAt(current - 6) == '#') {
+                    settings.setMainHand(PluginUtils.createHead("b0458d58c030cfabd8b19e4944bbe2860f6617a77ec6c9488593e2a473db6758"));
+                }
+            }
+        }
 
         if ((name.contains("SLOT") && !name.equalsIgnoreCase("MONEY_SLOT")) || name.contains("COLUMN") || name.contains("DOZEN")) {
             locations.put(name, new AbstractMap.SimpleEntry<>(finalLocation, settings));
@@ -210,6 +284,22 @@ public final class Model {
 
     public UUID getUniqueId() {
         return modelUniqueId;
+    }
+
+    public String[] getDecoPattern() {
+        return decoPattern;
+    }
+
+    public void setPlanksType(XMaterial planksType) {
+        this.planksType = planksType;
+    }
+
+    public void setSlabsType(XMaterial slabsType) {
+        this.slabsType = slabsType;
+    }
+
+    public XMaterial getPlanksType() {
+        return planksType;
     }
 
     public PacketStand getByName(String name) {

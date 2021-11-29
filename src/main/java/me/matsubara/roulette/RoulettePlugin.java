@@ -4,6 +4,7 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.cryptomorin.xseries.ReflectionUtils;
 import com.github.juliarn.npc.NPCPool;
 import me.matsubara.roulette.command.Main;
+import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.hook.EssXExtension;
 import me.matsubara.roulette.hook.PAPIExtension;
@@ -144,8 +145,8 @@ public final class RoulettePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // If disabling on startup, prevent errors in console.
-        if (gameManager != null) gameManager.getGames().forEach(game -> game.getModel().kill());
+        // If disabling on startup, prevent errors in console and remove games.
+        if (gameManager != null) gameManager.getGames().forEach(Game::remove);
     }
 
     public boolean hasDependencies(String... dependencies) {

@@ -6,17 +6,20 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.cryptomorin.xseries.ReflectionUtils;
+import com.cryptomorin.xseries.XMaterial;
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.game.Game;
+import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
+import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.MetadataValue;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.stream.IntStream;
 
 public final class UseEntity extends PacketAdapter {
 
@@ -57,6 +60,45 @@ public final class UseEntity extends PacketAdapter {
                 // Can happen when the game is created.
                 if (!game.getModel().isModelSpawned()) {
                     plugin.getMessageManager().send(player, MessageManager.Message.MODEL_NOT_LOADED);
+                    return;
+                }
+
+                // Change table texture.
+                if (canChangeTexture(player)) {
+                    XMaterial material = getMaterialInHand(player);
+
+                    // No need to change if is the same.
+                    if (material == game.getModel().getPlanksType()) return;
+
+                    String toUse = material.name().split("_")[0];
+                    if (material.name().startsWith("DARK_OAK")) toUse = toUse + "_OAK";
+
+                    XMaterial slab = XMaterial.matchXMaterial(toUse + "_SLAB").get();
+
+                    game.getModel().setPlanksType(material);
+                    game.getModel().setSlabsType(slab);
+
+                    game.getModel().getStands().forEach((name, part) -> {
+
+                        if (name.startsWith("SIDE")) {
+                            part.setEquipment(slab.parseItem(), PacketStand.ItemSlot.HEAD);
+                        }
+
+                        if (name.startsWith("FEET")) {
+                            part.setEquipment(player.getInventory().getItemInMainHand(), PacketStand.ItemSlot.HEAD);
+                        }
+
+                        if (name.startsWith("CHAIR")) {
+                            int current = Integer.parseInt(name.split("_")[1]);
+                            if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray(), current)) {
+                                part.setEquipment(player.getInventory().getItemInMainHand(), PacketStand.ItemSlot.HEAD);
+                            } else if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
+                                part.setEquipment(slab.parseItem(), PacketStand.ItemSlot.HEAD);
+                            }
+                        }
+                    });
+
+                    plugin.getGameManager().save(game);
                     return;
                 }
 
@@ -117,6 +159,19 @@ public final class UseEntity extends PacketAdapter {
         }
     }
 
+    private XMaterial getMaterialInHand(Player player) {
+        XMaterial material;
+        try {
+            material = XMaterial.matchXMaterial(player.getInventory().getItemInMainHand());
+        } catch (IllegalArgumentException exception) {
+            material = XMaterial.AIR;
+        }
+        return material;
+    }
+
+    private boolean canChangeTexture(Player player) {
+        return player.isSneaking() && getMaterialInHand(player).name().contains("PLANKS") && player.hasPermission("roulette.texture_table");
+    }
 
     private boolean isPluginVanished(Player player) {
         Iterator<MetadataValue> iterator = player.getMetadata("vanished").iterator();

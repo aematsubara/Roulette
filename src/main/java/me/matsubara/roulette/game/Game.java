@@ -2,6 +2,7 @@ package me.matsubara.roulette.game;
 
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.cryptomorin.xseries.ReflectionUtils;
+import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XSound;
 import com.github.juliarn.npc.NPC;
 import com.github.juliarn.npc.SpawnCustomizer;
@@ -17,8 +18,9 @@ import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.model.Model;
-import me.matsubara.roulette.runnable.MoneyAnimation;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.model.stand.StandSettings;
+import me.matsubara.roulette.runnable.MoneyAnimation;
 import me.matsubara.roulette.util.PluginUtils;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.apache.commons.lang.ArrayUtils;
@@ -33,10 +35,13 @@ import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -101,6 +106,9 @@ public final class Game {
     // The current slot selected in this game.
     private Slot winner;
 
+    // Stands used for showing winner chip.
+    private PacketStand selectedOne, selectedTwo;
+
     // Chairs of this game, range goes from 0 to max amount of chairs; 10 in this case.
     private final static int[] CHAIRS = IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray();
 
@@ -147,7 +155,7 @@ public final class Game {
         this.accountGiveTo = accountGiveTo;
 
         // Spawn join hologram.
-        this.joinHologram = new Hologram(model
+        this.joinHologram = new Hologram(plugin, model
                 .getLocation()
                 .clone()
                 .add(0.0d, 1.25d, 0.0d));
@@ -156,7 +164,7 @@ public final class Game {
         updateJoinHologram(true);
 
         // Spawn spin hologram.
-        this.spinHologram = new Hologram(model
+        this.spinHologram = new Hologram(plugin, model
                 .getLocation()
                 .clone());
 
@@ -359,10 +367,10 @@ public final class Game {
 
     private String replaceJoinHologramLines(String line) {
         return line
-                .replaceAll("%name%", name)
-                .replaceAll("%playing%", String.valueOf(size()))
-                .replaceAll("%max%", String.valueOf(maxPlayers))
-                .replaceAll("%type%", type.getName());
+                .replace("%name%", name)
+                .replace("%playing%", String.valueOf(size()))
+                .replace("%max%", String.valueOf(maxPlayers))
+                .replace("%type%", type.getName());
     }
 
     /**
@@ -516,6 +524,8 @@ public final class Game {
     }
 
     public void checkWinner() {
+        spawnBottle();
+
         Map<Player, WinType> winners = new HashMap<>();
 
         for (Player player : players.keySet()) {
@@ -550,6 +560,9 @@ public final class Game {
                 winners.put(player, WinType.SURRENDER);
             }
         }
+
+        // Set all winners bet as winner.
+        winners.keySet().forEach(player -> players.get(player).setHasWon(true));
 
         // Send money to the account of the game.
         if (accountGiveTo != null) {
@@ -662,7 +675,7 @@ public final class Game {
 
             @Override
             public void run() {
-                if (amount == 10) {
+                if (amount == ConfigManager.Config.RESTART_FIREWORKS.asInt()) {
                     restart();
                     cancel();
                 }
@@ -672,6 +685,49 @@ public final class Game {
         }.runTaskTimer(plugin, 0L, plugin.getConfigManager().getPeriod());
 
         broadcast(MessageManager.Message.RESTART.asString());
+    }
+
+    private void spawnBottle() {
+        // Where to spawn the bottle.
+        Location baseLocation = npc.getLocation().clone();
+
+        double angle = Math.toRadians(90.0d);
+
+        // First part.
+        selectedOne = new PacketStand(baseLocation, new StandSettings()
+                .setSmall(true)
+                .setInvisible(true)
+                .setMainHand(XMaterial.EXPERIENCE_BOTTLE.parseItem())
+                .setRightArmPose(new EulerAngle(angle, 0.0d, 0.0d)));
+
+        // Offset for the second part.
+        Vector offset = new Vector(-0.32d, 0.0d, -0.24d);
+        offset = PluginUtils.offsetVector(
+                offset,
+                model.getLocation().getYaw(),
+                model.getLocation().getPitch());
+
+        // Second part.
+        selectedTwo = new PacketStand(baseLocation.clone().add(offset), new StandSettings()
+                .setSmall(true)
+                .setInvisible(true)
+                .setMainHand(XMaterial.EXPERIENCE_BOTTLE.parseItem())
+                .setRightArmPose(new EulerAngle(angle, angle, 0.0d)));
+
+        // Where to teleport the bottle.
+        Location finalLocation = model.getLocations().get(winner.name()).getKey()
+                .clone()
+                .add(PluginUtils.offsetVector(
+                        new Vector(0.2525d, 0.0d, 0.5375d),
+                        model.getLocation().getYaw(),
+                        model.getLocation().getPitch()));
+
+        // Add a bit of offset in the Y axis if there's a bet placed.
+        if (alreadySelected(winner)) finalLocation.add(0.0d, 0.135d, 0.0d);
+
+        // Teleport.
+        selectedOne.teleport(finalLocation);
+        selectedTwo.teleport(finalLocation.add(offset));
     }
 
     public void restartRunnable() {
@@ -726,6 +782,16 @@ public final class Game {
         // Show ball in NPC hand.
         npc.equipment().queue(EnumWrappers.ItemSlot.MAINHAND, plugin.getConfigManager().getBall()).send();
 
+        if (selectedOne != null) {
+            selectedOne.destroy();
+            selectedOne = null;
+        }
+
+        if (selectedTwo != null) {
+            selectedTwo.destroy();
+            selectedTwo = null;
+        }
+
         Iterator<Map.Entry<Player, Bet>> iterator = players.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<Player, Bet> entry = iterator.next();
@@ -756,7 +822,7 @@ public final class Game {
 
         // Show join hologram to every player if hidden and update.
         joinHologram.setVisibleByDefault(true);
-        updateJoinHologram(false);
+        if (plugin.isEnabled()) updateJoinHologram(false);
 
         // If the spin hologram has any lines, destroy it.
         if (spinHologram.size() > 0) {
@@ -792,8 +858,29 @@ public final class Game {
         // Remove spin hologram.
         spinHologram.destroy();
 
-        // Remove croupier.
-        plugin.getNPCPool().removeNPC(npc.getEntityId());
+        // Remove croupier. Using reflection for now since gives errors when using /reload.
+        try {
+            Field field = plugin.getNPCPool().getClass().getDeclaredField("npcMap");
+            field.setAccessible(true);
+
+            Map<Integer, NPC> npcMap = (Map<Integer, NPC>) field.get(plugin.getNPCPool());
+            npcMap.remove(npc.getEntityId());
+
+            field.set(plugin.getNPCPool(), npcMap);
+
+            Method method = npc.getClass().getDeclaredMethod("removeSeeingPlayer", Player.class);
+            method.setAccessible(true);
+
+            for (Player seeing : npc.getSeeingPlayers()) {
+                npc.visibility()
+                        .queuePlayerListChange(EnumWrappers.PlayerInfoAction.REMOVE_PLAYER)
+                        .queueDestroy()
+                        .send(seeing);
+                method.invoke(npc, seeing);
+            }
+        } catch (ReflectiveOperationException exception) {
+            exception.printStackTrace();
+        }
     }
 
     public String getName() {
@@ -835,7 +922,6 @@ public final class Game {
     public int getMaxPlayers() {
         return maxPlayers;
     }
-
 
     public UUID getAccountGiveTo() {
         return accountGiveTo;

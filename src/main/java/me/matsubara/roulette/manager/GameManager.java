@@ -1,11 +1,14 @@
 package me.matsubara.roulette.manager;
 
+import com.cryptomorin.xseries.XMaterial;
 import com.github.juliarn.npc.NPC;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.model.Model;
+import org.apache.commons.lang.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -46,6 +49,10 @@ public final class GameManager {
         }
     }
 
+    public void add(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, null, null, null, null, null);
+    }
+
     public void add(
             String name,
             @Nullable String npcName,
@@ -59,14 +66,17 @@ public final class GameManager {
             UUID owner,
             int startTime,
             @Nullable UUID accountTo,
-            @Nullable EnumMap<GameRule, Boolean> rules) {
+            @Nullable EnumMap<GameRule, Boolean> rules,
+            @Nullable XMaterial planksType,
+            @Nullable XMaterial slabsType,
+            @Nullable String[] decoPattern) {
         Game game = new Game(
                 plugin,
                 name,
                 npcName,
                 npcTexture,
                 npcSignature,
-                new Model(plugin, type.getModelName(), modelId, location),
+                new Model(plugin, type.getModelName(), modelId, location, planksType, slabsType, decoPattern),
                 minPlayers,
                 maxPlayers,
                 type,
@@ -85,9 +95,15 @@ public final class GameManager {
         // Save model related data.
         configuration.set("games." + game.getName() + ".model.id", game.getModelId().toString());
         configuration.set("games." + game.getName() + ".model.type", game.getType().name());
+        String toUse = game.getModel().getPlanksType().name().split("_")[0];
+        if (game.getModel().getPlanksType().name().startsWith("DARK_OAK")) {
+            toUse = toUse + "_OAK";
+        }
+        configuration.set("games." + game.getName() + ".model.wood-type", toUse);
+        configuration.set("games." + game.getName() + ".model.deco-pattern", Arrays.asList(game.getModel().getDecoPattern()));
 
         // Save location.
-        configuration.set("games." + game.getName() + ".location", game.getLocation());
+        saveLocation(game.getName(), game.getLocation());
 
         // Save rules.
         for (GameRule rule : GameRule.values()) {
@@ -135,8 +151,13 @@ public final class GameManager {
                 continue;
             }
 
+            String woodType = configuration.getString("games." + path + ".model.wood-type", "");
+            XMaterial planks = XMaterial.matchXMaterial(woodType + "_PLANKS").orElse(null);
+            XMaterial slabs = XMaterial.matchXMaterial(woodType + "_SLAB").orElse(null);
+            String[] pattern = configuration.getStringList("games." + path + ".model.deco-pattern").toArray(new String[0]);
+
             // Load location.
-            Location location = configuration.getSerializable("games." + path + ".location", Location.class);
+            Location location = loadLocation(path);
 
             // Load rules.
             EnumMap<GameRule, Boolean> rules = new EnumMap<>(GameRule.class);
@@ -159,7 +180,7 @@ public final class GameManager {
             String accountToString = configuration.getString("games." + path + ".other.account-to-id");
             UUID accountTo = accountToString != null ? UUID.fromString(accountToString) : null;
 
-            add(path, npcName, texture, signature, minPlayers, maxPlayers, type, modelId, location, owner, startTime, accountTo, rules);
+            add(path, npcName, texture, signature, minPlayers, maxPlayers, type, modelId, location, owner, startTime, accountTo, rules, planks, slabs, pattern);
             loaded++;
         }
 
@@ -168,6 +189,27 @@ public final class GameManager {
             return;
         }
         plugin.getLogger().info("No games have been loaded from games.yml, why don't you create one?");
+    }
+
+    private Location loadLocation(String path) {
+        String worldName = configuration.getString("games." + path + ".location.world");
+        double x = configuration.getDouble("games." + path + ".location.x");
+        double y = configuration.getDouble("games." + path + ".location.y");
+        double z = configuration.getDouble("games." + path + ".location.z");
+        float yaw = (float) configuration.getDouble("games." + path + ".location.yaw");
+        float pitch = (float) configuration.getDouble("games." + path + ".location.pitch");
+
+        return new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
+    }
+
+    private void saveLocation(String path, Location location) {
+        Validate.notNull(location.getWorld(), "World can't be null.");
+        configuration.set("games." + path + ".location.world", location.getWorld().getName());
+        configuration.set("games." + path + ".location.x", location.getX());
+        configuration.set("games." + path + ".location.y", location.getY());
+        configuration.set("games." + path + ".location.z", location.getZ());
+        configuration.set("games." + path + ".location.yaw", location.getYaw());
+        configuration.set("games." + path + ".location.pitch", 0.0f);
     }
 
     public boolean isPlaying(Player player) {
