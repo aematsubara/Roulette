@@ -145,7 +145,6 @@ spin-holograms:
 select-hologram:
   - "&e%player%"
   - "&aBET: %bet%"
-  - "&6%money%"
 
 # This item replaces the shop chip that is clicked without having enough money.
 not-enough-money:

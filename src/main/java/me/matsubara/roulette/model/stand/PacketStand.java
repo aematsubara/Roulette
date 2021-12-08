@@ -7,6 +7,7 @@ import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -18,9 +19,11 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.*;
 
-@SuppressWarnings({"unused", "ConstantConditions"})
+@SuppressWarnings({"ConstantConditions"})
 public final class PacketStand {
 
     // Plugin instance.
@@ -44,7 +47,7 @@ public final class PacketStand {
     // Entity properties.
     private StandSettings settings;
 
-    // Protocol version of the server, only needed for 1.17 and up.
+    // Protocol version of the server, only needed for 1.17.
     private static int PROTOCOL = -1;
 
     // Version of the server.
@@ -54,12 +57,12 @@ public final class PacketStand {
     private final static MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     // Classes.
-    private final static Class<?> CRAFT_WORLD;
     private final static Class<?> CRAFT_CHAT_MESSAGE;
+    private final static Class<?> CRAFT_ENTITY;
+    private final static Class<?> CRAFT_WORLD;
     private final static Class<?> CRAFT_ITEM_STACK;
     private final static Class<?> WORLD;
     private final static Class<?> WORLD_SERVER;
-    private final static Class<?> I_CHAT_BASE_COMPONENT;
     private final static Class<?> ENTITY;
     private final static Class<?> ENTITY_LIVING;
     private final static Class<?> ENTITY_ARMOR_STAND;
@@ -67,7 +70,6 @@ public final class PacketStand {
     private final static Class<?> PACKET_ENTITY_HEAD_ROTATION;
     private final static Class<?> PACKET_ENTITY_TELEPORT;
     private final static Class<?> PACKET_ENTITY_LOOK;
-    private final static Class<?> VECTOR3F;
     private final static Class<?> DATA_WATCHER;
     private final static Class<?> PACKET_ENTITY_METADATA;
     private final static Class<?> PACKET_MOUNT;
@@ -78,10 +80,16 @@ public final class PacketStand {
     private final static Class<?> PAIR;
     private final static Class<?> SHARED_CONSTANTS;
     private final static Class<?> GAME_VERSION;
+    private final static Class<?> VECTOR3F;
+    private final static Class<?> I_CHAT_BASE_COMPONENT;
 
     // Methods.
     private final static MethodHandle getHandle;
     private final static MethodHandle getDataWatcher;
+    private final static MethodHandle asNMSCopy;
+    private final static MethodHandle of;
+    private final static MethodHandle getBukkitEntity;
+    private final static MethodHandle setFlag;
     private final static MethodHandle fromStringOrNull;
     private final static MethodHandle getId;
     private final static MethodHandle setLocation;
@@ -98,9 +106,6 @@ public final class PacketStand {
     private final static MethodHandle setRightArmPose;
     private final static MethodHandle setLeftLegPose;
     private final static MethodHandle setRightLegPose;
-    private final static MethodHandle asNMSCopy;
-    private final static MethodHandle setFlag;
-    private final static MethodHandle of;
 
     // Constructors.
     private static Constructor<?> entityArmorStand;
@@ -108,20 +113,20 @@ public final class PacketStand {
     private static Constructor<?> packetEntityHeadRotation;
     private static Constructor<?> packetEntityTeleport;
     private static Constructor<?> packetEntityLook;
-    private static Constructor<?> vector3f;
     private static Constructor<?> packetEntityMetadata;
     private static Constructor<?> packetMount;
     private static Constructor<?> packetEntityEquipment;
     private static Constructor<?> packetEntityDestroy;
+    private static Constructor<?> vector3f;
 
     static {
         // Initialize classes.
-        CRAFT_WORLD = ReflectionUtils.getCraftClass("CraftWorld");
         CRAFT_CHAT_MESSAGE = (VERSION > 12) ? ReflectionUtils.getCraftClass("util.CraftChatMessage") : null;
+        CRAFT_ENTITY = ReflectionUtils.getCraftClass("entity.CraftEntity");
+        CRAFT_WORLD = ReflectionUtils.getCraftClass("CraftWorld");
         CRAFT_ITEM_STACK = ReflectionUtils.getCraftClass("inventory.CraftItemStack");
         WORLD = ReflectionUtils.getNMSClass("world.level", "World");
         WORLD_SERVER = ReflectionUtils.getNMSClass("server.level", "WorldServer");
-        I_CHAT_BASE_COMPONENT = ReflectionUtils.getNMSClass("network.chat", "IChatBaseComponent");
         ENTITY = ReflectionUtils.getNMSClass("world.entity", "Entity");
         ENTITY_LIVING = ReflectionUtils.getNMSClass("world.entity", "EntityLiving");
         ENTITY_ARMOR_STAND = ReflectionUtils.getNMSClass("world.entity.decoration", "EntityArmorStand");
@@ -129,7 +134,6 @@ public final class PacketStand {
         PACKET_ENTITY_HEAD_ROTATION = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityHeadRotation");
         PACKET_ENTITY_TELEPORT = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityTeleport");
         PACKET_ENTITY_LOOK = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntity$PacketPlayOutEntityLook");
-        VECTOR3F = ReflectionUtils.getNMSClass("core", "Vector3f");
         DATA_WATCHER = ReflectionUtils.getNMSClass("network.syncher", "DataWatcher");
         PACKET_ENTITY_METADATA = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityMetadata");
         PACKET_MOUNT = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutMount");
@@ -138,35 +142,61 @@ public final class PacketStand {
         ITEM_STACK = ReflectionUtils.getNMSClass("world.item", "ItemStack");
         PACKET_ENTITY_DESTROY = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityDestroy");
         PAIR = (VERSION > 15) ? getUnversionedClass("com.mojang.datafixers.util.Pair") : null;
-        SHARED_CONSTANTS = (VERSION > 16) ? ReflectionUtils.getNMSClass("SharedConstants") : null;
-        GAME_VERSION = (VERSION > 16) ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
+        SHARED_CONSTANTS = (VERSION == 17) ? ReflectionUtils.getNMSClass("SharedConstants") : null;
+        GAME_VERSION = (VERSION == 17) ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
+        VECTOR3F = ReflectionUtils.getNMSClass("core", "Vector3f");
+        I_CHAT_BASE_COMPONENT = ReflectionUtils.getNMSClass("network.chat", "IChatBaseComponent");
 
         // Initialize methods.
         getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
-        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, "getDataWatcher", MethodType.methodType(DATA_WATCHER));
-        fromStringOrNull = (CRAFT_CHAT_MESSAGE == null) ? null : getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true);
-        getId = getMethod(ENTITY_ARMOR_STAND, "getId", MethodType.methodType(int.class));
-        setLocation = getMethod(ENTITY_ARMOR_STAND, "setLocation", MethodType.methodType(void.class, double.class, double.class, double.class, float.class, float.class));
-        setInvisible = getMethod(ENTITY_ARMOR_STAND, "setInvisible", MethodType.methodType(void.class, boolean.class));
-        setArms = getMethod(ENTITY_ARMOR_STAND, "setArms", MethodType.methodType(void.class, boolean.class));
-        setBasePlate = getMethod(ENTITY_ARMOR_STAND, "setBasePlate", MethodType.methodType(void.class, boolean.class));
-        setSmall = getMethod(ENTITY_ARMOR_STAND, "setSmall", MethodType.methodType(void.class, boolean.class));
-        setMarker = getMethod(ENTITY_ARMOR_STAND, (VERSION == 8) ? "n" : "setMarker", MethodType.methodType(void.class, boolean.class));
-        setCustomName = getMethod(ENTITY_ARMOR_STAND, "setCustomName", MethodType.methodType(void.class, (CRAFT_CHAT_MESSAGE == null) ? String.class : I_CHAT_BASE_COMPONENT));
-        setCustomNameVisible = getMethod(ENTITY_ARMOR_STAND, "setCustomNameVisible", MethodType.methodType(void.class, boolean.class));
-        setHeadPose = getMethod(ENTITY_ARMOR_STAND, "setHeadPose", MethodType.methodType(void.class, VECTOR3F));
-        setBodyPose = getMethod(ENTITY_ARMOR_STAND, "setBodyPose", MethodType.methodType(void.class, VECTOR3F));
-        setLeftArmPose = getMethod(ENTITY_ARMOR_STAND, "setLeftArmPose", MethodType.methodType(void.class, VECTOR3F));
-        setRightArmPose = getMethod(ENTITY_ARMOR_STAND, "setRightArmPose", MethodType.methodType(void.class, VECTOR3F));
-        setLeftLegPose = getMethod(ENTITY_ARMOR_STAND, "setLeftLegPose", MethodType.methodType(void.class, VECTOR3F));
-        setRightLegPose = getMethod(ENTITY_ARMOR_STAND, "setRightLegPose", MethodType.methodType(void.class, VECTOR3F));
+        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, (VERSION == 18) ? "ai" : "getDataWatcher", MethodType.methodType(DATA_WATCHER));
         asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true);
-        setFlag = getMethod(ENTITY_ARMOR_STAND, "setFlag", MethodType.methodType(void.class, int.class, boolean.class));
         of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true);
+        getBukkitEntity = getMethod(ENTITY_ARMOR_STAND, "getBukkitEntity", MethodType.methodType(CRAFT_ENTITY));
+
+        // Since 1.18 is obfuscated af, we're using getBukkitEntity() and then bukkit methods.
+        if (VERSION < 18) {
+            setFlag = getMethod(ENTITY_ARMOR_STAND, "setFlag", MethodType.methodType(void.class, int.class, boolean.class));
+            fromStringOrNull = (CRAFT_CHAT_MESSAGE == null) ? null : getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true);
+            getId = getMethod(ENTITY_ARMOR_STAND, "getId", MethodType.methodType(int.class));
+            setLocation = getMethod(ENTITY_ARMOR_STAND, "setLocation", MethodType.methodType(void.class, double.class, double.class, double.class, float.class, float.class));
+            setInvisible = getMethod(ENTITY_ARMOR_STAND, "setInvisible", MethodType.methodType(void.class, boolean.class));
+            setArms = getMethod(ENTITY_ARMOR_STAND, "setArms", MethodType.methodType(void.class, boolean.class));
+            setBasePlate = getMethod(ENTITY_ARMOR_STAND, "setBasePlate", MethodType.methodType(void.class, boolean.class));
+            setSmall = getMethod(ENTITY_ARMOR_STAND, "setSmall", MethodType.methodType(void.class, boolean.class));
+            setMarker = getMethod(ENTITY_ARMOR_STAND, (VERSION == 8) ? "n" : "setMarker", MethodType.methodType(void.class, boolean.class));
+            setCustomName = getMethod(ENTITY_ARMOR_STAND, "setCustomName", MethodType.methodType(void.class, (CRAFT_CHAT_MESSAGE == null) ? String.class : I_CHAT_BASE_COMPONENT));
+            setCustomNameVisible = getMethod(ENTITY_ARMOR_STAND, "setCustomNameVisible", MethodType.methodType(void.class, boolean.class));
+            setHeadPose = getMethod(ENTITY_ARMOR_STAND, "setHeadPose", MethodType.methodType(void.class, VECTOR3F));
+            setBodyPose = getMethod(ENTITY_ARMOR_STAND, "setBodyPose", MethodType.methodType(void.class, VECTOR3F));
+            setLeftArmPose = getMethod(ENTITY_ARMOR_STAND, "setLeftArmPose", MethodType.methodType(void.class, VECTOR3F));
+            setRightArmPose = getMethod(ENTITY_ARMOR_STAND, "setRightArmPose", MethodType.methodType(void.class, VECTOR3F));
+            setLeftLegPose = getMethod(ENTITY_ARMOR_STAND, "setLeftLegPose", MethodType.methodType(void.class, VECTOR3F));
+            setRightLegPose = getMethod(ENTITY_ARMOR_STAND, "setRightLegPose", MethodType.methodType(void.class, VECTOR3F));
+        } else {
+            // Get setFlag() method by its parameter types since the name is obfuscated.
+            setFlag = getSetFlagMethod();
+            fromStringOrNull = null;
+            getId = null;
+            setLocation = null;
+            setInvisible = null;
+            setArms = null;
+            setBasePlate = null;
+            setSmall = null;
+            setMarker = null;
+            setCustomName = null;
+            setCustomNameVisible = null;
+            setHeadPose = null;
+            setBodyPose = null;
+            setLeftArmPose = null;
+            setRightArmPose = null;
+            setLeftLegPose = null;
+            setRightLegPose = null;
+        }
 
         try {
-            // Get protocol version.
-            if (VERSION > 16) {
+            // Get protocol version, only needed for 1.17.
+            if (VERSION == 17) {
                 MethodHandle getVersion = getMethod(SHARED_CONSTANTS, "getGameVersion", MethodType.methodType(GAME_VERSION), true);
                 MethodHandle getProtocol = getMethod(GAME_VERSION, "getProtocolVersion", MethodType.methodType(int.class));
 
@@ -180,13 +210,13 @@ public final class PacketStand {
             packetEntityHeadRotation = PACKET_ENTITY_HEAD_ROTATION.getConstructor(ENTITY, byte.class);
             packetEntityTeleport = PACKET_ENTITY_TELEPORT.getConstructor(ENTITY);
             packetEntityLook = PACKET_ENTITY_LOOK.getConstructor(int.class, byte.class, byte.class, boolean.class);
-            vector3f = VECTOR3F.getConstructor(float.class, float.class, float.class);
             packetEntityMetadata = PACKET_ENTITY_METADATA.getConstructor(int.class, DATA_WATCHER, boolean.class);
             packetMount = (VERSION > 16) ? PACKET_MOUNT.getConstructor(ENTITY) : PACKET_MOUNT.getConstructor();
             packetEntityEquipment = (VERSION > 15) ?
                     PACKET_ENTITY_EQUIPMENT.getConstructor(int.class, List.class) :
                     PACKET_ENTITY_EQUIPMENT.getConstructor(int.class, ENUM_ITEM_SLOT, ITEM_STACK);
             packetEntityDestroy = PACKET_ENTITY_DESTROY.getConstructor(PROTOCOL == 755 ? int.class : int[].class);
+            vector3f = VECTOR3F.getConstructor(float.class, float.class, float.class);
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -206,7 +236,7 @@ public final class PacketStand {
             this.stand = entityArmorStand.newInstance(nmsWorld, location.getX(), location.getY(), location.getZ());
             this.location = location;
             this.ignored = new HashSet<>();
-            this.entityId = (int) getId.invoke(stand);
+            this.entityId = (getId != null) ? (int) getId.invoke(stand) : getBukkitEntity().getEntityId();
             this.passengersId = new int[]{};
             this.settings = settings;
 
@@ -218,8 +248,8 @@ public final class PacketStand {
             setSmall(settings.isSmall());
             setBasePlate(settings.hasBasePlate());
             setArms(settings.hasArms());
-            setOnFire(settings.isOnFire());
             setMarker(settings.isMarker());
+            setOnFire(settings.isOnFire());
             if (settings.getCustomName() != null) setCustomName(settings.getCustomName());
             setCustomNameVisible(settings.isCustomNameVisible());
 
@@ -254,6 +284,7 @@ public final class PacketStand {
         return location;
     }
 
+    @SuppressWarnings("unused")
     public StandSettings getSettings() {
         return settings;
     }
@@ -316,7 +347,11 @@ public final class PacketStand {
     public void setLocation(Location location) {
         try {
             this.location = location;
-            setLocation.invoke(stand, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+            if (setLocation != null) {
+                setLocation.invoke(stand, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+            } else {
+                getBukkitEntity().teleport(location);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -366,7 +401,11 @@ public final class PacketStand {
     public void setInvisible(boolean invisible) {
         try {
             settings.setInvisible(invisible);
-            setInvisible.invoke(stand, invisible);
+            if (setInvisible != null) {
+                setInvisible.invoke(stand, invisible);
+            } else {
+                getBukkitEntity().setVisible(!invisible);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -375,7 +414,11 @@ public final class PacketStand {
     public void setArms(boolean arms) {
         try {
             settings.setArms(arms);
-            setArms.invoke(stand, arms);
+            if (setArms != null) {
+                setArms.invoke(stand, arms);
+            } else {
+                getBukkitEntity().setArms(arms);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -384,8 +427,12 @@ public final class PacketStand {
     public void setBasePlate(boolean baseplate) {
         try {
             settings.setBasePlate(baseplate);
-            // For some reason must be negated.
-            setBasePlate.invoke(stand, !baseplate);
+            if (setBasePlate != null) {
+                // For some reason must be negated.
+                setBasePlate.invoke(stand, !baseplate);
+            } else {
+                getBukkitEntity().setBasePlate(baseplate);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -394,7 +441,11 @@ public final class PacketStand {
     public void setSmall(boolean small) {
         try {
             settings.setSmall(small);
-            setSmall.invoke(stand, small);
+            if (setSmall != null) {
+                setSmall.invoke(stand, small);
+            } else {
+                getBukkitEntity().setSmall(small);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -403,7 +454,11 @@ public final class PacketStand {
     public void setMarker(boolean marker) {
         try {
             settings.setMarker(marker);
-            setMarker.invoke(stand, marker);
+            if (setMarker != null) {
+                setMarker.invoke(stand, marker);
+            } else {
+                getBukkitEntity().setMarker(marker);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -427,24 +482,6 @@ public final class PacketStand {
         }
     }
 
-    public void setGlowing(boolean glow) {
-        // Only works on 1.9+.
-        if (VERSION < 9) return;
-
-        settings.setGlowing(glow);
-
-        try {
-            setFlag.invoke(stand, 6, glow);
-
-            Object watcher = getDataWatcher.invoke(stand);
-
-            Object packetMetadata = packetEntityMetadata.newInstance(entityId, watcher, true);
-            sendPacket(packetMetadata);
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
     public void setCustomName(@Nullable String name) {
         try {
             if (name != null) {
@@ -453,7 +490,11 @@ public final class PacketStand {
                 name = "";
                 setCustomNameVisible(false);
             }
-            setCustomName.invoke(stand, (CRAFT_CHAT_MESSAGE == null) ? name : fromStringOrNull.invoke(name));
+            if (setCustomName != null) {
+                setCustomName.invoke(stand, (CRAFT_CHAT_MESSAGE == null) ? name : fromStringOrNull.invoke(name));
+            } else {
+                getBukkitEntity().setCustomName(name);
+            }
             settings.setCustomName(name);
         } catch (Throwable exception) {
             exception.printStackTrace();
@@ -463,7 +504,11 @@ public final class PacketStand {
     public void setCustomNameVisible(boolean customNameVisible) {
         try {
             settings.setCustomNameVisible(customNameVisible);
-            setCustomNameVisible.invoke(stand, customNameVisible);
+            if (setCustomNameVisible != null) {
+                setCustomNameVisible.invoke(stand, customNameVisible);
+            } else {
+                getBukkitEntity().setCustomNameVisible(customNameVisible);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -530,10 +575,23 @@ public final class PacketStand {
         return false;
     }
 
+    public Object getVector3f(EulerAngle angle) {
+        try {
+            return vector3f.newInstance((float) Math.toDegrees(angle.getX()), (float) Math.toDegrees(angle.getY()), (float) Math.toDegrees(angle.getZ()));
+        } catch (Throwable exception) {
+            exception.printStackTrace();
+        }
+        return null;
+    }
+
     public void setHeadPose(EulerAngle headPose) {
         try {
             settings.setHeadPose(headPose);
-            setHeadPose.invoke(stand, getVector3f(headPose));
+            if (setHeadPose != null) {
+                setHeadPose.invoke(stand, getVector3f(headPose));
+            } else {
+                getBukkitEntity().setHeadPose(headPose);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -542,7 +600,11 @@ public final class PacketStand {
     public void setBodyPose(EulerAngle bodyPose) {
         try {
             settings.setBodyPose(bodyPose);
-            setBodyPose.invoke(stand, getVector3f(bodyPose));
+            if (setBodyPose != null) {
+                setBodyPose.invoke(stand, getVector3f(bodyPose));
+            } else {
+                getBukkitEntity().setBodyPose(bodyPose);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -551,7 +613,11 @@ public final class PacketStand {
     public void setLeftArmPose(EulerAngle leftArmPose) {
         try {
             settings.setLeftArmPose(leftArmPose);
-            setLeftArmPose.invoke(stand, getVector3f(leftArmPose));
+            if (setLeftArmPose != null) {
+                setLeftArmPose.invoke(stand, getVector3f(leftArmPose));
+            } else {
+                getBukkitEntity().setLeftArmPose(leftArmPose);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -560,7 +626,11 @@ public final class PacketStand {
     public void setRightArmPose(EulerAngle rightArmPose) {
         try {
             settings.setRightArmPose(rightArmPose);
-            setRightArmPose.invoke(stand, getVector3f(rightArmPose));
+            if (setRightArmPose != null) {
+                setRightArmPose.invoke(stand, getVector3f(rightArmPose));
+            } else {
+                getBukkitEntity().setRightArmPose(rightArmPose);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -569,7 +639,11 @@ public final class PacketStand {
     public void setLeftLegPose(EulerAngle leftLegPose) {
         try {
             settings.setLeftLegPose(leftLegPose);
-            setLeftLegPose.invoke(stand, getVector3f(leftLegPose));
+            if (setLeftLegPose != null) {
+                setLeftLegPose.invoke(stand, getVector3f(leftLegPose));
+            } else {
+                getBukkitEntity().setLeftLegPose(leftLegPose);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -578,7 +652,11 @@ public final class PacketStand {
     public void setRightLegPose(EulerAngle rightLegPose) {
         try {
             settings.setRightLegPose(rightLegPose);
-            setRightLegPose.invoke(stand, getVector3f(rightLegPose));
+            if (setRightLegPose != null) {
+                setRightLegPose.invoke(stand, getVector3f(rightLegPose));
+            } else {
+                getBukkitEntity().setRightLegPose(rightLegPose);
+            }
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -631,15 +709,6 @@ public final class PacketStand {
         }
     }
 
-    public Object getVector3f(EulerAngle angle) {
-        try {
-            return vector3f.newInstance((float) Math.toDegrees(angle.getX()), (float) Math.toDegrees(angle.getY()), (float) Math.toDegrees(angle.getZ()));
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-        return null;
-    }
-
     public void updateEquipment() {
         if (!settings.hasEquipment()) return;
 
@@ -665,6 +734,15 @@ public final class PacketStand {
             sendPacket(packetMetadata);
         } catch (Throwable exception) {
             exception.printStackTrace();
+        }
+    }
+
+    public ArmorStand getBukkitEntity() {
+        try {
+            return ((ArmorStand) getBukkitEntity.invoke(stand));
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            return null;
         }
     }
 
@@ -741,10 +819,32 @@ public final class PacketStand {
     private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic) {
         try {
             if (isStatic) return LOOKUP.findStatic(refc, name, type);
+            if (VERSION == 18) {
+                Method method = refc.getMethod(name, type.parameterArray());
+                return LOOKUP.unreflect(method);
+            }
             return LOOKUP.findVirtual(refc, name, type);
         } catch (ReflectiveOperationException exception) {
             exception.printStackTrace();
             return null;
         }
+    }
+
+    private static MethodHandle getSetFlagMethod() {
+        // There are 2 methods with the same parameter types, the first one is what we want.
+        for (Method method : ENTITY_ARMOR_STAND.getMethods()) {
+            Parameter[] parameters = method.getParameters();
+            if (parameters.length != 2) continue;
+            if (!parameters[0].getType().equals(int.class)) continue;
+            if (!parameters[1].getType().equals(boolean.class)) continue;
+
+            try {
+                return LOOKUP.unreflect(method);
+            } catch (IllegalAccessException exception) {
+                exception.printStackTrace();
+                return null;
+            }
+        }
+        return null;
     }
 }
