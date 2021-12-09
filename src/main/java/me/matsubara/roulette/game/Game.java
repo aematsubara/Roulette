@@ -653,15 +653,24 @@ public final class Game {
                 win = new Winner(winner.getUniqueId());
             }
 
-            Map.Entry<Integer, ItemStack> entry = plugin.getWinnerManager().renderMap(null, winner.getName(), price);
-            int id = entry.getKey();
-            ItemStack item = entry.getValue();
+            Map.Entry<Integer, ItemStack> entry = null;
+            int id = -1;
+            if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBoolean()) {
+                entry = plugin.getWinnerManager().renderMap(null, winner.getName(), price);
+                id = entry.getKey();
+            }
 
+            // Add win data.
             win.add(name, id, price, System.currentTimeMillis(), slot, this.winner, winType, chip.getPrice());
 
-            winner.getInventory().addItem(item);
-
+            // Save data to file.
             plugin.getWinnerManager().saveWinner(win);
+
+            // Add map to inventory.
+            if (entry != null) {
+                ItemStack item = entry.getValue();
+                winner.getInventory().addItem(item);
+            }
         }
 
         if (ConfigManager.Config.RESTART_FIREWORKS.asInt() == 0) {

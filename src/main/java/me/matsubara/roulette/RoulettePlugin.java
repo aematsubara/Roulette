@@ -97,19 +97,11 @@ public final class RoulettePlugin extends JavaPlugin {
         if (hasDependency("PlaceholderAPI")) new PAPIExtension(this);
         if (hasDependency("Essentials")) essXExtension = new EssXExtension(this);
 
-        @SuppressWarnings("ConstantConditions") Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        // Team used to disable the nametag of NPCs.
+        hideTeam = createTeam("rouletteHide", Team.Option.NAME_TAG_VISIBILITY);
 
-        hideTeam = scoreboard.getTeam("rouletteHide");
-        if (hideTeam == null) {
-            hideTeam = scoreboard.registerNewTeam("rouletteHide");
-            hideTeam.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
-        }
-
-        collisionTeam = scoreboard.getTeam("rouletteCollide");
-        if (collisionTeam == null) {
-            collisionTeam = scoreboard.registerNewTeam("rouletteCollide");
-            collisionTeam.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
-        }
+        // Team used to disable collisions for players inside the game (sitting on chair).
+        collisionTeam = createTeam("rouletteCollide", Team.Option.COLLISION_RULE);
 
         // Initialize managers.
         chipManager = new ChipManager(this);
@@ -132,6 +124,26 @@ public final class RoulettePlugin extends JavaPlugin {
 
         // Save models to /models.
         saveModels(GameType.AMERICAN.getModelName(), GameType.EUROPEAN.getModelName());
+    }
+
+    private Team createTeam(String teamName, Team.Option toDisable) {
+        @SuppressWarnings("ConstantConditions") Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+
+        // Get team.
+        Team team = scoreboard.getTeam(teamName);
+
+        // Remove entries if exists.
+        if (team != null) {
+            try {
+                team.getEntries().forEach(team::removeEntry);
+            } catch (IllegalStateException ignore) {
+            }
+        } else {
+            team = scoreboard.registerNewTeam(teamName);
+            team.setOption(toDisable, Team.OptionStatus.NEVER);
+        }
+
+        return team;
     }
 
     private void saveModels(String... names) {

@@ -122,7 +122,7 @@ public final class WinnerManager {
         if (player.getName() == null) return;
 
         for (Winner.WinnerData data : winner.getWinnerData()) {
-            renderMap(data.getMapId(), player.getName(), data.getMoney());
+            if (data.getMapId() != -1) renderMap(data.getMapId(), player.getName(), data.getMoney());
         }
     }
 
