@@ -170,7 +170,7 @@ public final class PluginUtils {
         StringBuffer buffer = new StringBuffer();
 
         while (matcher.find()) {
-            matcher.appendReplacement(buffer, ChatColor.of(matcher.group(1)).toString());
+            matcher.appendReplacement(buffer, ChatColor.of("#" + matcher.group(1)).toString());
         }
 
         return matcher.appendTail(buffer).toString();

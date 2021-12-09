@@ -32,6 +32,7 @@ public final class MoneyAnimation extends BukkitRunnable {
             if (toFinish == 4) {
                 game.setMoneyAnimation(null);
                 cancel();
+                return;
             }
         }
 
