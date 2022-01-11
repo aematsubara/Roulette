@@ -1,12 +1,12 @@
 package me.matsubara.roulette.game.state;
 
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.gui.ChipGUI;
+import me.matsubara.roulette.manager.ConfigManager;
+import me.matsubara.roulette.manager.MessageManager;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -41,7 +41,7 @@ public final class Selecting extends BukkitRunnable {
             }
 
             // Open chip menu.
-            new ChipGUI(plugin, entry.getKey());
+            new ChipGUI(game, entry.getKey());
         }
     }
 

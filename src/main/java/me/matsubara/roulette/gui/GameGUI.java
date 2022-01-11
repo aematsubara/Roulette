@@ -3,10 +3,10 @@ package me.matsubara.roulette.gui;
 import com.cryptomorin.xseries.XMaterial;
 import com.google.gson.JsonParser;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
+import me.matsubara.roulette.manager.ConfigManager;
+import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
@@ -53,6 +53,7 @@ public final class GameGUI implements InventoryHolder {
         player.openInventory(inventory);
     }
 
+    @SuppressWarnings("deprecation")
     private void fillInventory() {
         ItemStack background = new ItemBuilder(XMaterial.GRAY_STAINED_GLASS_PANE.parseItem()).setDisplayName("&7").build();
         for (int i = 0; i < 27; i++) {
@@ -113,6 +114,11 @@ public final class GameGUI implements InventoryHolder {
         inventory.setItem(14, getRuleItem(GameRule.LA_PARTAGE));
         inventory.setItem(15, getRuleItem(GameRule.EN_PRISON));
         inventory.setItem(16, getRuleItem(GameRule.SURRENDER));
+
+        String state = game.isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
+        inventory.setItem(8, new ItemBuilder(plugin.getConfigManager().getItem("game-menu", "bet-all", null))
+                .setDisplayName(plugin.getConfigManager().getDisplayName("game-menu", "bet-all").replace("%state%", state))
+                .build());
 
         List<Winner.WinnerData> winners = new ArrayList<>();
 

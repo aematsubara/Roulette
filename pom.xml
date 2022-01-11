@@ -6,7 +6,7 @@
 
     <groupId>me.matsubara</groupId>
     <artifactId>Roulette</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Roulette</name>
@@ -70,6 +70,7 @@
                                 <exclude>com/cryptomorin/xseries/XPotion*</exclude>
                                 <exclude>com/cryptomorin/xseries/XItemStack*</exclude>
                                 <exclude>com/cryptomorin/xseries/XEntity*</exclude>
+                                <exclude>com/cryptomorin/xseries/XTag*</exclude>
                             </excludes>
                         </filter>
                     </filters>
@@ -143,7 +144,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.18-R0.1-SNAPSHOT</version>
+            <version>1.18.1-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <!-- NBTEditor -->
@@ -169,7 +170,7 @@
         <dependency>
             <groupId>com.github.cryptomorin</groupId>
             <artifactId>XSeries</artifactId>
-            <version>8.5.0.1</version>
+            <version>8.6.0.0.1</version>
         </dependency>
         <!-- Annotations -->
         <dependency>

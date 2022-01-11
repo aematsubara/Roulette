@@ -98,6 +98,9 @@ public final class Game {
     // Time before starting the game.
     private int startTime;
 
+    // If bet-all is allowed in this game.
+    private boolean betAll;
+
     // Tasks.
     private BukkitTask startingTask;
     private BukkitTask selectingTask;
@@ -124,6 +127,7 @@ public final class Game {
             GameType type,
             UUID owner,
             int startTime,
+            boolean betAll,
             @Nullable UUID accountGiveTo,
             @Nullable EnumMap<GameRule, Boolean> rules) {
         this.plugin = plugin;
@@ -152,6 +156,7 @@ public final class Game {
         this.type = type;
         this.state = GameState.IDLE;
         this.startTime = startTime;
+        this.betAll = betAll;
         this.accountGiveTo = accountGiveTo;
 
         // Spawn join hologram.
@@ -902,6 +907,14 @@ public final class Game {
 
     public void setStartTime(int startTime) {
         this.startTime = startTime;
+    }
+
+    public boolean isBetAll() {
+        return betAll;
+    }
+
+    public void setBetAll(boolean betAll) {
+        this.betAll = betAll;
     }
 
     public UUID getModelId() {

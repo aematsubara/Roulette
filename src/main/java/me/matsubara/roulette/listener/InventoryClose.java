@@ -48,7 +48,7 @@ public final class InventoryClose implements Listener {
                 if (player.getOpenInventory().getTopInventory().getHolder() instanceof ConfirmGUI) return;
 
                 int page = ((ChipGUI) inventory.getHolder()).getCurrent();
-                runTask(() -> new ChipGUI(plugin, player, page));
+                runTask(() -> new ChipGUI(game, player, page));
             }, 2L);
             return;
         }
@@ -64,7 +64,7 @@ public final class InventoryClose implements Listener {
         // The time for selecting a chip is over.
         if (game.getState().isSpinning()) return;
 
-        runTask(() -> new ChipGUI(plugin, player, gui.getPreviousPage()));
+        runTask(() -> new ChipGUI(game, player, gui.getPreviousPage()));
     }
 
     private void runTask(Runnable runnable) {

@@ -19,6 +19,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +29,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -229,6 +231,10 @@ public final class InventoryClick implements Listener {
         String laPartage = plugin.getConfigManager().getDisplayName("game-menu", "la-partage");
         String enPrison = plugin.getConfigManager().getDisplayName("game-menu", "en-prison");
         String surrender = plugin.getConfigManager().getDisplayName("game-menu", "surrender");
+
+        String state = holder.getGame().isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
+        String betAll = plugin.getConfigManager().getDisplayName("game-menu", "bet-all").replace("%state%", state);
+
         String close = plugin.getConfigManager().getDisplayName("game-menu", "close");
 
         String npcName = game.getNPCName();
@@ -266,17 +272,19 @@ public final class InventoryClick implements Listener {
                 return;
             }
 
-            boolean state = !game.isRuleEnabled(rule);
-            game.getRules().put(rule, state);
+            boolean ruleState = !game.isRuleEnabled(rule);
+            game.getRules().put(rule, ruleState);
 
             // If enabled, disable other rules.
-            if (state) disableRules(game, inventory, rule);
+            if (ruleState) disableRules(game, inventory, rule);
 
-            setBannerColor(current, state);
+            setBannerColor(current, ruleState);
 
             // Save data.
             plugin.getGameManager().save(game);
 
+        } else if (hasDisplayName && displayName.equalsIgnoreCase(betAll)) {
+            setBetAll(event, game);
         } else if (hasDisplayName && displayName.equalsIgnoreCase(close)) {
             closeInventory(player);
         } else if (hasDisplayName && ChatColor.stripColor(displayName).equalsIgnoreCase(ChatColor.stripColor(croupier))) {
@@ -406,5 +414,31 @@ public final class InventoryClick implements Listener {
             anim.runTaskTimer(plugin, 1L, 1L);
             game.setMoneyAnimation(anim);
         }
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private void setBetAll(InventoryClickEvent event, Game game) {
+        boolean betAll = !game.isBetAll();
+
+        game.setBetAll(betAll);
+
+        String state = game.isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
+
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        meta.setDisplayName(plugin.getConfigManager().getDisplayName("game-menu", "bet-all").replace("%state%", state));
+        if (!meta.hasItemFlag(ItemFlag.HIDE_ATTRIBUTES)) meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+
+        if (betAll) {
+            event.getCurrentItem().addUnsafeEnchantment(Enchantment.ARROW_DAMAGE, 1);
+        } else {
+            if (event.getCurrentItem().containsEnchantment(Enchantment.ARROW_DAMAGE)) {
+                event.getCurrentItem().removeEnchantment(Enchantment.ARROW_DAMAGE);
+            }
+        }
+
+        event.getCurrentItem().setItemMeta(meta);
+
+        // Save data.
+        plugin.getGameManager().save(game);
     }
 }

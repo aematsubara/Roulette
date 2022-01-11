@@ -89,7 +89,7 @@ public final class MapBuilder {
      */
     public MapBuilder addText(int x, int y, @NotNull MapFont font, @NotNull String text) {
         if (font.isValid(text)) this.texts.add(new Text(x, y, font, text));
-        else PLUGIN.getLogger().warning("The line for the map (\"" + text + "\") contains invalid characters!");
+        else PLUGIN.getLogger().warning("The line for the map \"" + text + "\" contains invalid characters!");
         return this;
     }
 
@@ -185,10 +185,17 @@ public final class MapBuilder {
 
                     if (!texts.isEmpty()) {
                         // Write text centered.
-                        texts.forEach(text -> mapCanvas.drawText((128 - MinecraftFont.Font.getWidth(text.getMessage())) / 2,
-                                text.getY(),
-                                text.getFont(),
-                                text.getMessage()));
+                        texts.forEach(text -> {
+                            try {
+                                mapCanvas.drawText((128 - MinecraftFont.Font.getWidth(text.getMessage())) / 2,
+                                        text.getY(),
+                                        text.getFont(),
+                                        text.getMessage());
+                            } catch (IllegalArgumentException exception) {
+                                // Invalid colors.
+                                PLUGIN.getLogger().warning("The line for the map \"" + text.getMessage() + "\" contains invalid characters!");
+                            }
+                        });
                     }
 
                     if (cursors.size() > 0) {
@@ -249,7 +256,7 @@ public final class MapBuilder {
             return (short) mapView.getId();
         } catch (NoSuchMethodError error) {
             try {
-                return (short) Class.forName("org.bukkit.map.MapView").getMethod("getId", new Class[0]).invoke(mapView, new Object[0]);
+                return (short) MapView.class.getMethod("getId").invoke(mapView);
             } catch (ReflectiveOperationException exception) {
                 exception.printStackTrace();
                 return -1;

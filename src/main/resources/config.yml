@@ -152,6 +152,11 @@ not-enough-money:
   display-name: "&c¡NOT ENOUGH MONEY!"
   lore: []
 
+# The state text using in some variables.
+state:
+  enabled: "&aenabled"
+  disabled: "&cdisabled"
+
 # Here you can modify each item within the inventory of the game editor, accessible by right-clicking an NPC.
 # %name% - the name of the game. (@title)
 # %player% - the name of the player. (@account.display-name and no-account.display-name)
@@ -256,6 +261,13 @@ game-menu:
       - "&7"
       - "&cShift left click to reset name."
       - "&cShifft right click to reset texture."
+  bet-all:
+    url: "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852"
+    material: PLAYER_HEAD
+    display-name: "&eBet all: %state%"
+    lore:
+      - "&7Allows players to bet all their money."
+      - "&6Click to enable/disable."
   close:
     material: BARRIER
     display-name: "&cClose"

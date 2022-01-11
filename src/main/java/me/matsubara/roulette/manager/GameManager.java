@@ -50,7 +50,7 @@ public final class GameManager {
     }
 
     public void add(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, null, null, null, null, null);
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, null, null, null);
     }
 
     public void add(
@@ -65,6 +65,7 @@ public final class GameManager {
             Location location,
             UUID owner,
             int startTime,
+            boolean betAll,
             @Nullable UUID accountTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
             @Nullable XMaterial planksType,
@@ -82,6 +83,7 @@ public final class GameManager {
                 type,
                 owner,
                 startTime,
+                betAll,
                 accountTo,
                 rules);
 
@@ -112,6 +114,7 @@ public final class GameManager {
         }
 
         // Save settings.
+        configuration.set("games." + game.getName() + ".settings.bet-all", game.isBetAll());
         configuration.set("games." + game.getName() + ".settings.start-time", game.getStartTime());
         configuration.set("games." + game.getName() + ".settings.min-players", game.getMinPlayers());
         configuration.set("games." + game.getName() + ".settings.max-players", game.getMaxPlayers());
@@ -166,6 +169,7 @@ public final class GameManager {
             rules.put(GameRule.SURRENDER, configuration.getBoolean("games." + path + ".rules.surrender"));
 
             // Load settings.
+            boolean betAll = configuration.getBoolean("games." + path + ".settings.bet-all");
             int startTime = configuration.getInt("games." + path + ".settings.start-time");
             int minPlayers = configuration.getInt("games." + path + ".settings.min-players");
             int maxPlayers = configuration.getInt("games." + path + ".settings.max-players");
@@ -180,7 +184,7 @@ public final class GameManager {
             String accountToString = configuration.getString("games." + path + ".other.account-to-id");
             UUID accountTo = accountToString != null ? UUID.fromString(accountToString) : null;
 
-            add(path, npcName, texture, signature, minPlayers, maxPlayers, type, modelId, location, owner, startTime, accountTo, rules, planks, slabs, pattern);
+            add(path, npcName, texture, signature, minPlayers, maxPlayers, type, modelId, location, owner, startTime, betAll, accountTo, rules, planks, slabs, pattern);
             loaded++;
         }
 

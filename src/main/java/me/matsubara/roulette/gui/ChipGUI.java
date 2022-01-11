@@ -2,8 +2,9 @@ package me.matsubara.roulette.gui;
 
 import com.cryptomorin.xseries.XMaterial;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.manager.ConfigManager;
+import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Chip;
+import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.InventoryUpdate;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.apache.commons.lang.ArrayUtils;
@@ -19,8 +20,11 @@ import java.util.Map;
 
 public final class ChipGUI implements InventoryHolder {
 
-    // The instance of the main class.
+    // The instance of the plugin.
     private final RoulettePlugin plugin;
+
+    // The instance of the game.
+    private final Game game;
 
     // The player viewing this inventory.
     private final Player player;
@@ -43,12 +47,13 @@ public final class ChipGUI implements InventoryHolder {
     // Inventory content.
     private final ItemStack background, previous, money, betAll, exit, next;
 
-    public ChipGUI(RoulettePlugin plugin, Player player) {
-        this(plugin, player, 0);
+    public ChipGUI(Game game, Player player) {
+        this(game, player, 0);
     }
 
-    public ChipGUI(RoulettePlugin plugin, Player player, int current) {
-        this.plugin = plugin;
+    public ChipGUI(Game game, Player player, int current) {
+        this.plugin = game.getPlugin();
+        this.game = game;
         this.player = player;
         this.inventory = plugin.getServer().createInventory(this, 36);
         this.current = current;
@@ -89,7 +94,7 @@ public final class ChipGUI implements InventoryHolder {
         inventory.setItem(22, money);
 
         // Set bet all item.
-        inventory.setItem(23, betAll);
+        if (game.isBetAll()) inventory.setItem(23, betAll);
 
         // If the current page isn't the last one, show the next page item.
         if (current < pages - 1) inventory.setItem(25, next);

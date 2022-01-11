@@ -170,6 +170,7 @@ public final class UseEntity extends PacketAdapter {
     }
 
     private boolean canChangeTexture(Player player) {
+        //XTag.LOGS.isTagged(getMaterialInHand(player))
         return player.isSneaking() && getMaterialInHand(player).name().contains("PLANKS") && player.hasPermission("roulette.texture_table");
     }
 
