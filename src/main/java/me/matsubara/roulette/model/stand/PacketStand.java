@@ -1,9 +1,11 @@
 package me.matsubara.roulette.model.stand;
 
 import com.cryptomorin.xseries.ReflectionUtils;
+import com.google.common.collect.Lists;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.hook.ViaExtension;
 import me.matsubara.roulette.util.PluginUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -82,6 +84,10 @@ public final class PacketStand {
     private final static Class<?> GAME_VERSION;
     private final static Class<?> VECTOR3F;
     private final static Class<?> I_CHAT_BASE_COMPONENT;
+    private final static Class<?> ATTRIBUTE_MODIFIABLE;
+    private final static Class<?> ATTRIBUTE_BASE;
+    private final static Class<?> GENERIC_ATTRIBUTES;
+    private final static Class<?> PACKET_UPDATE_ATTRIBUTES;
 
     // Methods.
     private final static MethodHandle getHandle;
@@ -106,18 +112,24 @@ public final class PacketStand {
     private final static MethodHandle setRightArmPose;
     private final static MethodHandle setLeftLegPose;
     private final static MethodHandle setRightLegPose;
+    private final static MethodHandle getAttributeInstance;
+    private final static MethodHandle setValue;
 
     // Constructors.
-    private static Constructor<?> entityArmorStand;
-    private static Constructor<?> packetSpawnEntityLiving;
-    private static Constructor<?> packetEntityHeadRotation;
-    private static Constructor<?> packetEntityTeleport;
-    private static Constructor<?> packetEntityLook;
-    private static Constructor<?> packetEntityMetadata;
-    private static Constructor<?> packetMount;
-    private static Constructor<?> packetEntityEquipment;
-    private static Constructor<?> packetEntityDestroy;
-    private static Constructor<?> vector3f;
+    private static final MethodHandle entityArmorStand;
+    private static final MethodHandle packetSpawnEntityLiving;
+    private static final MethodHandle packetEntityHeadRotation;
+    private static final MethodHandle packetEntityTeleport;
+    private static final MethodHandle packetEntityLook;
+    private static final MethodHandle packetEntityMetadata;
+    private static final MethodHandle packetMount;
+    private static final MethodHandle packetEntityEquipment;
+    private static final MethodHandle packetEntityDestroy;
+    private static final MethodHandle vector3f;
+    private static final MethodHandle packetUpdateAttributes;
+
+    // Fields.
+    private static final MethodHandle maxHealth;
 
     static {
         // Initialize classes.
@@ -146,6 +158,10 @@ public final class PacketStand {
         GAME_VERSION = (VERSION == 17) ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
         VECTOR3F = ReflectionUtils.getNMSClass("core", "Vector3f");
         I_CHAT_BASE_COMPONENT = ReflectionUtils.getNMSClass("network.chat", "IChatBaseComponent");
+        ATTRIBUTE_MODIFIABLE = ReflectionUtils.getNMSClass("world.entity.ai.attributes", "AttributeModifiable");
+        ATTRIBUTE_BASE = ReflectionUtils.getNMSClass("world.entity.ai.attributes", "AttributeBase");
+        GENERIC_ATTRIBUTES = ReflectionUtils.getNMSClass("world.entity.ai.attributes", "GenericAttributes");
+        PACKET_UPDATE_ATTRIBUTES = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutUpdateAttributes");
 
         // Initialize methods.
         getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
@@ -153,6 +169,8 @@ public final class PacketStand {
         asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true);
         of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true);
         getBukkitEntity = getMethod(ENTITY_ARMOR_STAND, "getBukkitEntity", MethodType.methodType(CRAFT_ENTITY));
+        getAttributeInstance = getMethod(ENTITY_ARMOR_STAND, "getAttributeInstance", MethodType.methodType(ATTRIBUTE_MODIFIABLE, ATTRIBUTE_BASE), false, "a");
+        setValue = getMethod(ATTRIBUTE_MODIFIABLE, "setValue", MethodType.methodType(void.class, double.class), false, "a");
 
         // Since 1.18 is obfuscated af, we're using getBukkitEntity() and then bukkit methods.
         if (VERSION < 18) {
@@ -194,6 +212,21 @@ public final class PacketStand {
             setRightLegPose = null;
         }
 
+        // Initialize constructors.
+        entityArmorStand = getConstructor(ENTITY_ARMOR_STAND, WORLD, double.class, double.class, double.class);
+        packetSpawnEntityLiving = getConstructor(PACKET_SPAWN_ENTITY_LIVING, ENTITY_LIVING);
+        packetEntityHeadRotation = getConstructor(PACKET_ENTITY_HEAD_ROTATION, ENTITY, byte.class);
+        packetEntityTeleport = getConstructor(PACKET_ENTITY_TELEPORT, ENTITY);
+        packetEntityLook = getConstructor(PACKET_ENTITY_LOOK, int.class, byte.class, byte.class, boolean.class);
+        packetEntityMetadata = getConstructor(PACKET_ENTITY_METADATA, int.class, DATA_WATCHER, boolean.class);
+        packetMount = (VERSION > 16) ? getConstructor(PACKET_MOUNT, ENTITY) : getConstructor(PACKET_MOUNT);
+        packetEntityEquipment = (VERSION > 15) ?
+                getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, List.class) :
+                getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, ENUM_ITEM_SLOT, ITEM_STACK);
+        packetEntityDestroy = getConstructor(PACKET_ENTITY_DESTROY, PROTOCOL == 755 ? int.class : int[].class);
+        vector3f = getConstructor(VECTOR3F, float.class, float.class, float.class);
+        packetUpdateAttributes = getConstructor(PACKET_UPDATE_ATTRIBUTES, int.class, Collection.class);
+
         try {
             // Get protocol version, only needed for 1.17.
             if (VERSION == 17) {
@@ -203,23 +236,11 @@ public final class PacketStand {
                 Object gameVersion = getVersion.invoke();
                 PROTOCOL = (int) getProtocol.invoke(gameVersion);
             }
-
-            // Initialize constructors.
-            entityArmorStand = ENTITY_ARMOR_STAND.getConstructor(WORLD, double.class, double.class, double.class);
-            packetSpawnEntityLiving = PACKET_SPAWN_ENTITY_LIVING.getConstructor(ENTITY_LIVING);
-            packetEntityHeadRotation = PACKET_ENTITY_HEAD_ROTATION.getConstructor(ENTITY, byte.class);
-            packetEntityTeleport = PACKET_ENTITY_TELEPORT.getConstructor(ENTITY);
-            packetEntityLook = PACKET_ENTITY_LOOK.getConstructor(int.class, byte.class, byte.class, boolean.class);
-            packetEntityMetadata = PACKET_ENTITY_METADATA.getConstructor(int.class, DATA_WATCHER, boolean.class);
-            packetMount = (VERSION > 16) ? PACKET_MOUNT.getConstructor(ENTITY) : PACKET_MOUNT.getConstructor();
-            packetEntityEquipment = (VERSION > 15) ?
-                    PACKET_ENTITY_EQUIPMENT.getConstructor(int.class, List.class) :
-                    PACKET_ENTITY_EQUIPMENT.getConstructor(int.class, ENUM_ITEM_SLOT, ITEM_STACK);
-            packetEntityDestroy = PACKET_ENTITY_DESTROY.getConstructor(PROTOCOL == 755 ? int.class : int[].class);
-            vector3f = VECTOR3F.getConstructor(float.class, float.class, float.class);
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
+
+        maxHealth = getField(GENERIC_ATTRIBUTES, "MAX_HEALTH", "a");
     }
 
     public PacketStand(Location location, StandSettings settings) {
@@ -233,7 +254,7 @@ public final class PacketStand {
             Object craftWorld = CRAFT_WORLD.cast(location.getWorld());
             Object nmsWorld = getHandle.invoke(craftWorld);
 
-            this.stand = entityArmorStand.newInstance(nmsWorld, location.getX(), location.getY(), location.getZ());
+            this.stand = entityArmorStand.invoke(nmsWorld, location.getX(), location.getY(), location.getZ());
             this.location = location;
             this.ignored = new HashSet<>();
             this.entityId = (getId != null) ? (int) getId.invoke(stand) : getBukkitEntity().getEntityId();
@@ -319,7 +340,7 @@ public final class PacketStand {
         if (!isInRange(player.getLocation())) return;
 
         try {
-            Object packetSpawn = packetSpawnEntityLiving.newInstance(stand);
+            Object packetSpawn = packetSpawnEntityLiving.invoke(stand);
             sendPacket(player, packetSpawn);
 
             ignored.remove(player.getUniqueId());
@@ -330,6 +351,7 @@ public final class PacketStand {
                 updateRotation();
                 updateMetadata();
                 updateEquipment();
+                hideHearts();
             });
         } catch (Throwable exception) {
             exception.printStackTrace();
@@ -364,7 +386,7 @@ public final class PacketStand {
      */
     public void updateLocation() {
         try {
-            Object packetTeleport = packetEntityTeleport.newInstance(stand);
+            Object packetTeleport = packetEntityTeleport.invoke(stand);
             sendPacket(packetTeleport, true);
         } catch (Throwable exception) {
             exception.printStackTrace();
@@ -379,10 +401,10 @@ public final class PacketStand {
             byte yaw = (byte) (location.getYaw() * 256.0f / 360.0f);
             byte pitch = (byte) (location.getPitch() * 256.0f / 360.0f);
 
-            Object packetRotation = packetEntityHeadRotation.newInstance(stand, yaw);
+            Object packetRotation = packetEntityHeadRotation.invoke(stand, yaw);
             sendPacket(packetRotation, true);
 
-            Object packetLook = packetEntityLook.newInstance(entityId, yaw, pitch, true);
+            Object packetLook = packetEntityLook.invoke(entityId, yaw, pitch, true);
             sendPacket(packetLook, true);
         } catch (Throwable exception) {
             exception.printStackTrace();
@@ -475,7 +497,7 @@ public final class PacketStand {
 
             Object watcher = getDataWatcher.invoke(stand);
 
-            Object packetMetadata = packetEntityMetadata.newInstance(entityId, watcher, true);
+            Object packetMetadata = packetEntityMetadata.invoke(entityId, watcher, true);
             sendPacket(packetMetadata);
         } catch (Throwable exception) {
             exception.printStackTrace();
@@ -541,9 +563,9 @@ public final class PacketStand {
         try {
             Object packetMount;
             if (VERSION > 16) {
-                packetMount = PacketStand.packetMount.newInstance(stand);
+                packetMount = PacketStand.packetMount.invoke(stand);
             } else {
-                packetMount = PacketStand.packetMount.newInstance();
+                packetMount = PacketStand.packetMount.invoke();
             }
 
             Field a = PACKET_MOUNT.getDeclaredField("a");
@@ -575,9 +597,25 @@ public final class PacketStand {
         return false;
     }
 
+    public void hideHearts() {
+        // Hide hearts when riding.
+        try {
+            // ***** Start *****
+            Object maxHealthAttribute = maxHealth.invoke();
+
+            Object attribute = getAttributeInstance.invoke(stand, maxHealthAttribute);
+            setValue.invoke(attribute, 1);
+
+            Object packet = packetUpdateAttributes.invoke(entityId, Lists.newArrayList(attribute));
+            sendPacket(packet);
+        } catch (Throwable exception) {
+            exception.printStackTrace();
+        }
+    }
+
     public Object getVector3f(EulerAngle angle) {
         try {
-            return vector3f.newInstance((float) Math.toDegrees(angle.getX()), (float) Math.toDegrees(angle.getY()), (float) Math.toDegrees(angle.getZ()));
+            return vector3f.invoke((float) Math.toDegrees(angle.getX()), (float) Math.toDegrees(angle.getY()), (float) Math.toDegrees(angle.getZ()));
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -699,9 +737,9 @@ public final class PacketStand {
                 List<Object> list = new ArrayList<>();
                 list.add(of.invoke(slot.get(), itemStack));
 
-                packetEquipment = packetEntityEquipment.newInstance(entityId, list);
+                packetEquipment = packetEntityEquipment.invoke(entityId, list);
             } else {
-                packetEquipment = packetEntityEquipment.newInstance(entityId, slot.get(), itemStack);
+                packetEquipment = packetEntityEquipment.invoke(entityId, slot.get(), itemStack);
             }
             sendPacket(packetEquipment);
         } catch (Throwable exception) {
@@ -730,7 +768,7 @@ public final class PacketStand {
     public void updateMetadata() {
         try {
             Object watcher = getDataWatcher.invoke(stand);
-            Object packetMetadata = packetEntityMetadata.newInstance(entityId, watcher, true);
+            Object packetMetadata = packetEntityMetadata.invoke(entityId, watcher, true);
             sendPacket(packetMetadata);
         } catch (Throwable exception) {
             exception.printStackTrace();
@@ -753,14 +791,13 @@ public final class PacketStand {
         ignored.clear();
     }
 
-    @SuppressWarnings({"PrimitiveArrayArgumentToVarargsMethod"})
     public void destroy(Player player) {
         try {
             Object packetDestroy;
             if (PROTOCOL == 755) {
-                packetDestroy = packetEntityDestroy.newInstance(entityId);
+                packetDestroy = packetEntityDestroy.invoke(entityId);
             } else {
-                packetDestroy = packetEntityDestroy.newInstance(new int[]{entityId});
+                packetDestroy = packetEntityDestroy.invoke(new int[]{entityId});
             }
 
             sendPacket(player, packetDestroy);
@@ -794,7 +831,7 @@ public final class PacketStand {
         for (Player player : location.getWorld().getPlayers()) {
             if (isIgnored(player)) continue;
 
-            // 755 = 1.17
+            // 755 = 1.17.
             if (isEntityLook && (VERSION > 16 || (usingVia && ViaExtension.getPlayerVersion(player) > 754))) {
                 continue;
             }
@@ -812,11 +849,44 @@ public final class PacketStand {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
+    private static MethodHandle getField(Class<?> refc, String name, String... extraNames) {
+        try {
+            Field field = refc.getDeclaredField(name);
+            field.setAccessible(true);
+            return LOOKUP.unreflectGetter(field);
+        } catch (ReflectiveOperationException exception) {
+            if (extraNames != null && extraNames.length > 0) {
+                if (extraNames.length == 1) {
+                    return getField(refc, extraNames[0]);
+                }
+                for (String extra : extraNames) {
+                    int index = ArrayUtils.indexOf(extraNames, extra);
+                    String[] rest = (String[]) ArrayUtils.remove(extraNames, index);
+                    return getField(refc, extra, rest);
+                }
+            }
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
+    private static MethodHandle getConstructor(Class<?> refc, Class<?>... types) {
+        try {
+            Constructor<?> constructor = refc.getDeclaredConstructor(types);
+            constructor.setAccessible(true);
+            return LOOKUP.unreflectConstructor(constructor);
+        } catch (ReflectiveOperationException exception) {
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
     private static MethodHandle getMethod(Class<?> refc, String name, MethodType type) {
         return getMethod(refc, name, type, false);
     }
 
-    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic) {
+    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, String... extraNames) {
         try {
             if (isStatic) return LOOKUP.findStatic(refc, name, type);
             if (VERSION == 18) {
@@ -825,6 +895,16 @@ public final class PacketStand {
             }
             return LOOKUP.findVirtual(refc, name, type);
         } catch (ReflectiveOperationException exception) {
+            if (extraNames != null && extraNames.length > 0) {
+                if (extraNames.length == 1) {
+                    return getMethod(refc, extraNames[0], type, isStatic);
+                }
+                for (String extra : extraNames) {
+                    int index = ArrayUtils.indexOf(extraNames, extra);
+                    String[] rest = (String[]) ArrayUtils.remove(extraNames, index);
+                    return getMethod(refc, extra, type, isStatic, rest);
+                }
+            }
             exception.printStackTrace();
             return null;
         }

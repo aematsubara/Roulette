@@ -61,7 +61,7 @@ public final class InputManager implements Listener {
         event.setCancelled(true);
 
         if (type.isAccountName()) {
-            if (isInvalidName(player, message)) return;
+            if (isInvalidPlayerName(player, message, true)) return;
 
             @SuppressWarnings("deprecation") OfflinePlayer target = Bukkit.getOfflinePlayer(ChatColor.stripColor(message));
             if (target.hasPlayedBefore()) {
@@ -73,11 +73,11 @@ public final class InputManager implements Listener {
                 plugin.getMessageManager().send(player, MessageManager.Message.UNKNOWN_ACCOUNT);
             }
         } else if (type.isCroupierName()) {
-            if (isInvalidName(player, message)) return;
+            if (isInvalidPlayerName(player, message, false)) return;
 
             // Limited to 16 characters.
             String name = PluginUtils.translate(message);
-            if (name.length() > 16) name = name.substring(0, 17);
+            if (name.length() > 16) name = name.substring(0, 16);
 
             // Team shouldn't be null since we created it @onEnable().
             if (game.getNPCName() != null) {
@@ -108,7 +108,7 @@ public final class InputManager implements Listener {
                     BufferedReader reader = new BufferedReader(
                             new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
 
-                    JsonObject textureObject = new JsonParser().parse(reader)
+                    JsonObject textureObject = JsonParser.parseReader(reader)
                             .getAsJsonObject()
                             .getAsJsonObject("data")
                             .getAsJsonObject("texture");
@@ -132,15 +132,13 @@ public final class InputManager implements Listener {
         remove(player);
     }
 
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean isInvalidName(Player player, String message) {
-        if (message.contains(" ")) {
-            plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_INVALID);
-            players.remove(player.getUniqueId());
-            remove(player);
-            return true;
-        }
-        return false;
+    private boolean isInvalidPlayerName(Player player, String message, boolean checkPattern) {
+        boolean invalid = checkPattern ? !message.matches("\\w{3,16}") : message.length() > 16;
+        if (!invalid) return false;
+
+        plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_INVALID);
+        remove(player);
+        return true;
     }
 
     public void newInput(Player player, InputType type, Game game) {

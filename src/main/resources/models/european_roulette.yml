@@ -1383,9 +1383,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_4:
     offset:
       x: -0.593
@@ -1431,9 +1428,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_7:
     offset:
       x: 0.593
@@ -1479,9 +1473,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_10:
     offset:
       x: 1.779
@@ -1527,9 +1518,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_13:
     offset:
       x: 2.965
@@ -1575,9 +1563,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_16:
     offset:
       x: 2.965
@@ -1623,9 +1608,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_19:
     offset:
       x: 1.779
@@ -1671,9 +1653,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_22:
     offset:
       x: 0.593
@@ -1719,9 +1698,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_25:
     offset:
       x: -0.593
@@ -1767,9 +1743,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   CHAIR_28:
     offset:
       x: -1.779
@@ -1815,9 +1788,6 @@ parts:
       fire: false
       marker: false
       glow: false
-    equipment:
-      helmet:
-        material: RED_CARPET
   SLOT_0:
     offset:
       x: -1.9465

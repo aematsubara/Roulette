@@ -187,8 +187,8 @@ game-menu:
       - "&7The minimum number of players"
       - "&7required to start a game."
       - "&7"
-      - "&6Left click to increase."
-      - "&6Right click to reduce."
+      - "&6Left click to reduce."
+      - "&6Right click to increase."
   max-amount:
     material: CHEST_MINECART
     display-name: "&aMaximum amount"
@@ -196,8 +196,8 @@ game-menu:
       - "&7The maximum number of players"
       - "&7this game can have."
       - "&7"
-      - "&6Left click to increase."
-      - "&6Right click to reduce."
+      - "&6Left click to reduce."
+      - "&6Right click to increase."
   start-time:
     material: CLOCK
     display-name: "&aStart time: &e%seconds% seconds"

@@ -30,7 +30,7 @@ public final class PluginUtils {
 
     private final static RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
 
-    private final static Pattern PATTERN = Pattern.compile("&#([0-9a-fA-F]{6})");
+    private final static Pattern PATTERN = Pattern.compile("&#([\\da-fA-F]{6})");
 
     private static final BlockFace[] AXIS = {
             BlockFace.NORTH,

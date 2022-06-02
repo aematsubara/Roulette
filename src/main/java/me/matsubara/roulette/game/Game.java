@@ -183,6 +183,10 @@ public final class Game {
         return location.setDirection(PluginUtils.getDirection(PluginUtils.getFace(location.getYaw(), false).getOppositeFace()));
     }
 
+    public boolean hasNPCTexture() {
+        return npc.getProfile().getProperty("textures").isPresent();
+    }
+
     public String getNPCTexture() {
         return npc.getProfile().getProperty("textures").map(Profile.Property::getValue).orElse(null);
     }
@@ -287,6 +291,7 @@ public final class Game {
         if (!isPlaying(player)) {
             // Add player to the game and sit.
             players.put(player, new Bet(this));
+            // TODO: Before sitting, teleport player to a spawn point of the game (won't work with @fix-camera tho).
             sitPlayer(player, true);
         }
 
@@ -372,7 +377,7 @@ public final class Game {
 
     private String replaceJoinHologramLines(String line) {
         return line
-                .replace("%name%", name)
+                .replace("%name%", name.replace("_", " "))
                 .replace("%playing%", String.valueOf(size()))
                 .replace("%max%", String.valueOf(maxPlayers))
                 .replace("%type%", type.getName());
@@ -597,7 +602,7 @@ public final class Game {
                 String totalMoney = String.valueOf(total);
                 plugin.getMessageManager().send(giveTo.getPlayer(), MessageManager.Message.RECEIVED, message -> message
                         .replace("%money%", String.valueOf(totalMoney))
-                        .replace("%name%", name));
+                        .replace("%name%", name.replace("_", " ")));
             }
         }
 

@@ -47,6 +47,9 @@ public final class Model {
     // Some parts of this model aren't stands.
     private final Map<String, Map.Entry<Location, StandSettings>> locations;
 
+    // Type of the carpets.
+    private XMaterial carpetsType;
+
     // Type of the planks.
     private XMaterial planksType;
 
@@ -81,6 +84,7 @@ public final class Model {
             String name,
             UUID modelId,
             Location location,
+            @Nullable XMaterial carpetsType,
             @Nullable XMaterial planksType,
             @Nullable XMaterial slabsType,
             @Nullable String[] decoPattern) {
@@ -90,6 +94,7 @@ public final class Model {
         this.location = location;
         this.stands = new LinkedHashMap<>();
         this.locations = new LinkedHashMap<>();
+        this.carpetsType = carpetsType != null ? carpetsType : XMaterial.RED_CARPET;
         this.planksType = planksType != null ? planksType : XMaterial.SPRUCE_PLANKS;
         this.slabsType = slabsType != null ? slabsType : XMaterial.SPRUCE_SLAB;
         this.decoPattern = decoPattern != null ? decoPattern : PATTERNS[ThreadLocalRandom.current().nextInt(PATTERNS.length)];
@@ -150,6 +155,8 @@ public final class Model {
                 settings.setHelmet(planksType.parseItem());
             } else if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
                 settings.setHelmet(slabsType.parseItem());
+            } else {
+                settings.setHelmet(carpetsType.parseItem());
             }
         }
 
@@ -290,16 +297,28 @@ public final class Model {
         return decoPattern;
     }
 
-    public void setPlanksType(XMaterial planksType) {
-        this.planksType = planksType;
+    public XMaterial getCarpetsType() {
+        return carpetsType;
     }
 
-    public void setSlabsType(XMaterial slabsType) {
-        this.slabsType = slabsType;
+    public void setCarpetsType(XMaterial carpetsType) {
+        this.carpetsType = carpetsType;
     }
 
     public XMaterial getPlanksType() {
         return planksType;
+    }
+
+    public void setPlanksType(XMaterial planksType) {
+        this.planksType = planksType;
+    }
+
+    public XMaterial getSlabsType() {
+        return slabsType;
+    }
+
+    public void setSlabsType(XMaterial slabsType) {
+        this.slabsType = slabsType;
     }
 
     public PacketStand getByName(String name) {

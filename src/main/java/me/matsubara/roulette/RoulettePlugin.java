@@ -105,12 +105,14 @@ public final class RoulettePlugin extends JavaPlugin {
 
         // Initialize managers.
         chipManager = new ChipManager(this);
-
         configManager = new ConfigManager(this);
+
+        int distance = Math.max(1, configManager.getRenderDistance());
 
         // Initialize npc pool (before games get loaded).
         npcPool = NPCPool.builder(this)
-                .spawnDistance(configManager.getRenderDistance())
+                .spawnDistance(distance)
+                .actionDistance(distance)
                 .tabListRemoveTicks(40)
                 .build();
 
@@ -151,7 +153,7 @@ public final class RoulettePlugin extends JavaPlugin {
             File file = new File(getDataFolder() + File.separator + "models", name + ".yml");
             if (file.exists()) continue;
 
-            saveResource("models/" + name + ".yml", false);
+            saveResource("models" + File.separator + name + ".yml", false);
         }
     }
 
@@ -213,6 +215,7 @@ public final class RoulettePlugin extends JavaPlugin {
         return messageManager;
     }
 
+    @SuppressWarnings("unused")
     public StandManager getStandManager() {
         return standManager;
     }

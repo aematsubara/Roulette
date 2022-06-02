@@ -50,7 +50,7 @@ public final class GameManager {
     }
 
     public void add(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, null, null, null);
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, null, null, null, null);
     }
 
     public void add(
@@ -68,6 +68,7 @@ public final class GameManager {
             boolean betAll,
             @Nullable UUID accountTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
+            @Nullable XMaterial carpetsType,
             @Nullable XMaterial planksType,
             @Nullable XMaterial slabsType,
             @Nullable String[] decoPattern) {
@@ -77,7 +78,7 @@ public final class GameManager {
                 npcName,
                 npcTexture,
                 npcSignature,
-                new Model(plugin, type.getModelName(), modelId, location, planksType, slabsType, decoPattern),
+                new Model(plugin, type.getModelName(), modelId, location, carpetsType, planksType, slabsType, decoPattern),
                 minPlayers,
                 maxPlayers,
                 type,
@@ -97,11 +98,16 @@ public final class GameManager {
         // Save model related data.
         configuration.set("games." + game.getName() + ".model.id", game.getModelId().toString());
         configuration.set("games." + game.getName() + ".model.type", game.getType().name());
-        String toUse = game.getModel().getPlanksType().name().split("_")[0];
-        if (game.getModel().getPlanksType().name().startsWith("DARK_OAK")) {
-            toUse = toUse + "_OAK";
-        }
-        configuration.set("games." + game.getName() + ".model.wood-type", toUse);
+
+        // Save wool material for chairs.
+        String woolMaterial = game.getModel().getCarpetsType().name();
+        configuration.set("games." + game.getName() + ".model.wool-type", woolMaterial.substring(0, woolMaterial.lastIndexOf("_")));
+
+        // Save wood material for chairs.
+        String woodMaterial = game.getModel().getPlanksType().name();
+        configuration.set("games." + game.getName() + ".model.wood-type", woodMaterial.substring(0, woodMaterial.lastIndexOf("_")));
+
+        // Save decoration pattern.
         configuration.set("games." + game.getName() + ".model.deco-pattern", Arrays.asList(game.getModel().getDecoPattern()));
 
         // Save location.
@@ -121,8 +127,14 @@ public final class GameManager {
 
         // Save NPC related data.
         configuration.set("games." + game.getName() + ".npc.name", game.getNPCName());
-        configuration.set("games." + game.getName() + ".npc.skin.texture", game.getNPCTexture());
-        configuration.set("games." + game.getName() + ".npc.skin.signature", game.getNPCSignature());
+        if (game.hasNPCTexture()) {
+            // Save skin data.
+            configuration.set("games." + game.getName() + ".npc.skin.texture", game.getNPCTexture());
+            configuration.set("games." + game.getName() + ".npc.skin.signature", game.getNPCSignature());
+        } else {
+            // Remove skin section.
+            configuration.set("games." + game.getName() + ".npc.skin", null);
+        }
 
         // Save other data.
         configuration.set("games." + game.getName() + ".other.owner-id", game.getOwner().toString());
@@ -154,7 +166,9 @@ public final class GameManager {
                 continue;
             }
 
+            String woolType = configuration.getString("games." + path + ".model.wool-type", "");
             String woodType = configuration.getString("games." + path + ".model.wood-type", "");
+            XMaterial carpets = XMaterial.matchXMaterial(woolType + "_CARPET").orElse(null);
             XMaterial planks = XMaterial.matchXMaterial(woodType + "_PLANKS").orElse(null);
             XMaterial slabs = XMaterial.matchXMaterial(woodType + "_SLAB").orElse(null);
             String[] pattern = configuration.getStringList("games." + path + ".model.deco-pattern").toArray(new String[0]);
@@ -184,7 +198,7 @@ public final class GameManager {
             String accountToString = configuration.getString("games." + path + ".other.account-to-id");
             UUID accountTo = accountToString != null ? UUID.fromString(accountToString) : null;
 
-            add(path, npcName, texture, signature, minPlayers, maxPlayers, type, modelId, location, owner, startTime, betAll, accountTo, rules, planks, slabs, pattern);
+            add(path, npcName, texture, signature, minPlayers, maxPlayers, type, modelId, location, owner, startTime, betAll, accountTo, rules, carpets, planks, slabs, pattern);
             loaded++;
         }
 

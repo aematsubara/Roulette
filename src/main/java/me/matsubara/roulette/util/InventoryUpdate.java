@@ -22,6 +22,7 @@
 package me.matsubara.roulette.util;
 
 import com.cryptomorin.xseries.ReflectionUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -57,12 +58,15 @@ public final class InventoryUpdate {
     private final static MethodHandle getBukkitView;
 
     // Constructors.
-    private static Constructor<?> chatMessage;
-    private static Constructor<?> packetPlayOutOpenWindow;
+    private final static MethodHandle chatMessage;
+    private final static MethodHandle packetPlayOutOpenWindow;
 
     // Fields.
-    private static Field activeContainer;
-    private static Field windowId;
+    private final static MethodHandle activeContainer;
+    private final static MethodHandle windowId;
+
+    // Methods factory.
+    private final static MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     static {
         // Initialize classes.
@@ -75,36 +79,21 @@ public final class InventoryUpdate {
         ENTITY_PLAYER = ReflectionUtils.getNMSClass("server.level", "EntityPlayer");
         CONTAINER = ReflectionUtils.getNMSClass("world.inventory", "Container");
 
-        MethodHandle handle = null, bukkitView = null;
+        // Initialize methods.
+        getHandle = getMethod(CRAFT_PLAYER, "getHandle", MethodType.methodType(ENTITY_PLAYER));
+        getBukkitView = getMethod(CONTAINER, "getBukkitView", MethodType.methodType(InventoryView.class));
 
-        try {
-            int version = ReflectionUtils.VER;
-            MethodHandles.Lookup lookup = MethodHandles.lookup();
+        // Initialize constructors.
+        chatMessage = getConstructor(CHAT_MESSAGE, String.class, Object[].class);
+        packetPlayOutOpenWindow =
+                (useContainers()) ?
+                        getConstructor(PACKET_PLAY_OUT_OPEN_WINDOW, int.class, CONTAINERS, I_CHAT_BASE_COMPONENT) :
+                        // Older versions use String instead of Containers, and require an int for the inventory size.
+                        getConstructor(PACKET_PLAY_OUT_OPEN_WINDOW, int.class, String.class, I_CHAT_BASE_COMPONENT, int.class);
 
-            // Initialize methods.
-            handle = lookup.findVirtual(CRAFT_PLAYER, "getHandle", MethodType.methodType(ENTITY_PLAYER));
-            bukkitView = lookup.findVirtual(CONTAINER, "getBukkitView", MethodType.methodType(InventoryView.class));
-
-            // Initialize constructors.
-            chatMessage = CHAT_MESSAGE.getConstructor(String.class, Object[].class);
-            packetPlayOutOpenWindow =
-                    (useContainers()) ?
-                            PACKET_PLAY_OUT_OPEN_WINDOW.getConstructor(int.class, CONTAINERS, I_CHAT_BASE_COMPONENT) :
-                            // Older versions use String instead of Containers, and require an int for the inventory size.
-                            PACKET_PLAY_OUT_OPEN_WINDOW.getConstructor(int.class, String.class, I_CHAT_BASE_COMPONENT, int.class);
-
-            // Initialize fields.
-            activeContainer = (version == 17) ?
-                    ENTITY_PLAYER.getField("bV") : (version == 18) ?
-                    ENTITY_PLAYER.getField("bW") :
-                    ENTITY_PLAYER.getField("activeContainer");
-            windowId = (version > 16) ? CONTAINER.getField("j") : CONTAINER.getField("windowId");
-        } catch (ReflectiveOperationException exception) {
-            exception.printStackTrace();
-        }
-
-        getHandle = handle;
-        getBukkitView = bukkitView;
+        // Initialize fields.
+        activeContainer = getField(ENTITY_PLAYER, "activeContainer", "bV", "bW");
+        windowId = getField(CONTAINER, "windowId", "j");
     }
 
     /**
@@ -127,13 +116,13 @@ public final class InventoryUpdate {
             }
 
             // Create new title.
-            Object title = chatMessage.newInstance(newTitle != null ? newTitle : "", new Object[]{});
+            Object title = chatMessage.invoke(newTitle != null ? newTitle : ""/*, new Object[]{}*/);
 
             // Get activeContainer from EntityPlayer.
-            Object activeContainer = InventoryUpdate.activeContainer.get(entityPlayer);
+            Object activeContainer = InventoryUpdate.activeContainer.invoke(entityPlayer);
 
             // Get windowId from activeContainer.
-            Integer windowId = (Integer) InventoryUpdate.windowId.get(activeContainer);
+            Integer windowId = (Integer) InventoryUpdate.windowId.invoke(activeContainer);
 
             // Get InventoryView from activeContainer.
             Object bukkitView = getBukkitView.invoke(activeContainer);
@@ -173,8 +162,8 @@ public final class InventoryUpdate {
             // Create packet.
             Object packet =
                     (useContainers()) ?
-                            packetPlayOutOpenWindow.newInstance(windowId, object, title) :
-                            packetPlayOutOpenWindow.newInstance(windowId, object, title, size);
+                            packetPlayOutOpenWindow.invoke(windowId, object, title) :
+                            packetPlayOutOpenWindow.invoke(windowId, object, title, size);
 
             // Send packet sync.
             ReflectionUtils.sendPacketSync(player, packet);
@@ -183,6 +172,47 @@ public final class InventoryUpdate {
             player.updateInventory();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
+        }
+    }
+
+    private static MethodHandle getField(Class<?> refc, String name, String... extraNames) {
+        try {
+            Field field = refc.getField(name);
+            field.setAccessible(true);
+            return LOOKUP.unreflectGetter(field);
+        } catch (ReflectiveOperationException exception) {
+            if (extraNames != null && extraNames.length > 0) {
+                if (extraNames.length == 1) {
+                    return getField(refc, extraNames[0]);
+                }
+                for (String extra : extraNames) {
+                    int index = ArrayUtils.indexOf(extraNames, extra);
+                    String[] rest = (String[]) ArrayUtils.remove(extraNames, index);
+                    return getField(refc, extra, rest);
+                }
+            }
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
+    private static MethodHandle getConstructor(Class<?> refc, Class<?>... types) {
+        try {
+            Constructor<?> constructor = refc.getDeclaredConstructor(types);
+            constructor.setAccessible(true);
+            return LOOKUP.unreflectConstructor(constructor);
+        } catch (ReflectiveOperationException exception) {
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
+    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type) {
+        try {
+            return LOOKUP.findVirtual(refc, name, type);
+        } catch (ReflectiveOperationException exception) {
+            exception.printStackTrace();
+            return null;
         }
     }
 

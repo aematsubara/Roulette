@@ -15,6 +15,7 @@ import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
 import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.MetadataValue;
 
 import java.util.Collection;
@@ -51,6 +52,7 @@ public final class UseEntity extends PacketAdapter {
         }
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @SafeVarargs
     private final void handleInteract(Game game, Player player, int entityId, Collection<PacketStand>... collections) {
         for (Collection<PacketStand> stands : collections) {
@@ -67,33 +69,45 @@ public final class UseEntity extends PacketAdapter {
                 if (canChangeTexture(player)) {
                     XMaterial material = getMaterialInHand(player);
 
-                    // No need to change if is the same.
-                    if (material == game.getModel().getPlanksType()) return;
+                    boolean isPlanks = material.name().contains("PLANKS");
 
-                    String toUse = material.name().split("_")[0];
-                    if (material.name().startsWith("DARK_OAK")) toUse = toUse + "_OAK";
+                    // No need to change planks type if is the same.
+                    if (isPlanks && material == game.getModel().getPlanksType()) return;
 
-                    XMaterial slab = XMaterial.matchXMaterial(toUse + "_SLAB").get();
+                    String toUse = material.name().substring(0, material.name().lastIndexOf("_"));
 
-                    game.getModel().setPlanksType(material);
-                    game.getModel().setSlabsType(slab);
+                    if (isPlanks) {
+                        XMaterial slab = XMaterial.matchXMaterial(toUse + "_SLAB").get(); // Can't be null.
+                        game.getModel().setPlanksType(material);
+                        game.getModel().setSlabsType(slab);
+                    } else {
+                        XMaterial carpet = XMaterial.matchXMaterial(toUse + "_CARPET").get(); // Again, can't be null.
+                        game.getModel().setCarpetsType(carpet);
+                    }
+
+                    ItemStack carpets = game.getModel().getCarpetsType().parseItem();
+                    ItemStack planks = game.getModel().getPlanksType().parseItem();
+                    ItemStack slabs = game.getModel().getSlabsType().parseItem();
 
                     game.getModel().getStands().forEach((name, part) -> {
+                        if (isPlanks) {
+                            if (name.startsWith("SIDE")) {
+                                part.setEquipment(slabs, PacketStand.ItemSlot.HEAD);
+                            }
 
-                        if (name.startsWith("SIDE")) {
-                            part.setEquipment(slab.parseItem(), PacketStand.ItemSlot.HEAD);
-                        }
-
-                        if (name.startsWith("FEET")) {
-                            part.setEquipment(player.getInventory().getItemInMainHand(), PacketStand.ItemSlot.HEAD);
+                            if (name.startsWith("FEET")) {
+                                part.setEquipment(planks, PacketStand.ItemSlot.HEAD);
+                            }
                         }
 
                         if (name.startsWith("CHAIR")) {
                             int current = Integer.parseInt(name.split("_")[1]);
                             if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray(), current)) {
-                                part.setEquipment(player.getInventory().getItemInMainHand(), PacketStand.ItemSlot.HEAD);
+                                part.setEquipment(planks, PacketStand.ItemSlot.HEAD);
                             } else if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
-                                part.setEquipment(slab.parseItem(), PacketStand.ItemSlot.HEAD);
+                                part.setEquipment(slabs, PacketStand.ItemSlot.HEAD);
+                            } else {
+                                part.setEquipment(carpets, PacketStand.ItemSlot.HEAD);
                             }
                         }
                     });
@@ -170,8 +184,9 @@ public final class UseEntity extends PacketAdapter {
     }
 
     private boolean canChangeTexture(Player player) {
-        //XTag.LOGS.isTagged(getMaterialInHand(player))
-        return player.isSneaking() && getMaterialInHand(player).name().contains("PLANKS") && player.hasPermission("roulette.texture_table");
+        String inHand = getMaterialInHand(player).name();
+        boolean validMaterial = inHand.contains("PLANKS") || inHand.contains("WOOL");
+        return player.isSneaking() && validMaterial && player.hasPermission("roulette.texture_table");
     }
 
     private boolean isPluginVanished(Player player) {

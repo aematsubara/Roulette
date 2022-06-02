@@ -3,7 +3,7 @@ version: '${project.version}'
 main: me.matsubara.roulette.RoulettePlugin
 api-version: 1.13
 author: Matsubara
-description: The classic casino game now in Minecraft, no need for texture packs.
+description: '${project.description}'
 depend:
   - ProtocolLib
   - Vault

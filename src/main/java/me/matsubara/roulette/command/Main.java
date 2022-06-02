@@ -113,6 +113,11 @@ public final class Main implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (!args[0].equalsIgnoreCase("create")) {
+            plugin.getMessageManager().send(player, MessageManager.Message.SINTAX);
+            return true;
+        }
+
         // If player doesn't have permission to create games, send @no-permission message.
         if (!hasPermission(player, "roulette.create")) return true;
 
