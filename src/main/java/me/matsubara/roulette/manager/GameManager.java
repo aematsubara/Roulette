@@ -7,7 +7,7 @@ import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.model.Model;
-import org.apache.commons.lang.Validate;
+import me.matsubara.roulette.util.Lang3Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
@@ -221,7 +221,7 @@ public final class GameManager {
     }
 
     private void saveLocation(String path, Location location) {
-        Validate.notNull(location.getWorld(), "World can't be null.");
+        Lang3Utils.notNull(location.getWorld(), "World can't be null.");
         configuration.set("games." + path + ".location.world", location.getWorld().getName());
         configuration.set("games." + path + ".location.x", location.getX());
         configuration.set("games." + path + ".location.y", location.getY());

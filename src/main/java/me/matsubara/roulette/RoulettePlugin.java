@@ -60,7 +60,7 @@ public final class RoulettePlugin extends JavaPlugin {
             return;
         }
 
-        // Disable plugin if dependencies aren't isntalled.
+        // Disable plugin if dependencies aren't installed.
         if (!hasDependencies(DEPENDENCIES)) {
             getLogger().severe("You need to install all the dependencies to be able to use this plugin, disabling...");
             getServer().getPluginManager().disablePlugin(this);

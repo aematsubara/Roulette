@@ -10,7 +10,6 @@ import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.manager.ConfigManager;
 import net.md_5.bungee.api.ChatColor;
-import org.apache.commons.lang.Validate;
 import org.bukkit.Color;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.ItemStack;
@@ -162,7 +161,7 @@ public final class PluginUtils {
     }
 
     public static String translate(String message) {
-        Validate.notNull(message, "Message can't be null.");
+        Lang3Utils.notNull(message, "Message can't be null.");
 
         if (ReflectionUtils.VER < 16) return oldTranslate(message);
 
@@ -177,7 +176,7 @@ public final class PluginUtils {
     }
 
     public static List<String> translate(List<String> messages) {
-        Validate.notNull(messages, "Messages can't be null.");
+        Lang3Utils.notNull(messages, "Messages can't be null.");
 
         messages.replaceAll(PluginUtils::translate);
         return messages;

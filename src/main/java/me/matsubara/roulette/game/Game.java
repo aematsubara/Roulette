@@ -21,9 +21,9 @@ import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.runnable.MoneyAnimation;
+import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
 import net.milkbowl.vault.economy.EconomyResponse;
-import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
@@ -462,7 +462,7 @@ public final class Game {
         PacketStand sitting = model.getByName("CHAIR_" + sittingOn);
         if (sitting != null) sitting.setPassenger(null);
 
-        int ordinal = ArrayUtils.indexOf(CHAIRS, sittingOn);
+        int ordinal = Lang3Utils.indexOf(CHAIRS, sittingOn);
 
         PacketStand stand;
 
@@ -509,7 +509,7 @@ public final class Game {
             return;
         }
 
-        int ordinal = ArrayUtils.indexOf(Slot.values(this), players.get(player).getSlot());
+        int ordinal = Lang3Utils.indexOf(Slot.values(this), players.get(player).getSlot());
 
         Slot slot;
 
@@ -819,7 +819,7 @@ public final class Game {
             Bet bet = entry.getValue();
 
             // Remove player only if prison rule isn't enabled (or the selected slot doesn't apply for that rule).
-            if (!isRuleEnabled(GameRule.EN_PRISON) || !bet.getSlot().applyForRules() || bet.wasEnPrison()) {
+            if (!isRuleEnabled(GameRule.EN_PRISON) || !bet.getSlot().applyForRules() || bet.wasEnPrison() || bet.won()) {
                 // Remove hologram and chip.
                 bet.remove();
 

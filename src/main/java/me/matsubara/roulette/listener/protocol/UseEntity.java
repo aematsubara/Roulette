@@ -13,7 +13,7 @@ import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
-import org.apache.commons.lang.ArrayUtils;
+import me.matsubara.roulette.util.Lang3Utils;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.MetadataValue;
@@ -102,9 +102,9 @@ public final class UseEntity extends PacketAdapter {
 
                         if (name.startsWith("CHAIR")) {
                             int current = Integer.parseInt(name.split("_")[1]);
-                            if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray(), current)) {
+                            if (Lang3Utils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray(), current)) {
                                 part.setEquipment(planks, PacketStand.ItemSlot.HEAD);
-                            } else if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
+                            } else if (Lang3Utils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
                                 part.setEquipment(slabs, PacketStand.ItemSlot.HEAD);
                             } else {
                                 part.setEquipment(carpets, PacketStand.ItemSlot.HEAD);

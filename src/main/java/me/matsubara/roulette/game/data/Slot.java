@@ -1,7 +1,7 @@
 package me.matsubara.roulette.game.data;
 
 import me.matsubara.roulette.game.Game;
-import org.apache.commons.lang.ArrayUtils;
+import me.matsubara.roulette.util.Lang3Utils;
 
 /**
  * Slots of the table, from 0 (including 00 for american table) to 36.
@@ -170,7 +170,7 @@ public enum Slot {
         if (slot.isAnyZero()) return false;
 
         for (int number : slot.getInts()) {
-            if (ArrayUtils.contains(ints, number)) return true;
+            if (Lang3Utils.contains(ints, number)) return true;
         }
 
         return false;
@@ -221,10 +221,10 @@ public enum Slot {
      * Return slots values based on the game type (american/european) and remove disabled ones.
      */
     public static Slot[] values(Game game) {
-        Slot[] values = game.getType().isEuropean() ? (Slot[]) ArrayUtils.remove(values(), 1) : values();
+        Slot[] values = game.getType().isEuropean() ? Lang3Utils.remove(values(), 1) : values();
 
         for (Slot slot : game.getDisabledSlots()) {
-            values = (Slot[]) ArrayUtils.removeElement(values, slot);
+            values = Lang3Utils.removeElement(values, slot);
         }
 
         return values;

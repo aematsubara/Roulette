@@ -7,7 +7,7 @@ import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.InventoryUpdate;
 import me.matsubara.roulette.util.ItemBuilder;
-import org.apache.commons.lang.ArrayUtils;
+import me.matsubara.roulette.util.Lang3Utils;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -82,7 +82,7 @@ public final class ChipGUI implements InventoryHolder {
 
         // Set background items, except the last, since we're putting the close item there.
         for (int i = 0; i < 35; i++) {
-            if (ArrayUtils.contains(SLOTS, i) || ArrayUtils.contains(HOTBAR, i)) continue;
+            if (Lang3Utils.contains(SLOTS, i) || Lang3Utils.contains(HOTBAR, i)) continue;
             // Set background item in the current slot from the loop.
             inventory.setItem(i, background);
         }
@@ -105,7 +105,7 @@ public final class ChipGUI implements InventoryHolder {
         // Assigning slots.
         Map<Integer, Integer> slotIndex = new HashMap<>();
         for (int i : SLOTS) {
-            slotIndex.put(ArrayUtils.indexOf(SLOTS, i), i);
+            slotIndex.put(Lang3Utils.indexOf(SLOTS, i), i);
         }
 
         // Where to start.

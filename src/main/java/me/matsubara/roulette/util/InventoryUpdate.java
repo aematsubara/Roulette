@@ -22,8 +22,6 @@
 package me.matsubara.roulette.util;
 
 import com.cryptomorin.xseries.ReflectionUtils;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
@@ -52,10 +50,12 @@ public final class InventoryUpdate {
     private final static Class<?> CONTAINER;
     private final static Class<?> CONTAINERS;
     private final static Class<?> ENTITY_PLAYER;
+    private final static Class<?> I_CHAT_MUTABLE_COMPONENT;
 
     // Methods.
     private final static MethodHandle getHandle;
     private final static MethodHandle getBukkitView;
+    private final static MethodHandle literal;
 
     // Constructors.
     private final static MethodHandle chatMessage;
@@ -69,22 +69,26 @@ public final class InventoryUpdate {
     private final static MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     static {
+        boolean supports19 = ReflectionUtils.supports(19);
+
         // Initialize classes.
         CRAFT_PLAYER = ReflectionUtils.getCraftClass("entity.CraftPlayer");
-        CHAT_MESSAGE = ReflectionUtils.getNMSClass("network.chat", "ChatMessage");
+        CHAT_MESSAGE = supports19 ? null : ReflectionUtils.getNMSClass("network.chat", "ChatMessage");
         PACKET_PLAY_OUT_OPEN_WINDOW = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutOpenWindow");
         I_CHAT_BASE_COMPONENT = ReflectionUtils.getNMSClass("network.chat", "IChatBaseComponent");
         // Check if we use containers, otherwise, can throw errors on older versions.
         CONTAINERS = useContainers() ? ReflectionUtils.getNMSClass("world.inventory", "Containers") : null;
         ENTITY_PLAYER = ReflectionUtils.getNMSClass("server.level", "EntityPlayer");
         CONTAINER = ReflectionUtils.getNMSClass("world.inventory", "Container");
+        I_CHAT_MUTABLE_COMPONENT = supports19 ? ReflectionUtils.getNMSClass("network.chat", "IChatMutableComponent") : null;
 
         // Initialize methods.
         getHandle = getMethod(CRAFT_PLAYER, "getHandle", MethodType.methodType(ENTITY_PLAYER));
         getBukkitView = getMethod(CONTAINER, "getBukkitView", MethodType.methodType(InventoryView.class));
+        literal = supports19 ? getMethod(I_CHAT_BASE_COMPONENT, "b", MethodType.methodType(I_CHAT_MUTABLE_COMPONENT, String.class), true) : null;
 
         // Initialize constructors.
-        chatMessage = getConstructor(CHAT_MESSAGE, String.class, Object[].class);
+        chatMessage = supports19 ? null : getConstructor(CHAT_MESSAGE, String.class);
         packetPlayOutOpenWindow =
                 (useContainers()) ?
                         getConstructor(PACKET_PLAY_OUT_OPEN_WINDOW, int.class, CONTAINERS, I_CHAT_BASE_COMPONENT) :
@@ -92,8 +96,8 @@ public final class InventoryUpdate {
                         getConstructor(PACKET_PLAY_OUT_OPEN_WINDOW, int.class, String.class, I_CHAT_BASE_COMPONENT, int.class);
 
         // Initialize fields.
-        activeContainer = getField(ENTITY_PLAYER, "activeContainer", "bV", "bW");
-        windowId = getField(CONTAINER, "windowId", "j");
+        activeContainer = getField(ENTITY_PLAYER, CONTAINER, "activeContainer", "bV", "bW", "bU", "containerMenu");
+        windowId = getField(CONTAINER, int.class, "windowId", "j", "containerId");
     }
 
     /**
@@ -104,7 +108,7 @@ public final class InventoryUpdate {
      */
 
     public static void updateInventory(JavaPlugin plugin, Player player, String newTitle) {
-        Validate.notNull(player, "Cannot update inventory to null player.");
+        Lang3Utils.notNull(player, "Cannot update inventory to null player.");
 
         try {
             // Get EntityPlayer from CraftPlayer.
@@ -113,10 +117,15 @@ public final class InventoryUpdate {
 
             if (newTitle != null && newTitle.length() > 32) {
                 newTitle = newTitle.substring(0, 32);
-            }
+            } else if (newTitle == null) newTitle = "";
 
             // Create new title.
-            Object title = chatMessage.invoke(newTitle != null ? newTitle : ""/*, new Object[]{}*/);
+            Object title;
+            if (ReflectionUtils.supports(19)) {
+                title = literal.invoke(newTitle);
+            } else {
+                title = chatMessage.invoke(newTitle);
+            }
 
             // Get activeContainer from EntityPlayer.
             Object activeContainer = InventoryUpdate.activeContainer.invoke(entityPlayer);
@@ -175,23 +184,31 @@ public final class InventoryUpdate {
         }
     }
 
-    private static MethodHandle getField(Class<?> refc, String name, String... extraNames) {
+    private static MethodHandle getField(Class<?> refc, Class<?> instc, String name, String... extraNames) {
+        MethodHandle handle = getFieldHandle(refc, instc, name);
+        if (handle != null) return handle;
+
+        if (extraNames != null && extraNames.length > 0) {
+            if (extraNames.length == 1) return getField(refc, instc, extraNames[0]);
+            return getField(refc, instc, extraNames[0], Lang3Utils.remove(extraNames, 0));
+        }
+
+        return null;
+    }
+
+    private static MethodHandle getFieldHandle(Class<?> refc, Class<?> inscofc, String name) {
         try {
-            Field field = refc.getField(name);
-            field.setAccessible(true);
-            return LOOKUP.unreflectGetter(field);
-        } catch (ReflectiveOperationException exception) {
-            if (extraNames != null && extraNames.length > 0) {
-                if (extraNames.length == 1) {
-                    return getField(refc, extraNames[0]);
-                }
-                for (String extra : extraNames) {
-                    int index = ArrayUtils.indexOf(extraNames, extra);
-                    String[] rest = (String[]) ArrayUtils.remove(extraNames, index);
-                    return getField(refc, extra, rest);
+            for (Field field : refc.getFields()) {
+                field.setAccessible(true);
+
+                if (!field.getName().equalsIgnoreCase(name)) continue;
+
+                if (field.getType().isInstance(inscofc) || field.getType().isAssignableFrom(inscofc)) {
+                    return LOOKUP.unreflectGetter(field);
                 }
             }
-            exception.printStackTrace();
+            return null;
+        } catch (ReflectiveOperationException ignored) {
             return null;
         }
     }
@@ -208,7 +225,12 @@ public final class InventoryUpdate {
     }
 
     private static MethodHandle getMethod(Class<?> refc, String name, MethodType type) {
+        return getMethod(refc, name, type, false);
+    }
+
+    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic) {
         try {
+            if (isStatic) return LOOKUP.findStatic(refc, name, type);
             return LOOKUP.findVirtual(refc, name, type);
         } catch (ReflectiveOperationException exception) {
             exception.printStackTrace();

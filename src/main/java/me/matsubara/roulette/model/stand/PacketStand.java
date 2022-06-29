@@ -4,9 +4,8 @@ import com.cryptomorin.xseries.ReflectionUtils;
 import com.google.common.collect.Lists;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.hook.ViaExtension;
+import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
@@ -142,7 +141,9 @@ public final class PacketStand {
         ENTITY = ReflectionUtils.getNMSClass("world.entity", "Entity");
         ENTITY_LIVING = ReflectionUtils.getNMSClass("world.entity", "EntityLiving");
         ENTITY_ARMOR_STAND = ReflectionUtils.getNMSClass("world.entity.decoration", "EntityArmorStand");
-        PACKET_SPAWN_ENTITY_LIVING = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutSpawnEntityLiving");
+        PACKET_SPAWN_ENTITY_LIVING = ReflectionUtils.getNMSClass(
+                "network.protocol.game",
+                VERSION > 18 ? "PacketPlayOutSpawnEntity" : "PacketPlayOutSpawnEntityLiving"); // SpawnEntityLiving is removed since 1.19.
         PACKET_ENTITY_HEAD_ROTATION = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityHeadRotation");
         PACKET_ENTITY_TELEPORT = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityTeleport");
         PACKET_ENTITY_LOOK = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntity$PacketPlayOutEntityLook");
@@ -165,7 +166,7 @@ public final class PacketStand {
 
         // Initialize methods.
         getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
-        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, (VERSION == 18) ? "ai" : "getDataWatcher", MethodType.methodType(DATA_WATCHER));
+        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, (VERSION > 17) ? "ai" : "getDataWatcher", MethodType.methodType(DATA_WATCHER));
         asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true);
         of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true);
         getBukkitEntity = getMethod(ENTITY_ARMOR_STAND, "getBukkitEntity", MethodType.methodType(CRAFT_ENTITY));
@@ -240,7 +241,7 @@ public final class PacketStand {
             exception.printStackTrace();
         }
 
-        maxHealth = getField(GENERIC_ATTRIBUTES, "MAX_HEALTH", "a");
+        maxHealth = getField(GENERIC_ATTRIBUTES, "MAX_HEALTH", "maxHealth", "a");
     }
 
     public PacketStand(Location location, StandSettings settings) {
@@ -248,7 +249,7 @@ public final class PacketStand {
     }
 
     public PacketStand(Location location, StandSettings settings, boolean showEveryone) {
-        Validate.notNull(location.getWorld(), "World can't be null.");
+        Lang3Utils.notNull(location.getWorld(), "World can't be null.");
 
         try {
             Object craftWorld = CRAFT_WORLD.cast(location.getWorld());
@@ -600,7 +601,6 @@ public final class PacketStand {
     public void hideHearts() {
         // Hide hearts when riding.
         try {
-            // ***** Start *****
             Object maxHealthAttribute = maxHealth.invoke();
 
             Object attribute = getAttributeInstance.invoke(stand, maxHealthAttribute);
@@ -861,8 +861,8 @@ public final class PacketStand {
                     return getField(refc, extraNames[0]);
                 }
                 for (String extra : extraNames) {
-                    int index = ArrayUtils.indexOf(extraNames, extra);
-                    String[] rest = (String[]) ArrayUtils.remove(extraNames, index);
+                    int index = Lang3Utils.indexOf(extraNames, extra);
+                    String[] rest = Lang3Utils.remove(extraNames, index);
                     return getField(refc, extra, rest);
                 }
             }
@@ -889,7 +889,7 @@ public final class PacketStand {
     private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, String... extraNames) {
         try {
             if (isStatic) return LOOKUP.findStatic(refc, name, type);
-            if (VERSION == 18) {
+            if (VERSION > 17) {
                 Method method = refc.getMethod(name, type.parameterArray());
                 return LOOKUP.unreflect(method);
             }
@@ -900,8 +900,8 @@ public final class PacketStand {
                     return getMethod(refc, extraNames[0], type, isStatic);
                 }
                 for (String extra : extraNames) {
-                    int index = ArrayUtils.indexOf(extraNames, extra);
-                    String[] rest = (String[]) ArrayUtils.remove(extraNames, index);
+                    int index = Lang3Utils.indexOf(extraNames, extra);
+                    String[] rest = Lang3Utils.remove(extraNames, index);
                     return getMethod(refc, extra, type, isStatic, rest);
                 }
             }

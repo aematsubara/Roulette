@@ -5,8 +5,8 @@ import com.cryptomorin.xseries.XMaterial;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
+import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -151,9 +151,9 @@ public final class Model {
 
         if (name.startsWith("CHAIR")) {
             int current = Integer.parseInt(name.split("_")[1]);
-            if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray(), current)) {
+            if (Lang3Utils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray(), current)) {
                 settings.setHelmet(planksType.parseItem());
-            } else if (ArrayUtils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
+            } else if (Lang3Utils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
                 settings.setHelmet(slabsType.parseItem());
             } else {
                 settings.setHelmet(carpetsType.parseItem());

@@ -6,7 +6,7 @@
 
     <groupId>me.matsubara</groupId>
     <artifactId>Roulette</artifactId>
-    <version>1.9-SNAPSHOT</version>
+    <version>1.9.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Roulette</name>
@@ -144,16 +144,16 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.18.2-R0.1-SNAPSHOT</version>
+            <version>1.19-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        <!-- NBTEditor -->
+        <!-- NBTEditor https://github.com/BananaPuncher714/NBTEditor -->
         <dependency>
             <groupId>io.github.bananapuncher714</groupId>
             <artifactId>nbteditor</artifactId>
-            <version>7.18.2</version>
+            <version>7.18.3</version>
         </dependency>
-        <!-- ProtocolLib -->
+        <!-- ProtocolLib https://github.com/dmulloy2/ProtocolLib/ -->
         <dependency>
             <groupId>com.comphenix.protocol</groupId>
             <artifactId>ProtocolLib</artifactId>
@@ -166,11 +166,11 @@
             <artifactId>npc-lib</artifactId>
             <version>development-SNAPSHOT</version>
         </dependency>
-        <!-- XSeries -->
+        <!-- XSeries https://github.com/CryptoMorin/XSeries/ -->
         <dependency>
             <groupId>com.github.cryptomorin</groupId>
             <artifactId>XSeries</artifactId>
-            <version>8.7.1</version>
+            <version>8.8.0</version>
         </dependency>
         <!-- Annotations -->
         <dependency>
@@ -192,7 +192,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- EssentialsX -->
+        <!-- EssentialsX https://github.com/EssentialsX/Essentials -->
         <dependency>
             <groupId>net.essentialsx</groupId>
             <artifactId>EssentialsX</artifactId>
@@ -205,18 +205,18 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- PlaceholderAPI -->
+        <!-- PlaceholderAPI https://github.com/PlaceholderAPI/PlaceholderAPI -->
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.1</version>
             <scope>provided</scope>
         </dependency>
-        <!-- ViaVersion -->
+        <!-- ViaVersion https://github.com/ViaVersion/ViaVersion -->
         <dependency>
             <groupId>com.viaversion</groupId>
             <artifactId>viaversion-api</artifactId>
-            <version>4.2.1</version>
+            <version>4.3.1</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

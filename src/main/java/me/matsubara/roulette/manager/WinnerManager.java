@@ -5,8 +5,8 @@ import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.WinType;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.manager.winner.Winner;
+import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.map.MapBuilder;
-import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -139,12 +139,12 @@ public final class WinnerManager {
 
             for (String text : ConfigManager.Config.MAP_IMAGE_TEXT.asList()) {
                 if (Strings.isNullOrEmpty(text) || text.equalsIgnoreCase("none")) continue;
-                String[] split = StringUtils.split(StringUtils.deleteWhitespace(text), ',');
+                String[] split = Lang3Utils.split(Lang3Utils.deleteWhitespace(text), ',');
                 if (split.length == 0) continue;
 
                 int posY;
                 try {
-                    posY = Integer.parseInt(StringUtils.deleteWhitespace(split[0]));
+                    posY = Integer.parseInt(Lang3Utils.deleteWhitespace(split[0]));
                 } catch (NumberFormatException exception) {
                     continue;
                 }
