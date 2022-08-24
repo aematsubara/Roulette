@@ -490,8 +490,8 @@ public final class Game {
     }
 
     public void moveChip(Player player, boolean toTheRight) {
-        // If not slot available & mutli-occupy slot is not allowed, return.
         boolean allowMultipleOccupy = ConfigManager.Config.ALLOW_MULTIPLE_OCCUPY_SLOT.asBoolean();
+        // If no slot is available & mutli-occupy slot is not allowed, return.
         if (!allowMultipleOccupy && !isSlotAvailable()) return;
 
         // If the player didn't selected a chip from the GUI yet, return.
