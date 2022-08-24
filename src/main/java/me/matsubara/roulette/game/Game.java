@@ -490,15 +490,16 @@ public final class Game {
     }
 
     public void moveChip(Player player, boolean toTheRight) {
-        // If not slot available, return.
-        if (!isSlotAvailable()) return;
+        // If not slot available & mutli-occupy slot is not allowed, return.
+        boolean allowMultipleOccupy = ConfigManager.Config.ALLOW_MULTIPLE_OCCUPY_SLOT.asBoolean();
+        if (!allowMultipleOccupy && !isSlotAvailable()) return;
 
         // If the player didn't selected a chip from the GUI yet, return.
         if (!players.get(player).hasChip()) return;
 
         if (toTheRight && !players.get(player).hasSlot()) {
             for (Slot slot : Slot.values(this)) {
-                if (alreadySelected(slot)) continue;
+                if (!allowMultipleOccupy && alreadySelected(slot)) continue;
 
                 // Spawn hologram and chip (if not spawned).
                 players.get(player).handle(player, slot);
@@ -523,7 +524,7 @@ public final class Game {
             }
 
             slot = Slot.values(this)[ordinal];
-        } while (alreadySelected(slot));
+        } while (!allowMultipleOccupy && alreadySelected(slot));
 
         // Teleport hologram and chip.
         players.get(player).handle(player, slot);
