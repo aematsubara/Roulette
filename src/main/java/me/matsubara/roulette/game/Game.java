@@ -12,8 +12,8 @@ import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.game.data.Slot;
-import me.matsubara.roulette.game.state.JoinSelecting;
 import me.matsubara.roulette.game.state.Starting;
+import me.matsubara.roulette.gui.ChipGUI;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
@@ -312,7 +312,15 @@ public final class Game {
         // Add player to the collision team to prevent collisions.
         plugin.getCollisionTeam().addEntry(player.getName());
 
-        if (state.isSelecting()) new JoinSelecting(this, player).runTask(plugin);
+        if (state.isSelecting()) {
+            Game game = this;
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    new ChipGUI(game, player);
+                }
+            }.runTask(plugin);
+        }
     }
 
     public void setStartingTask(BukkitTask startingTask) {
