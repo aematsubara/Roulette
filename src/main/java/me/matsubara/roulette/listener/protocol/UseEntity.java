@@ -11,7 +11,6 @@ import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
-import me.matsubara.roulette.gui.ChipGUI;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.util.Lang3Utils;
