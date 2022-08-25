@@ -11,6 +11,7 @@ import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
+import me.matsubara.roulette.gui.ChipGUI;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.util.Lang3Utils;
@@ -156,7 +157,7 @@ public final class UseEntity extends PacketAdapter {
                     return;
                 }
 
-                // Can happen if the player doens't have money.
+                // Can happen if the player doesn't have money.
                 double minAmount = plugin.getChipManager().getMinAmount();
                 if (!plugin.getEconomy().has(player, minAmount)) {
                     plugin.getMessageManager().send(player, MessageManager.Message.MIN_REQUIRED, message -> message.replace("%money%", String.valueOf(minAmount)));

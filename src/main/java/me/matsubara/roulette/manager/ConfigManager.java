@@ -117,6 +117,7 @@ public final class ConfigManager {
         INSTANT_EXPLODE("instant-explode"),
         FIX_CHAIR_CAMERA("fix-chair-camera"),
         HIT_ON_GAME("hit-on-game"),
+        ALLOW_JOIN_ON_SELECTING("allow-join-on-selecting"),
         LEAVE_CONFIRM("leave-confirm"),
         MOVE_INTERVAL("move-interval"),
         CROUPIER_BALL("croupier-ball.material"),

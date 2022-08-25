@@ -12,7 +12,9 @@ import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.game.data.Slot;
+import me.matsubara.roulette.game.state.JoinSelecting;
 import me.matsubara.roulette.game.state.Starting;
+import me.matsubara.roulette.gui.ChipGUI;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
@@ -283,7 +285,8 @@ public final class Game {
     }
 
     public boolean canJoin() {
-        return state.isIdle() || state.isStarting();
+        return state.isIdle() || state.isStarting()
+                || (ConfigManager.Config.ALLOW_JOIN_ON_SELECTING.asBoolean() && state.isSelecting());
     }
 
     public void add(Player player) {
@@ -296,7 +299,8 @@ public final class Game {
         }
 
         // Can be greater than 0 when prison rule is enabled, since players aren't removed from the game.
-        if (players.size() >= minPlayers && (startingTask == null || startingTask.isCancelled())) {
+        if (!state.isSelecting() && players.size() >= minPlayers
+                && (startingTask == null || startingTask.isCancelled())) {
             // Start starting task.
             setStartingTask(new Starting(plugin, this).runTaskTimer(plugin, 20L, 20L));
         }
@@ -308,6 +312,8 @@ public final class Game {
 
         // Add player to the collision team to prevent collisions.
         plugin.getCollisionTeam().addEntry(player.getName());
+
+        if (state.isSelecting()) new JoinSelecting(this, player).runTask(plugin);
     }
 
     public void setStartingTask(BukkitTask startingTask) {
