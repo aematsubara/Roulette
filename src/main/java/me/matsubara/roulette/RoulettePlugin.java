@@ -98,10 +98,10 @@ public final class RoulettePlugin extends JavaPlugin {
         if (hasDependency("Essentials")) essXExtension = new EssXExtension(this);
 
         // Team used to disable the nametag of NPCs.
-        hideTeam = createTeam("rouletteHide", Team.Option.NAME_TAG_VISIBILITY);
+        getHideTeam();
 
         // Team used to disable collisions for players inside the game (sitting on chair).
-        collisionTeam = createTeam("rouletteCollide", Team.Option.COLLISION_RULE);
+        getCollisionTeam();
 
         // Initialize managers.
         chipManager = new ChipManager(this);
@@ -225,10 +225,16 @@ public final class RoulettePlugin extends JavaPlugin {
     }
 
     public Team getHideTeam() {
+        if(hideTeam == null || Bukkit.getScoreboardManager().getMainScoreboard().getTeam("rouletteHide") == null){
+            hideTeam = createTeam("rouletteHide", Team.Option.NAME_TAG_VISIBILITY);
+        }
         return hideTeam;
     }
 
     public Team getCollisionTeam() {
+        if(collisionTeam == null || Bukkit.getScoreboardManager().getMainScoreboard().getTeam("rouletteCollide") == null){
+            collisionTeam = createTeam("rouletteCollide", Team.Option.COLLISION_RULE);
+        }
         return collisionTeam;
     }
 }
