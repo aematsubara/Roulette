@@ -38,7 +38,7 @@ public final class InputManager implements Listener {
         this.players = new HashMap<>();
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         if (!player.hasMetadata("rouletteEditing")) return;
