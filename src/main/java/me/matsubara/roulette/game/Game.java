@@ -202,7 +202,7 @@ public final class Game {
             plugin.getNPCPool().removeNPC(npc.getEntityId());
         }
 
-        if (name == null) name = "";
+        if (name == null) name = ConfigManager.Config.UNNAMED_CROUPIER.asString();
 
         // Hide npc name if empty string.
         if (name.trim().isEmpty()) {
