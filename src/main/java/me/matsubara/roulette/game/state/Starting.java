@@ -2,10 +2,11 @@ package me.matsubara.roulette.game.state;
 
 
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.MessageManager;
+import me.matsubara.roulette.event.RouletteStartEvent;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
+import me.matsubara.roulette.manager.ConfigManager;
+import me.matsubara.roulette.manager.MessageManager;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public final class Starting extends BukkitRunnable {
@@ -29,6 +30,9 @@ public final class Starting extends BukkitRunnable {
             // Start selecting task.
             game.setSelectingTask(new Selecting(plugin, game)
                     .runTaskTimer(plugin, 20L, 20L));
+
+            RouletteStartEvent startEvent = new RouletteStartEvent(game);
+            plugin.getServer().getPluginManager().callEvent(startEvent);
 
             cancel();
             return;

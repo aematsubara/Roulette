@@ -22,6 +22,8 @@
 package me.matsubara.roulette.util;
 
 import com.cryptomorin.xseries.ReflectionUtils;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
@@ -33,7 +35,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.Arrays;
+import java.util.Set;
 
 /**
  * A utility class for update the inventory of a player.
@@ -67,6 +69,9 @@ public final class InventoryUpdate {
 
     // Methods factory.
     private final static MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+
+    // Inventories that can't be opened server-side.
+    private final static Set<String> UNOPENABLES = Sets.newHashSet("CRAFTING", "CREATIVE", "PLAYER");
 
     static {
         boolean supports19 = ReflectionUtils.supports(19);
@@ -108,7 +113,7 @@ public final class InventoryUpdate {
      */
 
     public static void updateInventory(JavaPlugin plugin, Player player, String newTitle) {
-        Lang3Utils.notNull(player, "Cannot update inventory to null player.");
+        Preconditions.checkArgument(player != null, "Cannot update inventory to null player.");
 
         try {
             // Get EntityPlayer from CraftPlayer.
@@ -144,7 +149,7 @@ public final class InventoryUpdate {
             if ((type == InventoryType.WORKBENCH || type == InventoryType.ANVIL) && !useContainers()) return;
 
             // You can't reopen crafting, creative and player inventory.
-            if (Arrays.asList("CRAFTING", "CREATIVE", "PLAYER").contains(type.name())) return;
+            if (UNOPENABLES.contains(type.name())) return;
 
             int size = view.getTopInventory().getSize();
 
@@ -190,10 +195,19 @@ public final class InventoryUpdate {
 
         if (extraNames != null && extraNames.length > 0) {
             if (extraNames.length == 1) return getField(refc, instc, extraNames[0]);
-            return getField(refc, instc, extraNames[0], Lang3Utils.remove(extraNames, 0));
+            return getField(refc, instc, extraNames[0], removeFirst(extraNames));
         }
 
         return null;
+    }
+
+    private static String[] removeFirst(String[] array) {
+        int length = array.length;
+
+        String[] result = new String[length - 1];
+        System.arraycopy(array, 1, result, 0, length - 1);
+
+        return result;
     }
 
     private static MethodHandle getFieldHandle(Class<?> refc, Class<?> inscofc, String name) {

@@ -14,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.EulerAngle;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -56,6 +57,9 @@ public final class PacketStand {
 
     // Methods factory.
     private final static MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+
+    @TestOnly
+    private final static boolean FORCE_SYNC = true;
 
     // Classes.
     private final static Class<?> CRAFT_CHAT_MESSAGE;
@@ -816,7 +820,7 @@ public final class PacketStand {
     }
 
     private void sendPacket(Player player, Object packet, boolean sync) {
-        if (sync) ReflectionUtils.sendPacketSync(player, packet);
+        if (sync || FORCE_SYNC) ReflectionUtils.sendPacketSync(player, packet);
         else ReflectionUtils.sendPacket(player, packet);
     }
 

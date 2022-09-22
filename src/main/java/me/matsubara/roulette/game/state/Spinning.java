@@ -4,6 +4,7 @@ import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.cryptomorin.xseries.XSound;
 import com.github.juliarn.npc.modifier.AnimationModifier;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.event.LastRouletteSpinEvent;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.game.data.Bet;
@@ -136,6 +137,13 @@ public final class Spinning extends BukkitRunnable {
         // Select a random number.
         int which = ThreadLocalRandom.current().nextInt(0, isEuropean ? 37 : 38);
         game.setWinner(slots[which]);
+
+        if (time == 1) {
+            LastRouletteSpinEvent lastSpinEvent = new LastRouletteSpinEvent(game, game.getWinner());
+            plugin.getServer().getPluginManager().callEvent(lastSpinEvent);
+
+            game.setWinner(lastSpinEvent.getWinnerSlot());
+        }
 
         // If the spin hologram is empty, create the lines, else update them.
         if (game.getSpinHologram().size() == 0) {

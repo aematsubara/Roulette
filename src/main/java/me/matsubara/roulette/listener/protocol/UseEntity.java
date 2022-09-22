@@ -10,6 +10,7 @@ import com.cryptomorin.xseries.XMaterial;
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.event.PlayerRouletteEnterEvent;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
@@ -162,6 +163,10 @@ public final class UseEntity extends PacketAdapter {
                     plugin.getMessageManager().send(player, MessageManager.Message.MIN_REQUIRED, message -> message.replace("%money%", String.valueOf(minAmount)));
                     return;
                 }
+
+                PlayerRouletteEnterEvent enterEvent = new PlayerRouletteEnterEvent(game, player);
+                plugin.getServer().getPluginManager().callEvent(enterEvent);
+                if (enterEvent.isCancelled()) return;
 
                 game.add(player);
                 game.broadcast(MessageManager.Message.JOIN.asString()

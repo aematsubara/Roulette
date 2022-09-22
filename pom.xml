@@ -59,7 +59,11 @@
                             <artifact>*:*</artifact>
                             <excludes>
                                 <exclude>META-INF/*.MF</exclude>
-                                <!-- Exclude unused XSeries utilities. -->
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.cryptomorin.xseries:XSeries</artifact>
+                            <excludes>
                                 <exclude>com/cryptomorin/xseries/particles/ParticleDisplay*</exclude>
                                 <exclude>com/cryptomorin/xseries/particles/XParticle*</exclude>
                                 <exclude>com/cryptomorin/xseries/XBiome*</exclude>
@@ -97,42 +101,34 @@
     </build>
 
     <repositories>
-        <!-- for Spigot -->
         <repository>
             <id>spigotmc-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
-        <!-- for Spigot -->
         <repository>
             <id>sonatype</id>
             <url>https://oss.sonatype.org/content/groups/public/</url>
         </repository>
-        <!-- for NBTEditor -->
         <repository>
             <id>CodeMC</id>
             <url>https://repo.codemc.org/repository/maven-public/</url>
         </repository>
-        <!-- for ProtocolLib -->
         <repository>
             <id>dmulloy2-repo</id>
             <url>https://repo.dmulloy2.net/repository/public/</url>
         </repository>
-        <!-- for NPC-Lib -->
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
-        <!-- for EssentialsX -->
         <repository>
             <id>essentials-repo</id>
             <url>https://repo.essentialsx.net/releases/</url>
         </repository>
-        <!-- for PlaceholderAPI -->
         <repository>
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
-        <!-- for ViaVersion -->
         <repository>
             <id>viaversion-repo</id>
             <url>https://repo.viaversion.com</url>
@@ -144,16 +140,16 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.19-R0.1-SNAPSHOT</version>
+            <version>1.19.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        <!-- NBTEditor https://github.com/BananaPuncher714/NBTEditor -->
+        <!-- NBTEditor -->
         <dependency>
             <groupId>io.github.bananapuncher714</groupId>
             <artifactId>nbteditor</artifactId>
             <version>7.18.3</version>
         </dependency>
-        <!-- ProtocolLib https://github.com/dmulloy2/ProtocolLib/ -->
+        <!-- ProtocolLib -->
         <dependency>
             <groupId>com.comphenix.protocol</groupId>
             <artifactId>ProtocolLib</artifactId>
@@ -166,11 +162,11 @@
             <artifactId>npc-lib</artifactId>
             <version>development-SNAPSHOT</version>
         </dependency>
-        <!-- XSeries https://github.com/CryptoMorin/XSeries/ -->
+        <!-- XSeries -->
         <dependency>
             <groupId>com.github.cryptomorin</groupId>
             <artifactId>XSeries</artifactId>
-            <version>8.8.0</version>
+            <version>9.1.0</version>
         </dependency>
         <!-- Annotations -->
         <dependency>
@@ -192,11 +188,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- EssentialsX https://github.com/EssentialsX/Essentials -->
+        <!-- EssentialsX -->
         <dependency>
             <groupId>net.essentialsx</groupId>
             <artifactId>EssentialsX</artifactId>
-            <version>2.19.4</version>
+            <version>2.19.7</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
@@ -205,18 +201,18 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- PlaceholderAPI https://github.com/PlaceholderAPI/PlaceholderAPI -->
+        <!-- PlaceholderAPI -->
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
-            <version>2.11.1</version>
+            <version>2.11.2</version>
             <scope>provided</scope>
         </dependency>
-        <!-- ViaVersion https://github.com/ViaVersion/ViaVersion -->
+        <!-- ViaVersion -->
         <dependency>
             <groupId>com.viaversion</groupId>
             <artifactId>viaversion-api</artifactId>
-            <version>4.3.1</version>
+            <version>4.4.2</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
