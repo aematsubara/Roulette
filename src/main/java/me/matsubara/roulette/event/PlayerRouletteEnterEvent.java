@@ -14,7 +14,7 @@ public class PlayerRouletteEnterEvent extends RouletteEvent implements Cancellab
     private final static HandlerList handlers = new HandlerList();
 
     public PlayerRouletteEnterEvent(Game game, Player player) {
-        super(game);
+        super(game, true);
         this.player = player;
     }
 

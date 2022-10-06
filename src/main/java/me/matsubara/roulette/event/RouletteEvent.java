@@ -8,6 +8,11 @@ public abstract class RouletteEvent extends Event {
     protected final Game game;
 
     public RouletteEvent(Game game) {
+        this(game, false);
+    }
+
+    public RouletteEvent(Game game, boolean isAsync) {
+        super(isAsync);
         this.game = game;
     }
 
