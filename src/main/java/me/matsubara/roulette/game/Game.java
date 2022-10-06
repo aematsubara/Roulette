@@ -196,16 +196,17 @@ public final class Game {
         return npc.getProfile().getProperty("textures").map(Profile.Property::getSignature).orElse(null);
     }
 
-    public void setNPC(String name, @Nullable String texture, @Nullable String signature) {
+    public void setNPC(@Nullable String name, @Nullable String texture, @Nullable String signature) {
         // If this game already has an NPC, remove first.
         if (this.npc != null) {
             plugin.getNPCPool().removeNPC(npc.getEntityId());
         }
 
-        if (name == null) name = ConfigManager.Config.UNNAMED_CROUPIER.asString();
+        String unnamed = ConfigManager.Config.UNNAMED_CROUPIER.asString();
+        if (name == null || name.isEmpty()) name = unnamed;
 
-        // Hide npc name if empty string.
-        if (name.trim().isEmpty()) {
+        // Hide npc name if empty unnamed.
+        if (name.equalsIgnoreCase(unnamed)) {
             plugin.getHideTeam().addEntry(name);
         }
 
