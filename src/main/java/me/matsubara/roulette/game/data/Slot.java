@@ -137,7 +137,7 @@ public enum Slot {
 
     public String getChance(boolean isEuropean) {
         if (isSingleInclusive()) {
-            return isEuropean ? "1/37 (27%)" : "1/38 (26%)";
+            return isEuropean ? "1/37 (2.7%)" : "1/38 (2.6%)";
         }
         if (isLow() || isEven() || isRed() || isBlack() || isOdd() || isHigh()) {
             return isEuropean ? "18/37 (48%)" : "18/38 (47%)";
