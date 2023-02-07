@@ -40,10 +40,10 @@ public final class Hologram {
     private int taskId;
 
     // Space between lines.
-    private final static double LINE_DISTANCE = 0.23d;
+    private static final double LINE_DISTANCE = 0.23d;
 
     // Rainbow colors.
-    private final static String[] RAINBOW = arrayToStrings(
+    private static final String[] RAINBOW = arrayToStrings(
             ChatColor.RED,
             ChatColor.GOLD,
             ChatColor.YELLOW,

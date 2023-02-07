@@ -225,7 +225,7 @@ game-menu:
     display-name: "&aEn Prison"
     lore:
       - "&7Gives players an opportunity to"
-      - "&7recovertheir even-money stakes"
+      - "&7recover their even-money stakes"
       - "&7after the zero is spun."
       - "&7"
       - "&7The stake remains on the losing"

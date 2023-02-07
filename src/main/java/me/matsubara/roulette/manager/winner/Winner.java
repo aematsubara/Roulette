@@ -17,6 +17,10 @@ public final class Winner {
         this.winnerData = new ArrayList<>();
     }
 
+    public void add(WinnerData data) {
+        winnerData.add(data);
+    }
+
     public void add(String game, Integer mapId, double money, long date, Slot slot, Slot winner, WinType type, double originalMoney) {
         winnerData.add(new WinnerData(game, mapId, money, date, slot, winner, type, originalMoney));
     }
@@ -29,13 +33,13 @@ public final class Winner {
         return winnerData;
     }
 
-    public final static class WinnerData {
+    public static final class WinnerData {
 
         // Name of the game.
         private final String game;
 
         // Unique id created for the map.
-        private final Integer mapId;
+        private Integer mapId;
 
         // Money earned in the game (can be different from the original amount due to partage/prison/surrender rule).
         private final double money;
@@ -72,6 +76,10 @@ public final class Winner {
 
         public Integer getMapId() {
             return mapId;
+        }
+
+        public void setMapId(Integer mapId) {
+            this.mapId = mapId;
         }
 
         public double getMoney() {

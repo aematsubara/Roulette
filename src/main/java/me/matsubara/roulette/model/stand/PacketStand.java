@@ -29,7 +29,7 @@ import java.util.*;
 public final class PacketStand {
 
     // Plugin instance.
-    private final static RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
+    private static final RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
 
     // Entity instance.
     private Object stand;
@@ -53,70 +53,71 @@ public final class PacketStand {
     private static int PROTOCOL = -1;
 
     // Version of the server.
-    private final static int VERSION = ReflectionUtils.VER;
+    private static final int VERSION = ReflectionUtils.VER;
 
     // Methods factory.
-    private final static MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     @TestOnly
-    private final static boolean FORCE_SYNC = true;
+    private static final boolean FORCE_SYNC = true;
 
     // Classes.
-    private final static Class<?> CRAFT_CHAT_MESSAGE;
-    private final static Class<?> CRAFT_ENTITY;
-    private final static Class<?> CRAFT_WORLD;
-    private final static Class<?> CRAFT_ITEM_STACK;
-    private final static Class<?> WORLD;
-    private final static Class<?> WORLD_SERVER;
-    private final static Class<?> ENTITY;
-    private final static Class<?> ENTITY_LIVING;
-    private final static Class<?> ENTITY_ARMOR_STAND;
-    private final static Class<?> PACKET_SPAWN_ENTITY_LIVING;
-    private final static Class<?> PACKET_ENTITY_HEAD_ROTATION;
-    private final static Class<?> PACKET_ENTITY_TELEPORT;
-    private final static Class<?> PACKET_ENTITY_LOOK;
-    private final static Class<?> DATA_WATCHER;
-    private final static Class<?> PACKET_ENTITY_METADATA;
-    private final static Class<?> PACKET_MOUNT;
-    private final static Class<?> PACKET_ENTITY_EQUIPMENT;
-    private final static Class<?> ENUM_ITEM_SLOT;
-    private final static Class<?> ITEM_STACK;
-    private final static Class<?> PACKET_ENTITY_DESTROY;
-    private final static Class<?> PAIR;
-    private final static Class<?> SHARED_CONSTANTS;
-    private final static Class<?> GAME_VERSION;
-    private final static Class<?> VECTOR3F;
-    private final static Class<?> I_CHAT_BASE_COMPONENT;
-    private final static Class<?> ATTRIBUTE_MODIFIABLE;
-    private final static Class<?> ATTRIBUTE_BASE;
-    private final static Class<?> GENERIC_ATTRIBUTES;
-    private final static Class<?> PACKET_UPDATE_ATTRIBUTES;
+    private static final Class<?> CRAFT_CHAT_MESSAGE;
+    private static final Class<?> CRAFT_ENTITY;
+    private static final Class<?> CRAFT_WORLD;
+    private static final Class<?> CRAFT_ITEM_STACK;
+    private static final Class<?> WORLD;
+    private static final Class<?> WORLD_SERVER;
+    private static final Class<?> ENTITY;
+    private static final Class<?> ENTITY_LIVING;
+    private static final Class<?> ENTITY_ARMOR_STAND;
+    private static final Class<?> PACKET_SPAWN_ENTITY_LIVING;
+    private static final Class<?> PACKET_ENTITY_HEAD_ROTATION;
+    private static final Class<?> PACKET_ENTITY_TELEPORT;
+    private static final Class<?> PACKET_ENTITY_LOOK;
+    private static final Class<?> DATA_WATCHER;
+    private static final Class<?> PACKET_ENTITY_METADATA;
+    private static final Class<?> PACKET_MOUNT;
+    private static final Class<?> PACKET_ENTITY_EQUIPMENT;
+    private static final Class<?> ENUM_ITEM_SLOT;
+    private static final Class<?> ITEM_STACK;
+    private static final Class<?> PACKET_ENTITY_DESTROY;
+    private static final Class<?> PAIR;
+    private static final Class<?> SHARED_CONSTANTS;
+    private static final Class<?> GAME_VERSION;
+    private static final Class<?> VECTOR3F;
+    private static final Class<?> I_CHAT_BASE_COMPONENT;
+    private static final Class<?> ATTRIBUTE_MODIFIABLE;
+    private static final Class<?> ATTRIBUTE_BASE;
+    private static final Class<?> GENERIC_ATTRIBUTES;
+    private static final Class<?> PACKET_UPDATE_ATTRIBUTES;
 
     // Methods.
-    private final static MethodHandle getHandle;
-    private final static MethodHandle getDataWatcher;
-    private final static MethodHandle asNMSCopy;
-    private final static MethodHandle of;
-    private final static MethodHandle getBukkitEntity;
-    private final static MethodHandle setFlag;
-    private final static MethodHandle fromStringOrNull;
-    private final static MethodHandle getId;
-    private final static MethodHandle setLocation;
-    private final static MethodHandle setInvisible;
-    private final static MethodHandle setArms;
-    private final static MethodHandle setBasePlate;
-    private final static MethodHandle setSmall;
-    private final static MethodHandle setMarker;
-    private final static MethodHandle setCustomName;
-    private final static MethodHandle setCustomNameVisible;
-    private final static MethodHandle setHeadPose;
-    private final static MethodHandle setBodyPose;
-    private final static MethodHandle setLeftArmPose;
-    private final static MethodHandle setRightArmPose;
-    private final static MethodHandle setLeftLegPose;
-    private final static MethodHandle setRightLegPose;
-    private final static MethodHandle getAttributeInstance;
-    private final static MethodHandle setValue;
+    private static final MethodHandle getHandle;
+    private static final MethodHandle getDataWatcher;
+    private static final MethodHandle asNMSCopy;
+    private static final MethodHandle of;
+    private static final MethodHandle getBukkitEntity;
+    private static final MethodHandle setFlag;
+    private static final MethodHandle fromStringOrNull;
+    private static final MethodHandle getId;
+    private static final MethodHandle setLocation;
+    private static final MethodHandle setInvisible;
+    private static final MethodHandle setArms;
+    private static final MethodHandle setBasePlate;
+    private static final MethodHandle setSmall;
+    private static final MethodHandle setMarker;
+    private static final MethodHandle setCustomName;
+    private static final MethodHandle setCustomNameVisible;
+    private static final MethodHandle setHeadPose;
+    private static final MethodHandle setBodyPose;
+    private static final MethodHandle setLeftArmPose;
+    private static final MethodHandle setRightArmPose;
+    private static final MethodHandle setLeftLegPose;
+    private static final MethodHandle setRightLegPose;
+    private static final MethodHandle getAttributeInstance;
+    private static final MethodHandle setValue;
+    private static final MethodHandle getNonDefaultValues;
 
     // Constructors.
     private static final MethodHandle entityArmorStand;
@@ -170,17 +171,18 @@ public final class PacketStand {
 
         // Initialize methods.
         getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
-        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, (VERSION > 17) ? "ai" : "getDataWatcher", MethodType.methodType(DATA_WATCHER));
-        asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true);
-        of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true);
+        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, "getDataWatcher", MethodType.methodType(DATA_WATCHER), false, true, "ai", "al");
+        asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true, true);
+        of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true, true);
         getBukkitEntity = getMethod(ENTITY_ARMOR_STAND, "getBukkitEntity", MethodType.methodType(CRAFT_ENTITY));
-        getAttributeInstance = getMethod(ENTITY_ARMOR_STAND, "getAttributeInstance", MethodType.methodType(ATTRIBUTE_MODIFIABLE, ATTRIBUTE_BASE), false, "a");
-        setValue = getMethod(ATTRIBUTE_MODIFIABLE, "setValue", MethodType.methodType(void.class, double.class), false, "a");
+        getAttributeInstance = getMethod(ENTITY_ARMOR_STAND, "getAttributeInstance", MethodType.methodType(ATTRIBUTE_MODIFIABLE, ATTRIBUTE_BASE), false, true, "a");
+        setValue = getMethod(ATTRIBUTE_MODIFIABLE, "setValue", MethodType.methodType(void.class, double.class), false, true, "a");
+        getNonDefaultValues = getMethod(DATA_WATCHER, "getNonDefaultValues", MethodType.methodType(List.class), false, false, "c");
 
         // Since 1.18 is obfuscated af, we're using getBukkitEntity() and then bukkit methods.
         if (VERSION < 18) {
             setFlag = getMethod(ENTITY_ARMOR_STAND, "setFlag", MethodType.methodType(void.class, int.class, boolean.class));
-            fromStringOrNull = (CRAFT_CHAT_MESSAGE == null) ? null : getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true);
+            fromStringOrNull = (CRAFT_CHAT_MESSAGE == null) ? null : getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true, true);
             getId = getMethod(ENTITY_ARMOR_STAND, "getId", MethodType.methodType(int.class));
             setLocation = getMethod(ENTITY_ARMOR_STAND, "setLocation", MethodType.methodType(void.class, double.class, double.class, double.class, float.class, float.class));
             setInvisible = getMethod(ENTITY_ARMOR_STAND, "setInvisible", MethodType.methodType(void.class, boolean.class));
@@ -219,11 +221,12 @@ public final class PacketStand {
 
         // Initialize constructors.
         entityArmorStand = getConstructor(ENTITY_ARMOR_STAND, WORLD, double.class, double.class, double.class);
-        packetSpawnEntityLiving = getConstructor(PACKET_SPAWN_ENTITY_LIVING, ENTITY_LIVING);
+        packetSpawnEntityLiving = getConstructor(PACKET_SPAWN_ENTITY_LIVING, VERSION > 18 ? ENTITY : ENTITY_LIVING);
         packetEntityHeadRotation = getConstructor(PACKET_ENTITY_HEAD_ROTATION, ENTITY, byte.class);
         packetEntityTeleport = getConstructor(PACKET_ENTITY_TELEPORT, ENTITY);
         packetEntityLook = getConstructor(PACKET_ENTITY_LOOK, int.class, byte.class, byte.class, boolean.class);
-        packetEntityMetadata = getConstructor(PACKET_ENTITY_METADATA, int.class, DATA_WATCHER, boolean.class);
+        MethodHandle metadata = getConstructor(PACKET_ENTITY_METADATA, false, int.class, DATA_WATCHER, boolean.class);
+        packetEntityMetadata = metadata != null ? metadata : getConstructor(PACKET_ENTITY_METADATA, int.class, List.class);
         packetMount = (VERSION > 16) ? getConstructor(PACKET_MOUNT, ENTITY) : getConstructor(PACKET_MOUNT);
         packetEntityEquipment = (VERSION > 15) ?
                 getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, List.class) :
@@ -235,7 +238,7 @@ public final class PacketStand {
         try {
             // Get protocol version, only needed for 1.17.
             if (VERSION == 17) {
-                MethodHandle getVersion = getMethod(SHARED_CONSTANTS, "getGameVersion", MethodType.methodType(GAME_VERSION), true);
+                MethodHandle getVersion = getMethod(SHARED_CONSTANTS, "getGameVersion", MethodType.methodType(GAME_VERSION), true, true);
                 MethodHandle getProtocol = getMethod(GAME_VERSION, "getProtocolVersion", MethodType.methodType(int.class));
 
                 Object gameVersion = getVersion.invoke();
@@ -499,11 +502,7 @@ public final class PacketStand {
 
         try {
             setFlag.invoke(stand, 0, fire);
-
-            Object watcher = getDataWatcher.invoke(stand);
-
-            Object packetMetadata = packetEntityMetadata.invoke(entityId, watcher, true);
-            sendPacket(packetMetadata);
+            updateMetadata();
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -770,12 +769,23 @@ public final class PacketStand {
     }
 
     public void updateMetadata() {
+        sendPacket(createMetadataPacket());
+    }
+
+    private Object createMetadataPacket() {
         try {
             Object watcher = getDataWatcher.invoke(stand);
-            Object packetMetadata = packetEntityMetadata.invoke(entityId, watcher, true);
-            sendPacket(packetMetadata);
+            Object packetMetadata;
+            if (getNonDefaultValues != null) {
+                Object values = getNonDefaultValues.invoke(watcher);
+                packetMetadata = packetEntityMetadata.invoke(entityId, values != null ? values : new ArrayList<>());
+            } else {
+                packetMetadata = packetEntityMetadata.invoke(entityId, watcher, true);
+            }
+            return packetMetadata;
         } catch (Throwable exception) {
             exception.printStackTrace();
+            return null;
         }
     }
 
@@ -876,40 +886,47 @@ public final class PacketStand {
     }
 
     private static MethodHandle getConstructor(Class<?> refc, Class<?>... types) {
+        return getConstructor(refc, true, types);
+    }
+
+    private static MethodHandle getConstructor(Class<?> refc, boolean printStackTrace, Class<?>... types) {
         try {
             Constructor<?> constructor = refc.getDeclaredConstructor(types);
             constructor.setAccessible(true);
             return LOOKUP.unreflectConstructor(constructor);
         } catch (ReflectiveOperationException exception) {
-            exception.printStackTrace();
+            if (printStackTrace) exception.printStackTrace();
             return null;
         }
     }
 
     private static MethodHandle getMethod(Class<?> refc, String name, MethodType type) {
-        return getMethod(refc, name, type, false);
+        return getMethod(refc, name, type, false, true);
     }
 
-    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, String... extraNames) {
+    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, boolean printStackTrace, String... extraNames) {
         try {
             if (isStatic) return LOOKUP.findStatic(refc, name, type);
             if (VERSION > 17) {
                 Method method = refc.getMethod(name, type.parameterArray());
+                if (!method.getReturnType().isAssignableFrom(type.returnType())) {
+                    throw new NoSuchMethodException();
+                }
                 return LOOKUP.unreflect(method);
             }
             return LOOKUP.findVirtual(refc, name, type);
         } catch (ReflectiveOperationException exception) {
             if (extraNames != null && extraNames.length > 0) {
                 if (extraNames.length == 1) {
-                    return getMethod(refc, extraNames[0], type, isStatic);
+                    return getMethod(refc, extraNames[0], type, isStatic, printStackTrace);
                 }
                 for (String extra : extraNames) {
                     int index = Lang3Utils.indexOf(extraNames, extra);
                     String[] rest = Lang3Utils.remove(extraNames, index);
-                    return getMethod(refc, extra, type, isStatic, rest);
+                    return getMethod(refc, extra, type, isStatic, printStackTrace, rest);
                 }
             }
-            exception.printStackTrace();
+            if (printStackTrace) exception.printStackTrace();
             return null;
         }
     }

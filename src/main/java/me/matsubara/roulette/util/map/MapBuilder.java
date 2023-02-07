@@ -14,6 +14,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.image.BufferedImage;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,14 +37,25 @@ public final class MapBuilder {
     private boolean rendered;
     private boolean renderOnce;
 
-    private final boolean isNewVersion;
+    private static final boolean IS_MODERN = ReflectionUtils.VER > 12;
+    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+    private static final MethodHandle GET_MAP = getMethod(Bukkit.class, "getMap", short.class);
+    private static final MethodHandle GET_ID = getMethod(MapView.class, "getId");
+
+    private static MethodHandle getMethod(Class<?> clazz, String name, Class<?>... parameterTypes) {
+        try {
+            Method method = clazz.getMethod(name, parameterTypes);
+            return LOOKUP.unreflect(method);
+        } catch (ReflectiveOperationException exception) {
+            return null;
+        }
+    }
 
     public MapBuilder() {
         cursors = new MapCursorCollection();
         texts = new ArrayList<>();
         rendered = false;
         renderOnce = true;
-        isNewVersion = ReflectionUtils.VER > 12;
     }
 
     /**
@@ -144,32 +158,34 @@ public final class MapBuilder {
      */
     @SuppressWarnings({"deprecation", "ConstantConditions"})
     public MapBuilder build() {
-        Material material = isNewVersion ? Material.FILLED_MAP : Material.valueOf("MAP");
+        Material material = IS_MODERN ? Material.FILLED_MAP : Material.valueOf("MAP");
 
         if (id != null) {
-            item = new ItemStack(material, 1, (short) id.intValue());
+            int finalId = ReflectionUtils.supports(19) ? id + 1 : id;
+            item = new ItemStack(material, 1, (short) finalId);
 
-            MapMeta meta = (MapMeta) item.getItemMeta();
-            if (ReflectionUtils.VER > 12) {
-                meta.setMapId(id);
+            if (IS_MODERN) {
+                MapMeta meta = (MapMeta) item.getItemMeta();
+                meta.setMapId(finalId);
 
                 if (!meta.hasMapId()) {
-                    Bukkit.getMap(id);
+                    Bukkit.getMap(finalId);
                 }
 
                 view = meta.getMapView();
             } else {
                 try {
-                    //noinspection JavaReflectionMemberAccess
-                    view = (MapView) Bukkit.class.getMethod("getMap", short.class).invoke(null, id.shortValue());
-                } catch (ReflectiveOperationException exception) {
-                    exception.printStackTrace();
+                    view = (MapView) GET_MAP.invoke(id.shortValue());
+                } catch (Throwable throwable) {
+                    throwable.printStackTrace();
                 }
             }
         } else {
             item = new ItemStack(material);
             view = Bukkit.createMap(Bukkit.getWorlds().get(0));
         }
+
+        if (view == null) return this;
 
         view.setScale(Scale.NORMAL);
         view.getRenderers().forEach(view::removeRenderer);
@@ -207,7 +223,7 @@ public final class MapBuilder {
             }
         });
 
-        if (isNewVersion) {
+        if (IS_MODERN) {
             MapMeta mapMeta = (MapMeta) item.getItemMeta();
             if (mapMeta != null) mapMeta.setMapView(view);
             item.setItemMeta(mapMeta);
@@ -256,9 +272,9 @@ public final class MapBuilder {
             return (short) mapView.getId();
         } catch (NoSuchMethodError error) {
             try {
-                return (short) MapView.class.getMethod("getId").invoke(mapView);
-            } catch (ReflectiveOperationException exception) {
-                exception.printStackTrace();
+                return GET_ID != null ? (short) GET_ID.invoke(mapView) : -1;
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
                 return -1;
             }
         }

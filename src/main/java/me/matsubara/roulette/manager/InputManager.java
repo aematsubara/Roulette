@@ -38,7 +38,7 @@ public final class InputManager implements Listener {
         this.players = new HashMap<>();
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOW)
     public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         if (!player.hasMetadata("rouletteEditing")) return;
@@ -46,7 +46,7 @@ public final class InputManager implements Listener {
         InputType type = players.get(player.getUniqueId());
         if (type == null) return;
 
-        String message = event.getMessage();
+        String message = ChatColor.stripColor(event.getMessage());
 
         if (message.equalsIgnoreCase(ConfigManager.Config.CANCEL_WORD.asString())) {
             plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_CANCELLED);
@@ -125,6 +125,7 @@ public final class InputManager implements Listener {
 
                 } catch (IOException throwable) {
                     plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_INVALID);
+                    throwable.printStackTrace();
                 }
             });
         }

@@ -1,12 +1,12 @@
 package me.matsubara.roulette.manager;
 
 import com.cryptomorin.xseries.XMaterial;
-import com.github.juliarn.npc.NPC;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.model.Model;
+import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.util.Lang3Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

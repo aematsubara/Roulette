@@ -4,11 +4,11 @@ import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.cryptomorin.xseries.ReflectionUtils;
 import com.cryptomorin.xseries.SkullUtils;
 import com.cryptomorin.xseries.XMaterial;
-import com.github.juliarn.npc.modifier.MetadataModifier;
-import com.github.juliarn.npc.modifier.NPCModifier;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.manager.ConfigManager;
+import me.matsubara.roulette.npc.modifier.MetadataModifier;
+import me.matsubara.roulette.npc.modifier.NPCModifier;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.block.BlockFace;
@@ -27,9 +27,9 @@ import java.util.regex.Pattern;
 
 public final class PluginUtils {
 
-    private final static RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
+    private static final RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
 
-    private final static Pattern PATTERN = Pattern.compile("&#([\\da-fA-F]{6})");
+    private static final Pattern PATTERN = Pattern.compile("&#([\\da-fA-F]{6})");
 
     private static final BlockFace[] AXIS = {
             BlockFace.NORTH,
@@ -51,7 +51,7 @@ public final class PluginUtils {
     private static Object SNEAKING;
     private static Object STANDING;
 
-    public final static Color[] COLORS = getColors();
+    public static final Color[] COLORS = getColors();
 
     private static Color[] getColors() {
         Field[] fields = Color.class.getDeclaredFields();

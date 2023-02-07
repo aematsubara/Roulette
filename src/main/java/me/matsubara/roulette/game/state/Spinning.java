@@ -2,7 +2,6 @@ package me.matsubara.roulette.game.state;
 
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.cryptomorin.xseries.XSound;
-import com.github.juliarn.npc.modifier.AnimationModifier;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.LastRouletteSpinEvent;
 import me.matsubara.roulette.game.Game;
@@ -14,6 +13,7 @@ import me.matsubara.roulette.gui.ConfirmGUI;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.npc.modifier.AnimationModifier;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
 import org.bukkit.Material;

@@ -6,7 +6,9 @@ import me.matsubara.roulette.game.WinType;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.util.Lang3Utils;
+import me.matsubara.roulette.util.PluginUtils;
 import me.matsubara.roulette.util.map.MapBuilder;
+import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -22,6 +24,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @SuppressWarnings("unused")
@@ -32,6 +35,7 @@ public final class WinnerManager {
 
     private File file;
     private FileConfiguration configuration;
+    private BufferedImage image;
 
     public WinnerManager(RoulettePlugin plugin) {
         this.plugin = plugin;
@@ -40,6 +44,12 @@ public final class WinnerManager {
         // Load image if not loaded.
         File image = new File(plugin.getDataFolder(), "image.png");
         if (!image.exists()) plugin.saveResource("image.png", false);
+
+        try {
+            this.image = ImageIO.read(image);
+        } catch (IOException exception) {
+            plugin.getLogger().warning("The file \"image.png\" couldn't be found.");
+        }
 
         load();
     }
@@ -94,9 +104,6 @@ public final class WinnerManager {
 
             this.winners.add(winner);
         }
-
-        // Render maps.
-        this.winners.forEach(this::renderMap);
     }
 
     public void saveWinner(Winner winner) {
@@ -117,51 +124,57 @@ public final class WinnerManager {
         saveConfig();
     }
 
-    private void renderMap(Winner winner) {
+    public void renderMaps() {
+        winners.forEach(this::renderMap);
+    }
+
+    public void renderMap(Winner winner) {
         OfflinePlayer player = Bukkit.getOfflinePlayer(winner.getUUID());
-        if (player.getName() == null) return;
+
+        String playerName = player.getName();
+        if (playerName == null) return;
 
         for (Winner.WinnerData data : winner.getWinnerData()) {
-            if (data.getMapId() != -1) renderMap(data.getMapId(), player.getName(), data.getMoney());
+            Integer mapId = data.getMapId();
+            if (mapId != -1) renderMap(mapId, playerName, data);
         }
     }
 
-    public Map.Entry<Integer, ItemStack> renderMap(@Nullable Integer mapId, String playerName, double money) {
-        try {
-            BufferedImage image = ImageIO.read(new File(plugin.getDataFolder(), "image.png"));
-            MapFont font = MinecraftFont.Font;
+    public Map.Entry<Winner.WinnerData, ItemStack> renderMap(@Nullable Integer mapId, String playerName, Winner.WinnerData data) {
+        MapFont font = MinecraftFont.Font;
 
-            MapBuilder builder = new MapBuilder()
-                    .setRenderOnce(true)
-                    .setImage(image, true);
+        MapBuilder builder = new MapBuilder().setRenderOnce(true);
+        if (image != null) builder.setImage(image, true);
+        if (mapId != null) builder.setId(mapId);
 
-            if (mapId != null) builder.setId(mapId);
+        for (String text : ConfigManager.Config.MAP_IMAGE_TEXT.asList()) {
+            if (Strings.isNullOrEmpty(text) || text.equalsIgnoreCase("none")) continue;
+            String[] split = Lang3Utils.split(Lang3Utils.deleteWhitespace(text), ',');
+            if (split.length == 0) continue;
 
-            for (String text : ConfigManager.Config.MAP_IMAGE_TEXT.asList()) {
-                if (Strings.isNullOrEmpty(text) || text.equalsIgnoreCase("none")) continue;
-                String[] split = Lang3Utils.split(Lang3Utils.deleteWhitespace(text), ',');
-                if (split.length == 0) continue;
-
-                int posY;
-                try {
-                    posY = Integer.parseInt(Lang3Utils.deleteWhitespace(split[0]));
-                } catch (NumberFormatException exception) {
-                    continue;
-                }
-
-                builder.addText(0, posY, font, split[1]
-                        .replace("%player%", playerName)
-                        .replace("%money%", plugin.getEconomy().format(money)));
+            int posY;
+            try {
+                posY = Integer.parseInt(Lang3Utils.deleteWhitespace(split[0]));
+            } catch (NumberFormatException exception) {
+                continue;
             }
 
-            builder.build();
-
-            return new AbstractMap.SimpleEntry<>((int) MapBuilder.getMapId(builder.getView()), builder.build().getItem());
-        } catch (IOException exception) {
-            plugin.getLogger().warning("The file \"image.png\" couldn't be found.");
+            Economy economy = plugin.getEconomy();
+            builder.addText(0, posY, font, split[1]
+                    .replace("%player%", playerName)
+                    .replace("%money%", economy.format(data.getMoney()))
+                    .replace("%original-money%", economy.format(data.getOriginalMoney()))
+                    .replace("%date%", new SimpleDateFormat("dd-MM-yyyy").format(new Date(data.getDate())))
+                    .replace("%selected-slot%", PluginUtils.getSlotName(data.getSelected()))
+                    .replace("%winner-slot%", PluginUtils.getSlotName(data.getWinner()))
+                    .replace("%type%", data.getWinType().getFormatName()));
         }
 
-        return null;
+        // For some reason, the map doesn't exist in the server (probably a crash?).
+        if (builder.build().getView() == null) return null;
+
+        data.setMapId((int) MapBuilder.getMapId(builder.getView()));
+        return new AbstractMap.SimpleEntry<>(data, builder.getItem());
     }
 
     public void deleteWinner(Winner winner) {

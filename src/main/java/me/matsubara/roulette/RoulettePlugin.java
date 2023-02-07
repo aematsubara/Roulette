@@ -2,7 +2,6 @@ package me.matsubara.roulette;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.cryptomorin.xseries.ReflectionUtils;
-import com.github.juliarn.npc.NPCPool;
 import me.matsubara.roulette.command.Main;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
@@ -16,12 +15,17 @@ import me.matsubara.roulette.listener.npc.PlayerNPCInteract;
 import me.matsubara.roulette.listener.protocol.SteerVehicle;
 import me.matsubara.roulette.listener.protocol.UseEntity;
 import me.matsubara.roulette.manager.*;
+import me.matsubara.roulette.npc.NPCPool;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
 
 import java.io.File;
@@ -53,24 +57,28 @@ public final class RoulettePlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        PluginManager pluginManager = getServer().getPluginManager();
+
         // Disable plugin if server version is older than 1.12.
         if (ReflectionUtils.VER < 12 || ReflectionUtils.VER == 16) {
             getLogger().info("This plugin only works from 1.12 and up (except 1.16), disabling...");
-            getServer().getPluginManager().disablePlugin(this);
+            pluginManager.disablePlugin(this);
             return;
         }
 
         // Disable plugin if dependencies aren't installed.
         if (!hasDependencies(DEPENDENCIES)) {
             getLogger().severe("You need to install all the dependencies to be able to use this plugin, disabling...");
-            getServer().getPluginManager().disablePlugin(this);
+            pluginManager.disablePlugin(this);
             return;
         }
 
+        Plugin economyProvider;
+
         // Disable plugin if we can't set up economy manager.
-        if (!setupEconomy()) {
+        if ((economyProvider = setupEconomy()) == null) {
             getLogger().severe("You need to install an economy provider (like EssentialsX, CMI, etc...) to be able to use this plugin, disabling...");
-            getServer().getPluginManager().disablePlugin(this);
+            pluginManager.disablePlugin(this);
             return;
         }
 
@@ -79,11 +87,11 @@ public final class RoulettePlugin extends JavaPlugin {
         ProtocolLibrary.getProtocolManager().addPacketListener(new UseEntity(this));
 
         // Register bukkit events.
-        getServer().getPluginManager().registerEvents(new PlayerNPCInteract(this), this);
-        getServer().getPluginManager().registerEvents(new EntityDamageByEntity(this), this);
-        getServer().getPluginManager().registerEvents(new InventoryClick(this), this);
-        getServer().getPluginManager().registerEvents(new InventoryClose(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerQuit(this), this);
+        pluginManager.registerEvents(new PlayerNPCInteract(this), this);
+        pluginManager.registerEvents(new EntityDamageByEntity(this), this);
+        pluginManager.registerEvents(new InventoryClick(this), this);
+        pluginManager.registerEvents(new InventoryClose(this), this);
+        pluginManager.registerEvents(new PlayerQuit(this), this);
 
         // Register main command.
         PluginCommand mainCommand = getCommand("roulette");
@@ -121,6 +129,17 @@ public final class RoulettePlugin extends JavaPlugin {
         messageManager = new MessageManager(this);
         standManager = new StandManager(this);
         winnerManager = new WinnerManager(this);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // Sometimes the economy provider plugin is enabled AFTER this plugin, so we need to wait for it to be enabled.
+                if (!pluginManager.isPluginEnabled(economyProvider)) return;
+
+                winnerManager.renderMaps();
+                cancel();
+            }
+        }.runTaskTimer(this, 20L, 20L);
 
         saveDefaultConfig();
 
@@ -171,16 +190,18 @@ public final class RoulettePlugin extends JavaPlugin {
     }
 
     public boolean hasDependency(String plugin) {
-        return getServer().getPluginManager().isPluginEnabled(plugin);
+        return getServer().getPluginManager().getPlugin(plugin) != null;
     }
 
-    private boolean setupEconomy() {
+    private Plugin setupEconomy() {
         RegisteredServiceProvider<Economy> provider = getServer().getServicesManager().getRegistration(Economy.class);
-        if (provider == null) return false;
+        if (provider == null) return null;
 
-        getLogger().info("Using " + provider.getPlugin().getName() + " as the economy provider.");
+        Plugin plugin = provider.getPlugin();
+
+        getLogger().info("Using " + plugin.getName() + " as the economy provider.");
         economy = provider.getProvider();
-        return true;
+        return plugin;
     }
 
     public NPCPool getNPCPool() {
@@ -225,14 +246,16 @@ public final class RoulettePlugin extends JavaPlugin {
     }
 
     public Team getHideTeam() {
-        if(hideTeam == null || Bukkit.getScoreboardManager().getMainScoreboard().getTeam("rouletteHide") == null){
+        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        if (hideTeam == null || (manager != null && manager.getMainScoreboard().getTeam("rouletteHide") == null)) {
             hideTeam = createTeam("rouletteHide", Team.Option.NAME_TAG_VISIBILITY);
         }
         return hideTeam;
     }
 
     public Team getCollisionTeam() {
-        if(collisionTeam == null || Bukkit.getScoreboardManager().getMainScoreboard().getTeam("rouletteCollide") == null){
+        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        if (collisionTeam == null || (manager != null && manager.getMainScoreboard().getTeam("rouletteCollide") == null)) {
             collisionTeam = createTeam("rouletteCollide", Team.Option.COLLISION_RULE);
         }
         return collisionTeam;

@@ -3,8 +3,11 @@ package me.matsubara.roulette.command;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
+import me.matsubara.roulette.game.WinType;
+import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
+import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -81,8 +84,22 @@ public final class Main implements CommandExecutor, TabCompleter {
                     if (!hasPermission(player, "roulette.map")) return true;
 
                     ThreadLocalRandom random = ThreadLocalRandom.current();
-                    Map.Entry<Integer, ItemStack> entry = plugin.getWinnerManager().renderMap(null, player.getName(), random.nextDouble(100000d));
-                    if (entry != null) player.getInventory().addItem(entry.getValue());
+                    double randomPrice = random.nextDouble(100000d);
+
+                    Map.Entry<Winner.WinnerData, ItemStack> data = plugin.getWinnerManager().renderMap(
+                            null,
+                            player.getName(),
+                            new Winner.WinnerData(
+                                    "Roulette",
+                                    null,
+                                    randomPrice,
+                                    System.currentTimeMillis(),
+                                    getRandomFromEnum(Slot.class),
+                                    getRandomFromEnum(Slot.class),
+                                    getRandomFromEnum(WinType.class),
+                                    randomPrice / 2));
+                    if (data != null) player.getInventory().addItem(data.getValue());
+
                     return true;
                 default:
                     plugin.getMessageManager().send(player, MessageManager.Message.SINTAX);
@@ -154,6 +171,11 @@ public final class Main implements CommandExecutor, TabCompleter {
         plugin.getMessageManager().send(player, MessageManager.Message.CREATE, message -> message.replace("%name%", args[1]));
 
         return true;
+    }
+
+    private <T extends Enum<T>> T getRandomFromEnum(Class<T> clazz) {
+        T[] constants = clazz.getEnumConstants();
+        return constants[ThreadLocalRandom.current().nextInt(constants.length)];
     }
 
     @Nullable

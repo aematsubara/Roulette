@@ -10,7 +10,7 @@ public class LastRouletteSpinEvent extends RouletteEvent {
 
     private Slot winnerSlot;
 
-    private final static HandlerList handlers = new HandlerList();
+    private static final HandlerList handlers = new HandlerList();
 
     public LastRouletteSpinEvent(Game game, Slot winnerSlot) {
         super(game);

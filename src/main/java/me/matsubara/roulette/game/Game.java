@@ -1,13 +1,11 @@
 package me.matsubara.roulette.game;
 
 import com.comphenix.protocol.wrappers.EnumWrappers;
+import com.comphenix.protocol.wrappers.WrappedGameProfile;
+import com.comphenix.protocol.wrappers.WrappedSignedProperty;
 import com.cryptomorin.xseries.ReflectionUtils;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XSound;
-import com.github.juliarn.npc.NPC;
-import com.github.juliarn.npc.SpawnCustomizer;
-import com.github.juliarn.npc.modifier.MetadataModifier;
-import com.github.juliarn.npc.profile.Profile;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.RouletteEndEvent;
 import me.matsubara.roulette.game.data.Bet;
@@ -21,6 +19,9 @@ import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
+import me.matsubara.roulette.npc.NPC;
+import me.matsubara.roulette.npc.SpawnCustomizer;
+import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.runnable.MoneyAnimation;
 import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
@@ -41,8 +42,6 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -114,7 +113,7 @@ public final class Game {
     private PacketStand selectedOne, selectedTwo;
 
     // Chairs of this game, range goes from 0 to max amount of chairs; 10 in this case.
-    private final static int[] CHAIRS = IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray();
+    public static final int[] CHAIRS = IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray();
 
     public Game(
             RoulettePlugin plugin,
@@ -185,15 +184,21 @@ public final class Game {
     }
 
     public boolean hasNPCTexture() {
-        return npc.getProfile().getProperty("textures").isPresent();
+        return !npc.getProfile().getProperties().get("textures").isEmpty();
     }
 
     public String getNPCTexture() {
-        return npc.getProfile().getProperty("textures").map(Profile.Property::getValue).orElse(null);
+        for (WrappedSignedProperty property : npc.getProfile().getProperties().get("textures")) {
+            return property.getValue();
+        }
+        return null;
     }
 
     public String getNPCSignature() {
-        return npc.getProfile().getProperty("textures").map(Profile.Property::getSignature).orElse(null);
+        for (WrappedSignedProperty property : npc.getProfile().getProperties().get("textures")) {
+            return property.getSignature();
+        }
+        return null;
     }
 
     public void setNPC(@Nullable String name, @Nullable String texture, @Nullable String signature) {
@@ -210,15 +215,11 @@ public final class Game {
             plugin.getHideTeam().addEntry(name);
         }
 
-        Profile profile = new Profile(UUID.randomUUID());
-        profile.complete();
-
-        // Set NPC name.
-        profile.setName(name);
+        WrappedGameProfile profile = new WrappedGameProfile(UUID.randomUUID(), name);
 
         // Set NPC skin texture (if possible).
         if (texture != null && signature != null) {
-            profile.setProperty(new Profile.Property("textures", texture, signature));
+            profile.getProperties().put("textures", new WrappedSignedProperty("textures", texture, signature));
         }
 
         Location npcLocation = getNPCLocation();
@@ -673,15 +674,26 @@ public final class Game {
                 win = new Winner(winner.getUniqueId());
             }
 
-            Map.Entry<Integer, ItemStack> entry = null;
+            Map.Entry<Winner.WinnerData, ItemStack> entry = null;
             int id = -1;
             if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBoolean()) {
-                entry = plugin.getWinnerManager().renderMap(null, winner.getName(), price);
-                id = entry.getKey();
+                entry = plugin.getWinnerManager().renderMap(
+                        null,
+                        winner.getName(),
+                        new Winner.WinnerData(
+                                name,
+                                null,
+                                price,
+                                System.currentTimeMillis(),
+                                slot,
+                                this.winner,
+                                winType,
+                                chip.getPrice()));
+                id = entry.getKey().getMapId();
             }
 
             // Add win data.
-            win.add(name, id, price, System.currentTimeMillis(), slot, this.winner, winType, chip.getPrice());
+            win.add(entry.getKey());
 
             // Save data to file.
             plugin.getWinnerManager().saveWinner(win);
@@ -887,28 +899,14 @@ public final class Game {
         // Remove spin hologram.
         spinHologram.destroy();
 
-        // Remove croupier. Using reflection for now since gives errors when using /reload.
-        try {
-            Field field = plugin.getNPCPool().getClass().getDeclaredField("npcMap");
-            field.setAccessible(true);
-
-            Map<Integer, NPC> npcMap = (Map<Integer, NPC>) field.get(plugin.getNPCPool());
-            npcMap.remove(npc.getEntityId());
-
-            field.set(plugin.getNPCPool(), npcMap);
-
-            Method method = npc.getClass().getDeclaredMethod("removeSeeingPlayer", Player.class);
-            method.setAccessible(true);
-
-            for (Player seeing : npc.getSeeingPlayers()) {
-                npc.visibility()
-                        .queuePlayerListChange(EnumWrappers.PlayerInfoAction.REMOVE_PLAYER)
-                        .queueDestroy()
-                        .send(seeing);
-                method.invoke(npc, seeing);
-            }
-        } catch (ReflectiveOperationException exception) {
-            exception.printStackTrace();
+        // Remove croupier.
+        plugin.getNPCPool().getNpcMap().remove(npc.getEntityId());
+        for (Player seeing : npc.getSeeingPlayers()) {
+            npc.visibility()
+                    .queuePlayerListChange(EnumWrappers.PlayerInfoAction.REMOVE_PLAYER)
+                    .queueDestroy()
+                    .send(seeing);
+            npc.removeSeeingPlayer(seeing);
         }
     }
 

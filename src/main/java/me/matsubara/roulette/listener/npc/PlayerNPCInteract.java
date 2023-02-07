@@ -1,9 +1,9 @@
 package me.matsubara.roulette.listener.npc;
 
-import com.github.juliarn.npc.event.PlayerNPCInteractEvent;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.gui.GameGUI;
+import me.matsubara.roulette.npc.event.PlayerNPCInteractEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;

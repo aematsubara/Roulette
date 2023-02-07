@@ -15,7 +15,7 @@ public class RouletteEndEvent extends RouletteEvent {
     private final Map<Player, WinType> winners;
     private final Slot winnerSlot;
 
-    private final static HandlerList handlers = new HandlerList();
+    private static final HandlerList handlers = new HandlerList();
 
     public RouletteEndEvent(Game game, Map<Player, WinType> winners, Slot winnerSlot) {
         super(game);

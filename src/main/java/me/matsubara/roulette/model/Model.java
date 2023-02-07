@@ -63,7 +63,7 @@ public final class Model {
     private FileConfiguration configuration;
 
     // All patterns.
-    private final static String[][] PATTERNS = {
+    private static final String[][] PATTERNS = {
             // Default.
             {"###", "###", "###"},
             // Ascendent.

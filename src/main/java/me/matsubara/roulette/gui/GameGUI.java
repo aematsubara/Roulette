@@ -1,5 +1,6 @@
 package me.matsubara.roulette.gui;
 
+import com.comphenix.protocol.wrappers.WrappedSignedProperty;
 import com.cryptomorin.xseries.XMaterial;
 import com.google.gson.JsonParser;
 import me.matsubara.roulette.RoulettePlugin;
@@ -64,8 +65,11 @@ public final class GameGUI implements InventoryHolder {
         if (npcName == null) npcName = ConfigManager.Config.UNNAMED_CROUPIER.asString();
 
         String url = null;
-        if (game.getNPC().getProfile().getProperty("textures").isPresent()) {
-            url = game.getNPC().getProfile().getProperty("textures").get().getValue();
+        if (!game.getNPC().getProfile().getProperties().get("textures").isEmpty()) {
+            for (WrappedSignedProperty property : game.getNPC().getProfile().getProperties().get("textures")) {
+                url = property.getValue();
+                break;
+            }
 
             // Decode base64.
             String base64 = new String(Base64.getDecoder().decode(url));

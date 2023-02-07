@@ -39,10 +39,10 @@ public final class ChipGUI implements InventoryHolder {
     private int pages;
 
     // The slots to show the content.
-    private final static int[] SLOTS = {10, 11, 12, 13, 14, 15, 16};
+    private static final int[] SLOTS = {10, 11, 12, 13, 14, 15, 16};
 
     // The slot to put page navigator items and other stuff.
-    private final static int[] HOTBAR = {19, 20, 21, 22, 23, 24, 25};
+    private static final int[] HOTBAR = {19, 20, 21, 22, 23, 24, 25};
 
     // Inventory content.
     private final ItemStack background, previous, money, betAll, exit, next;
@@ -128,7 +128,7 @@ public final class ChipGUI implements InventoryHolder {
         }
 
         // Update inventory title to show the current page.
-        InventoryUpdate.updateInventory(plugin, player, ConfigManager.Config.SHOP_TITLE.asString()
+        InventoryUpdate.updateInventory(player, ConfigManager.Config.SHOP_TITLE.asString()
                 .replace("%page%", String.valueOf(current + 1))
                 .replace("%max%", String.valueOf(pages)));
     }

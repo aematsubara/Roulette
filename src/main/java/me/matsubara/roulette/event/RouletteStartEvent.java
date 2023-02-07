@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class RouletteStartEvent extends RouletteEvent {
 
-    private final static HandlerList handlers = new HandlerList();
+    private static final HandlerList handlers = new HandlerList();
 
     public RouletteStartEvent(Game game) {
         super(game);

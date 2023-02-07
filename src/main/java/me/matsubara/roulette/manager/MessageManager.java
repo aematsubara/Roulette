@@ -1,8 +1,8 @@
 package me.matsubara.roulette.manager;
 
 import com.cryptomorin.xseries.messages.ActionBar;
-import com.github.juliarn.npc.NPC;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
