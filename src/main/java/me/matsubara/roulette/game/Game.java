@@ -674,35 +674,32 @@ public final class Game {
                 win = new Winner(winner.getUniqueId());
             }
 
-            Map.Entry<Winner.WinnerData, ItemStack> entry = null;
-            int id = -1;
+            Winner.WinnerData winnerData = new Winner.WinnerData(
+                    name,
+                    -1,
+                    price,
+                    System.currentTimeMillis(),
+                    slot,
+                    this.winner,
+                    winType,
+                    chip.getPrice());
+
             if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBoolean()) {
-                entry = plugin.getWinnerManager().renderMap(
-                        null,
-                        winner.getName(),
-                        new Winner.WinnerData(
-                                name,
-                                null,
-                                price,
-                                System.currentTimeMillis(),
-                                slot,
-                                this.winner,
-                                winType,
-                                chip.getPrice()));
-                id = entry.getKey().getMapId();
+                Map.Entry<Winner.WinnerData, ItemStack> entry = plugin.getWinnerManager().renderMap(winner.getName(), winnerData);
+                if (entry != null) {
+                    winnerData.setMapId(entry.getKey().getMapId());
+
+                    // Add map to inventory.
+                    ItemStack item = entry.getValue();
+                    winner.getInventory().addItem(item);
+                }
             }
 
             // Add win data.
-            win.add(entry.getKey());
+            win.add(winnerData);
 
             // Save data to file.
             plugin.getWinnerManager().saveWinner(win);
-
-            // Add map to inventory.
-            if (entry != null) {
-                ItemStack item = entry.getValue();
-                winner.getInventory().addItem(item);
-            }
         }
 
         if (ConfigManager.Config.RESTART_FIREWORKS.asInt() == 0) {

@@ -87,11 +87,10 @@ public final class Main implements CommandExecutor, TabCompleter {
                     double randomPrice = random.nextDouble(100000d);
 
                     Map.Entry<Winner.WinnerData, ItemStack> data = plugin.getWinnerManager().renderMap(
-                            null,
                             player.getName(),
                             new Winner.WinnerData(
                                     "Roulette",
-                                    null,
+                                    -1,
                                     randomPrice,
                                     System.currentTimeMillis(),
                                     getRandomFromEnum(Slot.class),

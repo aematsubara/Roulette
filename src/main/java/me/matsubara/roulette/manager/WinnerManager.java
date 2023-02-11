@@ -18,7 +18,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapFont;
 import org.bukkit.map.MinecraftFont;
-import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -135,16 +134,17 @@ public final class WinnerManager {
         if (playerName == null) return;
 
         for (Winner.WinnerData data : winner.getWinnerData()) {
-            Integer mapId = data.getMapId();
-            if (mapId != -1) renderMap(mapId, playerName, data);
+            if (data.getMapId() != -1) renderMap(playerName, data);
         }
     }
 
-    public Map.Entry<Winner.WinnerData, ItemStack> renderMap(@Nullable Integer mapId, String playerName, Winner.WinnerData data) {
+    public Map.Entry<Winner.WinnerData, ItemStack> renderMap(String playerName, Winner.WinnerData data) {
         MapFont font = MinecraftFont.Font;
 
         MapBuilder builder = new MapBuilder().setRenderOnce(true);
         if (image != null) builder.setImage(image, true);
+
+        Integer mapId = data.getMapId();
         if (mapId != null) builder.setId(mapId);
 
         for (String text : ConfigManager.Config.MAP_IMAGE_TEXT.asList()) {

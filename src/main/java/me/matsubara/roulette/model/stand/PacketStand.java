@@ -776,7 +776,7 @@ public final class PacketStand {
         try {
             Object watcher = getDataWatcher.invoke(stand);
             Object packetMetadata;
-            if (getNonDefaultValues != null) {
+            if (getNonDefaultValues != null && packetEntityMetadata.type().parameterCount() == 2) {
                 Object values = getNonDefaultValues.invoke(watcher);
                 packetMetadata = packetEntityMetadata.invoke(entityId, values != null ? values : new ArrayList<>());
             } else {
