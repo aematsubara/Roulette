@@ -157,7 +157,7 @@ public final class UseEntity extends PacketAdapter {
                     return;
                 }
 
-                // Can happen if the player doens't have money.
+                // Can happen if the player doesn't have money.
                 double minAmount = plugin.getChipManager().getMinAmount();
                 if (!plugin.getEconomy().has(player, minAmount)) {
                     plugin.getMessageManager().send(player, MessageManager.Message.MIN_REQUIRED, message -> message.replace("%money%", String.valueOf(minAmount)));

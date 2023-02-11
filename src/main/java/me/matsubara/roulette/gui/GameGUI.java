@@ -112,7 +112,7 @@ public final class GameGUI implements InventoryHolder {
         ItemStack time = plugin.getConfigManager().getItem("game-menu", "start-time", null);
         inventory.setItem(13, new ItemBuilder(time)
                 .setDisplayName(plugin.getConfigManager().getStartTimeDisplayName(timeSeconds))
-                .setAmount(timeSeconds).build());
+                .setAmount(Math.max(1, timeSeconds)).build());
 
         // Rules.
         inventory.setItem(14, getRuleItem(GameRule.LA_PARTAGE));

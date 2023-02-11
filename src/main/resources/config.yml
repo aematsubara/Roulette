@@ -27,6 +27,9 @@ move-interval: 150
 # Whether to allow players to hit other players within a game.
 hit-on-game: false
 
+# Whether to allow players to join during the betting stage
+allow-join-on-selecting: false
+
 croupier-ball:
   # The material that'll be used as a ball by the croupier.
   material: SNOWBALL

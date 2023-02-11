@@ -371,7 +371,7 @@ public final class InventoryClick implements Listener {
         int time = game.getStartTime();
         if (event.getClick() == ClickType.LEFT) {
             time -= 5;
-            if (time < 5) time = 5;
+            if (time < 0) time = 0;
         } else if (event.getClick() == ClickType.RIGHT) {
             time += 5;
             if (time > 60) time = 60;
@@ -380,7 +380,7 @@ public final class InventoryClick implements Listener {
         game.setStartTime(time);
 
         if (event.getCurrentItem().getAmount() != time) {
-            event.getCurrentItem().setAmount(time);
+            event.getCurrentItem().setAmount(Math.max(1, time));
 
             ItemMeta meta = event.getCurrentItem().getItemMeta();
             if (meta == null) return;
