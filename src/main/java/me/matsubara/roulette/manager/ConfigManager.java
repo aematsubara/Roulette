@@ -161,7 +161,8 @@ public final class ConfigManager {
         SHOP_TITLE("shop.title"),
         GAME_MENU_TITLE("game-menu.title"),
         ONLY_AMERICAN("only-american"),
-        UNNAMED_CROUPIER("unnamed-croupier");
+        UNNAMED_CROUPIER("unnamed-croupier"),
+        CUSTOM_WIN_MULTIPLIER_ENABLED("custom-win-multiplier.enabled");
 
         private final String path;
 

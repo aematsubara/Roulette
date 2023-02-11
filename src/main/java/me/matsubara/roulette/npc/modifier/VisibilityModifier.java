@@ -22,12 +22,20 @@ import java.util.UUID;
 public class VisibilityModifier extends NPCModifier {
 
     // Static actions we need to send out for all player updates (since 1.19.3).
-    private static final EnumSet<EnumWrappers.PlayerInfoAction> ADD_ACTIONS = EnumSet.of(
-            EnumWrappers.PlayerInfoAction.ADD_PLAYER,
-            EnumWrappers.PlayerInfoAction.UPDATE_LISTED,
-            EnumWrappers.PlayerInfoAction.UPDATE_LATENCY,
-            EnumWrappers.PlayerInfoAction.UPDATE_GAME_MODE,
-            EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME);
+    private static final EnumSet<EnumWrappers.PlayerInfoAction> ADD_ACTIONS;
+
+    static {
+        if (NPC.FEATURE_PREVIEW_UPDATE.atOrAbove()) {
+            ADD_ACTIONS = EnumSet.of(
+                    EnumWrappers.PlayerInfoAction.ADD_PLAYER,
+                    EnumWrappers.PlayerInfoAction.UPDATE_LISTED,
+                    EnumWrappers.PlayerInfoAction.UPDATE_LATENCY,
+                    EnumWrappers.PlayerInfoAction.UPDATE_GAME_MODE,
+                    EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME);
+        } else {
+            ADD_ACTIONS = null;
+        }
+    }
 
     // Converter for UUID lists.
     private static final EquivalentConverter<List<UUID>> UUID_LIST_CONVERTER = BukkitConverters.getListConverter(Converters.passthrough(UUID.class));

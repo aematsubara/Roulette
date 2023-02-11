@@ -234,7 +234,7 @@ public class NPC {
     /**
      * Creates a new animation modifier which serves methods to play animations on an NPC
      *
-     * @return a animation modifier modifying this NPC
+     * @return an animation modifier modifying this NPC.
      */
     @NotNull
     public AnimationModifier animation() {

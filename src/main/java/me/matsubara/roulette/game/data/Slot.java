@@ -1,6 +1,7 @@
 package me.matsubara.roulette.game.data;
 
 import me.matsubara.roulette.game.Game;
+import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.Lang3Utils;
 
 /**
@@ -125,14 +126,16 @@ public enum Slot {
         return SlotColor.BLACK;
     }
 
-    public int getMultiplier() {
-        if (isSingleInclusive()) {
-            return 36;
-        }
-        if (isLow() || isEven() || isRed() || isBlack() || isOdd() || isHigh()) {
-            return 2;
-        }
-        return 3;
+    private double getMultiplier() {
+        if (isSingleInclusive()) return 36.0d;
+        if (isLow() || isEven() || isRed() || isBlack() || isOdd() || isHigh()) return 2.0d;
+        return 3.0d;
+    }
+
+    public double getMultiplier(Game game) {
+        double defaultValue = getMultiplier();
+        if (!ConfigManager.Config.CUSTOM_WIN_MULTIPLIER_ENABLED.asBoolean()) return defaultValue;
+        return game.getPlugin().getConfig().getDouble("custom-win-multiplier.slots." + name(), defaultValue);
     }
 
     public String getChance(boolean isEuropean) {

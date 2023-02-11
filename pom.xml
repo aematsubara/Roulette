@@ -6,7 +6,7 @@
 
     <groupId>me.matsubara</groupId>
     <artifactId>Roulette</artifactId>
-    <version>1.9.3.1</version>
+    <version>1.9.3.2</version>
     <packaging>jar</packaging>
 
     <name>Roulette</name>

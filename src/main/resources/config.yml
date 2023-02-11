@@ -33,6 +33,17 @@ croupier-ball:
   # The speed of the ball (rotation speed).
   speed: 35.0
 
+# Here you can define custom win multiplier per slot.
+# NOTE: The given value is multiplied to the price.
+# For example: If you bet $100 in red and win, if the multiplier is 1.2 then the final winning money is 100 * 1.2 = 120 (money recovered + 20).
+# If this option is enabled but a slot is not defined, the default (real-world) multiplier is applied (SINGLE = 36, RED/BLACK = 3, OTHERS = 2).
+# https://github.com/aematsubara/Roulette/blob/master/src/main/java/me/matsubara/roulette/game/data/Slot.java
+custom-win-multiplier:
+  enabled: false
+  slots:
+    SLOT_RED: 1.5
+    SLOT_BLACK: 1.5
+
 # The countdown of each part of the game (in seconds), must be a multiple of 5.
 countdown:
   # Starts after reaching the minimum amount of players.

@@ -642,7 +642,7 @@ public final class Game {
 
             double price;
             if (winType.isNormalWin()) {
-                price = chip.getPrice() * slot.getMultiplier();
+                price = chip.getPrice() * slot.getMultiplier(this);
             } else if (winType.isLaPartageWin() || winType.isSurrenderWin()) {
                 // Half money if partage.
                 price = chip.getPrice() / 2;
@@ -660,7 +660,7 @@ public final class Game {
             if (winType.isNormalWin()) {
                 plugin.getMessageManager().send(winner, MessageManager.Message.PRICE, message -> message
                         .replace("%amount%", plugin.getEconomy().format(price))
-                        .replace("%multiplier%", String.valueOf(slot.getMultiplier())));
+                        .replace("%multiplier%", String.valueOf(slot.getMultiplier(this))));
             } else if (winType.isLaPartageWin()) {
                 plugin.getMessageManager().send(winner, MessageManager.Message.LA_PARTAGE);
             } else if (winType.isEnPrisonWin()) {
