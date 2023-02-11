@@ -128,6 +128,10 @@
             <id>viaversion-repo</id>
             <url>https://repo.viaversion.com</url>
         </repository>
+        <repository>
+            <id>maven-central</id>
+            <url>https://oss.sonatype.org/content/groups/public</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -203,6 +207,12 @@
             <artifactId>viaversion-api</artifactId>
             <version>4.4.2</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- ConfigUpdater -->
+        <dependency>
+            <groupId>com.tchristofferson</groupId>
+            <artifactId>ConfigUpdater</artifactId>
+            <version>2.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

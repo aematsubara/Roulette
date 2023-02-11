@@ -2,6 +2,7 @@ package me.matsubara.roulette;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.cryptomorin.xseries.ReflectionUtils;
+import com.tchristofferson.configupdater.ConfigUpdater;
 import me.matsubara.roulette.command.Main;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
@@ -19,6 +20,8 @@ import me.matsubara.roulette.npc.NPCPool;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -29,6 +32,10 @@ import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public final class RoulettePlugin extends JavaPlugin {
 
@@ -54,6 +61,8 @@ public final class RoulettePlugin extends JavaPlugin {
 
     private Team hideTeam;
     private Team collisionTeam;
+
+    private static final List<String> SPECIAL_SECTIONS = Collections.singletonList("custom-win-multiplier.slots");
 
     @Override
     public void onEnable() {
@@ -141,10 +150,29 @@ public final class RoulettePlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 20L, 20L);
 
-        saveDefaultConfig();
-
         // Save models to /models.
         saveModels(GameType.AMERICAN.getModelName(), GameType.EUROPEAN.getModelName());
+        loadConfigAndUpdateIt();
+    }
+
+    private void loadConfigAndUpdateIt() {
+        saveDefaultConfig();
+
+        File file = new File(getDataFolder(), "config.yml");
+        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        List<String> ignore = new ArrayList<>();
+        for (String path : SPECIAL_SECTIONS) {
+            if (config.contains(path)) ignore.add(path);
+        }
+
+        try {
+            ConfigUpdater.update(this, "config.yml", file, ignore);
+        } catch (IOException exception) {
+            exception.printStackTrace();
+        }
+
+        reloadConfig();
     }
 
     private Team createTeam(String teamName, Team.Option toDisable) {
