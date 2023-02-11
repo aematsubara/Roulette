@@ -42,7 +42,7 @@ public class NPC {
     private boolean imitatePlayer;
 
     public static final MinecraftVersion FEATURE_PREVIEW_UPDATE = new MinecraftVersion("1.19.3");
-    public static final boolean IS_1_19_3 = FEATURE_PREVIEW_UPDATE.atOrAbove();
+    public static final boolean IS_1_19_3_OR_ABOVE = FEATURE_PREVIEW_UPDATE.atOrAbove();
 
     /**
      * Creates a new npc instance.

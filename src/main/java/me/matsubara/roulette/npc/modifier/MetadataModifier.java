@@ -109,7 +109,7 @@ public class MetadataModifier extends NPCModifier {
             PacketContainer container = new PacketContainer(Server.ENTITY_METADATA);
             container.getIntegers().write(0, targetNpc.getEntityId());
 
-            if (NPC.IS_1_19_3) {
+            if (NPC.IS_1_19_3_OR_ABOVE) {
                 List<WrappedDataValue> wrappedDataValues = new ArrayList<>(this.metadata.size());
                 for (WrappedWatchableObject object : this.metadata) {
                     if (object != null) wrappedDataValues.add(new WrappedDataValue(
@@ -160,17 +160,6 @@ public class MetadataModifier extends NPCModifier {
                 Byte.class,
                 Arrays.asList(9, 9, 10, 14, 14, 15, 17),
                 input -> (byte) (input ? 126 : 0));
-
-        /**
-         * An entity metadata for modifying the pose.
-         */
-        @SuppressWarnings("unchecked")
-        public static final EntityMetadata<EnumWrappers.EntityPose, Object> POSE = new EntityMetadata<>(
-                6,
-                (Class<Object>) EnumWrappers.getEntityPoseClass(),
-                Collections.emptyList(),
-                EnumWrappers.EntityPose::toNms,
-                () -> MINECRAFT_VERSION >= 14);
 
         /**
          * The base index of the metadata in the data watcher object.

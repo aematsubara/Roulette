@@ -6,7 +6,7 @@
 
     <groupId>me.matsubara</groupId>
     <artifactId>Roulette</artifactId>
-    <version>1.9.3.2</version>
+    <version>1.9.3.3</version>
     <packaging>jar</packaging>
 
     <name>Roulette</name>
@@ -51,6 +51,10 @@
                         </relocation>
                         <relocation>
                             <pattern>com.github.juliarn</pattern>
+                            <shadedPattern>me.matsubara.roulette.util</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.tchristofferson</pattern>
                             <shadedPattern>me.matsubara.roulette.util</shadedPattern>
                         </relocation>
                     </relocations>

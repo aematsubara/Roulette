@@ -25,7 +25,7 @@ public class VisibilityModifier extends NPCModifier {
     private static final EnumSet<EnumWrappers.PlayerInfoAction> ADD_ACTIONS;
 
     static {
-        if (NPC.FEATURE_PREVIEW_UPDATE.atOrAbove()) {
+        if (NPC.IS_1_19_3_OR_ABOVE) {
             ADD_ACTIONS = EnumSet.of(
                     EnumWrappers.PlayerInfoAction.ADD_PLAYER,
                     EnumWrappers.PlayerInfoAction.UPDATE_LISTED,
@@ -59,7 +59,7 @@ public class VisibilityModifier extends NPCModifier {
      */
     @NotNull
     public VisibilityModifier queuePlayerListChange(@NotNull EnumWrappers.PlayerInfoAction action) {
-        if (action == EnumWrappers.PlayerInfoAction.REMOVE_PLAYER && NPC.IS_1_19_3) {
+        if (action == EnumWrappers.PlayerInfoAction.REMOVE_PLAYER && NPC.IS_1_19_3_OR_ABOVE) {
             super.queueInstantly(((targetNpc, target) -> {
                 List<UUID> uuids = Collections.singletonList(targetNpc.getProfile().getUUID());
                 PacketContainer container = new PacketContainer(Server.PLAYER_INFO_REMOVE);
@@ -72,7 +72,7 @@ public class VisibilityModifier extends NPCModifier {
         super.queuePacket((targetNpc, target) -> {
             PacketContainer container = new PacketContainer(Server.PLAYER_INFO);
 
-            if (NPC.IS_1_19_3) {
+            if (NPC.IS_1_19_3_OR_ABOVE) {
                 try {
                     container.getPlayerInfoActions().write(0, ADD_ACTIONS);
                 } catch (NullPointerException ignored) {
@@ -89,16 +89,25 @@ public class VisibilityModifier extends NPCModifier {
                 profile.getProperties().putAll(playerProfile.getProperties());
             }
 
-            PlayerInfoData data = new PlayerInfoData(
-                    profile.getUUID(),
-                    20,
-                    false,
-                    NativeGameMode.CREATIVE,
-                    profile,
-                    null,
-                    null);
+            PlayerInfoData data;
+            if (NPC.IS_1_19_3_OR_ABOVE) {
+                data = new PlayerInfoData(
+                        profile.getUUID(),
+                        20,
+                        false,
+                        NativeGameMode.CREATIVE,
+                        profile,
+                        null,
+                        null);
+            } else {
+                data = new PlayerInfoData(
+                        profile,
+                        20,
+                        NativeGameMode.CREATIVE,
+                        WrappedChatComponent.fromText(""));
+            }
 
-            container.getPlayerInfoDataLists().write(NPC.IS_1_19_3 ? 1 : 0, Lists.newArrayList(data));
+            container.getPlayerInfoDataLists().write(NPC.IS_1_19_3_OR_ABOVE ? 1 : 0, Lists.newArrayList(data));
             return container;
         });
 
