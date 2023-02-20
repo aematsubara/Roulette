@@ -1,11 +1,11 @@
 package me.matsubara.roulette.game.data;
 
 import com.cryptomorin.xseries.XSound;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.hologram.Hologram;
-import me.matsubara.roulette.model.stand.StandSettings;
+import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -121,7 +121,7 @@ public final class Bet {
                 hologram.addLines(line
                         .replace("%player%", player.getName())
                         .replace("%bet%", PluginUtils.getSlotName(slot))
-                        .replace("%money%", game.getPlugin().getEconomy().format(chip.getPrice())));
+                        .replace("%money%", PluginUtils.format(chip.getPrice())));
             }
         } else {
             hologram.teleport(where);
@@ -132,7 +132,7 @@ public final class Bet {
                 hologram.setLine(i, lines.get(i)
                         .replace("%player%", player.getName())
                         .replace("%bet%", PluginUtils.getSlotName(slot))
-                        .replace("%money%", game.getPlugin().getEconomy().format(chip.getPrice())));
+                        .replace("%money%", PluginUtils.format(chip.getPrice())));
             }
         }
     }

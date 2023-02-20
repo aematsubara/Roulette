@@ -48,7 +48,7 @@ public final class ConfigManager {
     }
 
     public String getChipDisplayName(double price) {
-        return getDisplayName("shop", "chip").replace("%money%", plugin.getEconomy().format(price));
+        return getDisplayName("shop", "chip").replace("%money%", PluginUtils.format(price));
     }
 
     public List<String> getChipLore() {
@@ -133,6 +133,7 @@ public final class ConfigManager {
         SOUND_SELECT("sound.select"),
         DISABLED_SLOTS("disabled-slots"),
         MAP_IMAGE_ENABLED("map-image.enabled"),
+        MAP_IMAGE_SHIFT_ID_FIX("map-image.shift-id-fix"),
         MAP_IMAGE_TEXT("map-image.text"),
         CANCEL_WORD("cancel-word"),
         SPINNING("spin-holograms.spinning"),
@@ -162,7 +163,9 @@ public final class ConfigManager {
         GAME_MENU_TITLE("game-menu.title"),
         ONLY_AMERICAN("only-american"),
         UNNAMED_CROUPIER("unnamed-croupier"),
-        CUSTOM_WIN_MULTIPLIER_ENABLED("custom-win-multiplier.enabled");
+        CUSTOM_WIN_MULTIPLIER_ENABLED("custom-win-multiplier.enabled"),
+        MONEY_ABBREVIATION_FORMAT_ENABLED("money-abbreviation-format.enabled"),
+        MONEY_ABBREVIATION_FORMAT_SCALE("money-abbreviation-format.scale");
 
         private final String path;
 

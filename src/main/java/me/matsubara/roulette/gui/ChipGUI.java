@@ -8,6 +8,7 @@ import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.InventoryUpdate;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.Lang3Utils;
+import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -61,7 +62,7 @@ public final class ChipGUI implements InventoryHolder {
         background = new ItemBuilder(XMaterial.GRAY_STAINED_GLASS_PANE.parseItem()).setDisplayName("&7").build();
         previous = plugin.getConfigManager().getItem("shop", "previous", null);
 
-        money = plugin.getConfigManager().getItem("shop", "money", plugin.getEconomy().format(plugin.getEconomy().getBalance(player)));
+        money = plugin.getConfigManager().getItem("shop", "money", PluginUtils.format(plugin.getEconomy().getBalance(player)));
         betAll = plugin.getConfigManager().getItem("shop", "bet-all", null);
 
         exit = plugin.getConfigManager().getItem("shop", "exit", null);

@@ -86,7 +86,7 @@ public final class Main implements CommandExecutor, TabCompleter {
                     ThreadLocalRandom random = ThreadLocalRandom.current();
                     double randomPrice = random.nextDouble(100000d);
 
-                    Map.Entry<Winner.WinnerData, ItemStack> data = plugin.getWinnerManager().renderMap(
+                    Map.Entry<Winner.WinnerData, ItemStack> data = plugin.getWinnerManager().render(
                             player.getName(),
                             new Winner.WinnerData(
                                     "Roulette",

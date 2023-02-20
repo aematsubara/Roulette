@@ -105,5 +105,9 @@ public final class Winner {
         public double getOriginalMoney() {
             return originalMoney;
         }
+
+        public boolean hasValidId() {
+            return mapId != null && mapId != -1;
+        }
     }
 }

@@ -8,7 +8,6 @@ import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
 import me.matsubara.roulette.util.map.MapBuilder;
-import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
@@ -18,6 +17,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapFont;
 import org.bukkit.map.MinecraftFont;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -26,8 +26,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-@SuppressWarnings("unused")
-public final class WinnerManager {
+
+public final class WinnerManager extends BukkitRunnable {
 
     private final RoulettePlugin plugin;
     private final Set<Winner> winners;
@@ -51,6 +51,27 @@ public final class WinnerManager {
         }
 
         load();
+
+        runTaskTimer(plugin, 20L, 20L);
+    }
+
+    @Override
+    public void run() {
+        // Sometimes the economy provider plugin is enabled AFTER this plugin, so we need to wait for it to be enabled.
+        if (!plugin.getServer().getPluginManager().isPluginEnabled(plugin.setupEconomy())) return;
+
+        winners.forEach(winner -> {
+            OfflinePlayer player = Bukkit.getOfflinePlayer(winner.getUUID());
+
+            String playerName = player.getName();
+            if (playerName == null) return;
+
+            for (Winner.WinnerData data : winner.getWinnerData()) {
+                if (data.hasValidId()) render(playerName, data);
+            }
+        });
+
+        cancel();
     }
 
     private void load() {
@@ -123,29 +144,12 @@ public final class WinnerManager {
         saveConfig();
     }
 
-    public void renderMaps() {
-        winners.forEach(this::renderMap);
-    }
-
-    public void renderMap(Winner winner) {
-        OfflinePlayer player = Bukkit.getOfflinePlayer(winner.getUUID());
-
-        String playerName = player.getName();
-        if (playerName == null) return;
-
-        for (Winner.WinnerData data : winner.getWinnerData()) {
-            if (data.getMapId() != -1) renderMap(playerName, data);
-        }
-    }
-
-    public Map.Entry<Winner.WinnerData, ItemStack> renderMap(String playerName, Winner.WinnerData data) {
+    public Map.Entry<Winner.WinnerData, ItemStack> render(String playerName, Winner.WinnerData data) {
         MapFont font = MinecraftFont.Font;
 
         MapBuilder builder = new MapBuilder().setRenderOnce(true);
         if (image != null) builder.setImage(image, true);
-
-        Integer mapId = data.getMapId();
-        if (mapId != null) builder.setId(mapId);
+        if (data.hasValidId()) builder.setId(data.getMapId());
 
         for (String text : ConfigManager.Config.MAP_IMAGE_TEXT.asList()) {
             if (Strings.isNullOrEmpty(text) || text.equalsIgnoreCase("none")) continue;
@@ -159,11 +163,10 @@ public final class WinnerManager {
                 continue;
             }
 
-            Economy economy = plugin.getEconomy();
             builder.addText(0, posY, font, split[1]
                     .replace("%player%", playerName)
-                    .replace("%money%", economy.format(data.getMoney()))
-                    .replace("%original-money%", economy.format(data.getOriginalMoney()))
+                    .replace("%money%", PluginUtils.format(data.getMoney()))
+                    .replace("%original-money%", PluginUtils.format(data.getOriginalMoney()))
                     .replace("%date%", new SimpleDateFormat("dd-MM-yyyy").format(new Date(data.getDate())))
                     .replace("%selected-slot%", PluginUtils.getSlotName(data.getSelected()))
                     .replace("%winner-slot%", PluginUtils.getSlotName(data.getWinner()))
@@ -177,6 +180,7 @@ public final class WinnerManager {
         return new AbstractMap.SimpleEntry<>(data, builder.getItem());
     }
 
+    @SuppressWarnings("unused")
     public void deleteWinner(Winner winner) {
         getConfig().set("winners." + winner.getUUID(), null);
         saveConfig();

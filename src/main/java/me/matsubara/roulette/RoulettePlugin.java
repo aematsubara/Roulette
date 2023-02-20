@@ -26,7 +26,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
@@ -82,10 +81,9 @@ public final class RoulettePlugin extends JavaPlugin {
             return;
         }
 
-        Plugin economyProvider;
 
         // Disable plugin if we can't set up economy manager.
-        if ((economyProvider = setupEconomy()) == null) {
+        if (setupEconomy() == null) {
             getLogger().severe("You need to install an economy provider (like EssentialsX, CMI, etc...) to be able to use this plugin, disabling...");
             pluginManager.disablePlugin(this);
             return;
@@ -138,17 +136,6 @@ public final class RoulettePlugin extends JavaPlugin {
         messageManager = new MessageManager(this);
         standManager = new StandManager(this);
         winnerManager = new WinnerManager(this);
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                // Sometimes the economy provider plugin is enabled AFTER this plugin, so we need to wait for it to be enabled.
-                if (!pluginManager.isPluginEnabled(economyProvider)) return;
-
-                winnerManager.renderMaps();
-                cancel();
-            }
-        }.runTaskTimer(this, 20L, 20L);
 
         // Save models to /models.
         saveModels(GameType.AMERICAN.getModelName(), GameType.EUROPEAN.getModelName());
@@ -221,13 +208,14 @@ public final class RoulettePlugin extends JavaPlugin {
         return getServer().getPluginManager().getPlugin(plugin) != null;
     }
 
-    private Plugin setupEconomy() {
+    public Plugin setupEconomy() {
         RegisteredServiceProvider<Economy> provider = getServer().getServicesManager().getRegistration(Economy.class);
         if (provider == null) return null;
 
         Plugin plugin = provider.getPlugin();
+        if (provider.getProvider().equals(economy)) return plugin;
 
-        getLogger().info("Using " + plugin.getName() + " as the economy provider.");
+        getLogger().info("Using " + plugin.getDescription().getFullName() + " as the economy provider.");
         economy = provider.getProvider();
         return plugin;
     }

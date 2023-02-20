@@ -346,6 +346,7 @@ public final class PacketStand {
      */
     public void spawn(Player player) {
         if (!isInRange(player.getLocation())) return;
+        if (!PLUGIN.isEnabled()) return;
 
         try {
             Object packetSpawn = packetSpawnEntityLiving.invoke(stand);

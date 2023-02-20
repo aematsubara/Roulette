@@ -2,6 +2,7 @@ package me.matsubara.roulette.util.map;
 
 import com.cryptomorin.xseries.ReflectionUtils;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.manager.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -161,7 +162,7 @@ public final class MapBuilder {
         Material material = IS_MODERN ? Material.FILLED_MAP : Material.valueOf("MAP");
 
         if (id != null) {
-            int finalId = ReflectionUtils.supports(19) ? id + 1 : id;
+            int finalId = ConfigManager.Config.MAP_IMAGE_SHIFT_ID_FIX.asBoolean() ? id + 1 : id;
             item = new ItemStack(material, 1, (short) finalId);
 
             if (IS_MODERN) {

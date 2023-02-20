@@ -14,6 +14,7 @@ import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.InputManager;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.runnable.MoneyAnimation;
+import me.matsubara.roulette.util.PluginUtils;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
@@ -127,7 +128,7 @@ public final class InventoryClick implements Listener {
                     return;
                 }
 
-                plugin.getMessageManager().send(player, MessageManager.Message.SELECTED_AMOUNT, message -> message.replace("%money%", plugin.getEconomy().format(money)));
+                plugin.getMessageManager().send(player, MessageManager.Message.SELECTED_AMOUNT, message -> message.replace("%money%", PluginUtils.format(money)));
                 plugin.getMessageManager().send(player, MessageManager.Message.CONTROL);
 
                 playerBet(game, player, betAll);
@@ -201,7 +202,7 @@ public final class InventoryClick implements Listener {
             }
 
             // Remove the money and close inventory.
-            plugin.getMessageManager().send(player, MessageManager.Message.SELECTED_AMOUNT, message -> message.replace("%money%", plugin.getEconomy().format(money)));
+            plugin.getMessageManager().send(player, MessageManager.Message.SELECTED_AMOUNT, message -> message.replace("%money%", PluginUtils.format(money)));
             plugin.getMessageManager().send(player, MessageManager.Message.CONTROL);
 
             playerBet(game, player, chip);

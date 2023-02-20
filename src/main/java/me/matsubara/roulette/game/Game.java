@@ -659,7 +659,7 @@ public final class Game {
 
             if (winType.isNormalWin()) {
                 plugin.getMessageManager().send(winner, MessageManager.Message.PRICE, message -> message
-                        .replace("%amount%", plugin.getEconomy().format(price))
+                        .replace("%amount%", PluginUtils.format(price))
                         .replace("%multiplier%", String.valueOf(slot.getMultiplier(this))));
             } else if (winType.isLaPartageWin()) {
                 plugin.getMessageManager().send(winner, MessageManager.Message.LA_PARTAGE);
@@ -684,15 +684,13 @@ public final class Game {
                     winType,
                     chip.getPrice());
 
-            if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBoolean()) {
-                Map.Entry<Winner.WinnerData, ItemStack> entry = plugin.getWinnerManager().renderMap(winner.getName(), winnerData);
-                if (entry != null) {
-                    winnerData.setMapId(entry.getKey().getMapId());
+            Map.Entry<Winner.WinnerData, ItemStack> entry;
+            if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBoolean() && (entry = plugin.getWinnerManager().render(winner.getName(), winnerData)) != null) {
+                winnerData.setMapId(entry.getKey().getMapId());
 
-                    // Add map to inventory.
-                    ItemStack item = entry.getValue();
-                    winner.getInventory().addItem(item);
-                }
+                // Add map to inventory.
+                ItemStack item = entry.getValue();
+                winner.getInventory().addItem(item);
             }
 
             // Add win data.

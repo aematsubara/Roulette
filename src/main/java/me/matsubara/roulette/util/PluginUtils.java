@@ -19,9 +19,7 @@ import org.bukkit.util.Vector;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,6 +67,9 @@ public final class PluginUtils {
         return results.toArray(new Color[0]);
     }
 
+    private static final NavigableMap<Long, String> SHORT = new TreeMap<>();
+    private static final NavigableMap<Long, String> LONG = new TreeMap<>();
+
     static {
         if (ReflectionUtils.VER > 13) {
             Class<?> ENTITY_POSE = ReflectionUtils.getNMSClass("world.entity", "EntityPose");
@@ -95,6 +96,16 @@ public final class PluginUtils {
                 exception.printStackTrace();
             }
         }
+
+        SHORT.put(1_000L, "K");
+        SHORT.put(1_000_000L, "M");
+        SHORT.put(1_000_000_000L, "B");
+        SHORT.put(1_000_000_000_000L, "T");
+
+        LONG.put(1_000L, "K");
+        LONG.put(1_000_000L, "M");
+        LONG.put(1_000_000_000_000L, "B");
+        LONG.put(1_000_000_000_000_000_000L, "T");
     }
 
     /**
@@ -214,5 +225,30 @@ public final class PluginUtils {
             default:
                 return ConfigManager.Config.BLACK.asString();
         }
+    }
+
+    public static String format(double value) {
+        if (!ConfigManager.Config.MONEY_ABBREVIATION_FORMAT_ENABLED.asBoolean()) {
+            return PLUGIN.getEconomy().format(value);
+        }
+
+        String scale = ConfigManager.Config.MONEY_ABBREVIATION_FORMAT_SCALE.asString();
+        return format(value, scale.equalsIgnoreCase("LONG") ? LONG : scale.equalsIgnoreCase("SHORT") ? SHORT : LONG);
+    }
+
+    @SuppressWarnings("IntegerDivisionInFloatingPointContext")
+    public static String format(double value, NavigableMap<Long, String> lang) {
+        if (value == Long.MIN_VALUE) return format(Long.MIN_VALUE + 1, lang);
+        if (value < 0) return "-" + format(-value, lang);
+        if (value < 1000) return PLUGIN.getEconomy().format(value);
+
+        Map.Entry<Long, String> entry = lang.floorEntry((long) value);
+        Long divideBy = entry.getKey();
+        String suffix = entry.getValue();
+        suffix = PLUGIN.getConfig().getString("money-abbreviation-format.translations." + suffix, suffix);
+
+        long truncated = (long) value / (divideBy / 10);
+        boolean hasDecimal = truncated < 100 && (truncated / 10.0d) != (truncated / 10);
+        return "$" + (hasDecimal ? (truncated / 10.0d) + suffix : (truncated / 10) + suffix);
     }
 }

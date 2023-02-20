@@ -27,6 +27,18 @@ move-interval: 150
 # Whether to allow players to hit other players within a game.
 hit-on-game: false
 
+# If you want to use abbreviation format when naming money. Useful for prison type servers where money values are much higher.
+# For more info on scales, take a look here: https://en.wikipedia.org/wiki/Long_and_short_scales
+# Available scales: SHORT (default), LONG
+money-abbreviation-format:
+  enabled: false
+  scale: SHORT
+  translations:
+    K: "K"
+    M: "M"
+    B: "B"
+    T: "T"
+
 croupier-ball:
   # The material that'll be used as a ball by the croupier.
   material: SNOWBALL
@@ -91,6 +103,9 @@ disabled-slots: []
 # %money% - the amount of money.
 map-image:
   enabled: true
+  # There are some builds of 1.19 that the map id assigned to the maps is different from the one in the items,
+  # enable this option if the maps don't persist after a restart (REQUIRES RESTART!).
+  shift-id-fix: false
   text:
     - 15, %player%
     - 105, %money%
