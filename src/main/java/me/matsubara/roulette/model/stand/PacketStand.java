@@ -171,7 +171,7 @@ public final class PacketStand {
 
         // Initialize methods.
         getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
-        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, "getDataWatcher", MethodType.methodType(DATA_WATCHER), false, true, "ai", "al");
+        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, "getDataWatcher", MethodType.methodType(DATA_WATCHER), false, true, "ai", "al", "aj");
         asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true, true);
         of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true, true);
         getBukkitEntity = getMethod(ENTITY_ARMOR_STAND, "getBukkitEntity", MethodType.methodType(CRAFT_ENTITY));

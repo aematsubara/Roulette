@@ -100,7 +100,7 @@ public final class InventoryUpdate {
                         getConstructor(PACKET_PLAY_OUT_OPEN_WINDOW, int.class, String.class, I_CHAT_BASE_COMPONENT, int.class);
 
         // Initialize fields.
-        activeContainer = getField(ENTITY_PLAYER, CONTAINER, "activeContainer", "bV", "bW", "bU", "containerMenu");
+        activeContainer = getField(ENTITY_PLAYER, CONTAINER, "activeContainer", "bV", "bW", "bU", "bP", "containerMenu");
         windowId = getField(CONTAINER, int.class, "windowId", "j", "containerId");
     }
 
