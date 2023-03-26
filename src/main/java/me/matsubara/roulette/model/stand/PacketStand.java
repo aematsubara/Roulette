@@ -164,8 +164,8 @@ public final class PacketStand {
         GAME_VERSION = (VERSION == 17) ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
         VECTOR3F = ReflectionUtils.getNMSClass("core", "Vector3f");
         I_CHAT_BASE_COMPONENT = ReflectionUtils.getNMSClass("network.chat", "IChatBaseComponent");
-        ATTRIBUTE_MODIFIABLE = ReflectionUtils.getNMSClass("world.entity.ai.attributes", "AttributeModifiable");
-        ATTRIBUTE_BASE = ReflectionUtils.getNMSClass("world.entity.ai.attributes", "AttributeBase");
+        ATTRIBUTE_MODIFIABLE = ReflectionUtils.getNMSClass("world.entity.ai.attributes", (VERSION > 15) ? "AttributeModifiable" : "AttributeInstance");
+        ATTRIBUTE_BASE = ReflectionUtils.getNMSClass("world.entity.ai.attributes", (VERSION > 15) ? "AttributeBase" : "IAttribute");
         GENERIC_ATTRIBUTES = ReflectionUtils.getNMSClass("world.entity.ai.attributes", "GenericAttributes");
         PACKET_UPDATE_ATTRIBUTES = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutUpdateAttributes");
 

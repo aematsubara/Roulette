@@ -104,7 +104,6 @@ public final class InventoryUpdate {
         windowId = getField(CONTAINER, int.class, "windowId", "j", "containerId");
     }
 
-
     /**
      * Update the player inventory, so you can change the title.
      *

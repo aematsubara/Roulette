@@ -108,7 +108,7 @@ public final class InputManager implements Listener {
                     BufferedReader reader = new BufferedReader(
                             new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
 
-                    JsonObject textureObject = JsonParser.parseReader(reader)
+                    @SuppressWarnings("deprecation") JsonObject textureObject = new JsonParser().parse(reader)
                             .getAsJsonObject()
                             .getAsJsonObject("data")
                             .getAsJsonObject("texture");
