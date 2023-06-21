@@ -2,6 +2,8 @@ package me.matsubara.roulette.model;
 
 import com.cryptomorin.xseries.SkullUtils;
 import com.cryptomorin.xseries.XMaterial;
+import lombok.Getter;
+import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
@@ -27,6 +29,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
+@Getter
+@Setter
 public final class Model {
 
     // Instance of the plugin.
@@ -227,7 +231,7 @@ public final class Model {
             settings.setSmall(configuration.getBoolean(defaultPath + "settings.small"));
             settings.setBasePlate(configuration.getBoolean(defaultPath + "settings.baseplate"));
             settings.setArms(configuration.getBoolean(defaultPath + "settings.arms"));
-            settings.setOnFire(configuration.getBoolean(defaultPath + "settings.fire"));
+            settings.setFire(configuration.getBoolean(defaultPath + "settings.fire"));
             settings.setMarker(configuration.getBoolean(defaultPath + "settings.marker"));
 
             // Set poses.
@@ -279,46 +283,6 @@ public final class Model {
         }
 
         return EulerAngle.ZERO;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public Location getLocation() {
-        return location;
-    }
-
-    public UUID getUniqueId() {
-        return modelUniqueId;
-    }
-
-    public String[] getDecoPattern() {
-        return decoPattern;
-    }
-
-    public XMaterial getCarpetsType() {
-        return carpetsType;
-    }
-
-    public void setCarpetsType(XMaterial carpetsType) {
-        this.carpetsType = carpetsType;
-    }
-
-    public XMaterial getPlanksType() {
-        return planksType;
-    }
-
-    public void setPlanksType(XMaterial planksType) {
-        this.planksType = planksType;
-    }
-
-    public XMaterial getSlabsType() {
-        return slabsType;
-    }
-
-    public void setSlabsType(XMaterial slabsType) {
-        this.slabsType = slabsType;
     }
 
     public PacketStand getByName(String name) {

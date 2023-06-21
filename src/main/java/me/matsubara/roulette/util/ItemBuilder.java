@@ -144,7 +144,7 @@ public final class ItemBuilder {
             PotionMeta meta = (PotionMeta) item.getItemMeta();
             if (meta == null) return this;
 
-            if (ReflectionUtils.VER > 8) {
+            if (ReflectionUtils.MINOR_NUMBER > 8) {
                 meta.setBasePotionData(new PotionData(type));
             }/* else {
                 if (type == PotionType.INVISIBILITY) {

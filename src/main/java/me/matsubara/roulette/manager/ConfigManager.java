@@ -164,8 +164,7 @@ public final class ConfigManager {
         ONLY_AMERICAN("only-american"),
         UNNAMED_CROUPIER("unnamed-croupier"),
         CUSTOM_WIN_MULTIPLIER_ENABLED("custom-win-multiplier.enabled"),
-        MONEY_ABBREVIATION_FORMAT_ENABLED("money-abbreviation-format.enabled"),
-        MONEY_ABBREVIATION_FORMAT_SCALE("money-abbreviation-format.scale");
+        MONEY_ABBREVIATION_FORMAT_ENABLED("money-abbreviation-format.enabled");
 
         private final String path;
 

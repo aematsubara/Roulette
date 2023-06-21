@@ -6,14 +6,13 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.reflect.StructureModifier;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.gui.ConfirmGUI;
-import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.manager.ConfigManager;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,8 +48,8 @@ public final class SteerVehicle extends PacketAdapter {
         for (Game game : plugin.getGameManager().getGames()) {
             GameState state = game.getState();
 
-            for (PacketStand stand : game.getModel().getStands().values()) {
-                if (!stand.isPassenger(player)) continue;
+            for (ArmorStand stand : game.getChairs().values()) {
+                if (!stand.getPassengers().contains(player)) continue;
 
                 // Prevent player dismounting.
                 event.setCancelled(true);
@@ -63,48 +62,46 @@ public final class SteerVehicle extends PacketAdapter {
                     return;
                 }
 
-                // Left
-                if (sideways > 0.0f) {
-                    if ((state.isIdle() || state.isStarting()) && canSwapChair(player, game)) {
-                        game.sitPlayer(player, false);
-                    } else {
-                        // Only allow move chip if the bet isn't in prison.
-                        if (!game.isRuleEnabled(GameRule.EN_PRISON) || !game.getPlayers().get(player).isEnPrison()) {
-                            game.moveChip(player, false);
-                        }
-                    }
-                }
-
-                // Right
-                if (sideways < 0.0f) {
-                    if ((state.isIdle() || state.isStarting()) && canSwapChair(player, game)) {
-                        game.sitPlayer(player, true);
-                    } else {
-                        // Only allow move chip if the bet isn't in prison.
-                        if (!game.isRuleEnabled(GameRule.EN_PRISON) || !game.getPlayers().get(player).isEnPrison()) {
-                            game.moveChip(player, true);
-                        }
-                    }
-                }
-
-                // Shift
-                if (dismount) {
-                    if (game.getState().isEnding() && !game.isRuleEnabled(GameRule.EN_PRISON)) {
-                        // Let player unmount.
-                        game.kickPlayer(player);
-                    } else {
-                        // Open leave confirm gui to the player sync.
-                        new BukkitRunnable() {
-                            @Override
-                            public void run() {
-                                new ConfirmGUI(plugin, player, ConfirmGUI.ConfirmType.LEAVE);
+                // Run sync to prevent exceptions.
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    // Left
+                    if (sideways > 0.0f) {
+                        if ((state.isIdle() || state.isStarting()) && canSwapChair(player, game)) {
+                            game.sitPlayer(player, false);
+                        } else {
+                            // Only allow move chip if the bet isn't in prison.
+                            if (!game.isRuleEnabled(GameRule.EN_PRISON) || !game.getPlayers().get(player).isEnPrison()) {
+                                game.moveChip(player, false);
                             }
-                        }.runTask(plugin);
+                        }
                     }
-                }
 
-                // Put player in cooldown.
-                steerCooldown.put(player.getUniqueId(), System.currentTimeMillis() + ConfigManager.Config.MOVE_INTERVAL.asLong());
+                    // Right
+                    if (sideways < 0.0f) {
+                        if ((state.isIdle() || state.isStarting()) && canSwapChair(player, game)) {
+                            game.sitPlayer(player, true);
+                        } else {
+                            // Only allow move chip if the bet isn't in prison.
+                            if (!game.isRuleEnabled(GameRule.EN_PRISON) || !game.getPlayers().get(player).isEnPrison()) {
+                                game.moveChip(player, true);
+                            }
+                        }
+                    }
+
+                    // Shift
+                    if (dismount) {
+                        if (game.getState().isEnding() && !game.isRuleEnabled(GameRule.EN_PRISON)) {
+                            // Let player unmount.
+                            game.kickPlayer(player);
+                        } else {
+                            // Open leave confirm gui to the player sync.
+                            new ConfirmGUI(plugin, player, ConfirmGUI.ConfirmType.LEAVE);
+                        }
+                    }
+
+                    // Put player in cooldown.
+                    steerCooldown.put(player.getUniqueId(), System.currentTimeMillis() + ConfigManager.Config.MOVE_INTERVAL.asLong());
+                });
 
                 break models;
             }

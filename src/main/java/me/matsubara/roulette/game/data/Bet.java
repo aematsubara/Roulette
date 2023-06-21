@@ -1,6 +1,8 @@
 package me.matsubara.roulette.game.data;
 
 import com.cryptomorin.xseries.XSound;
+import lombok.Getter;
+import lombok.Setter;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
@@ -15,7 +17,8 @@ import org.bukkit.util.Vector;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("unused")
+@Getter
+@Setter
 public final class Bet {
 
     // Game instance.
@@ -77,14 +80,6 @@ public final class Bet {
         return stand != null;
     }
 
-    public Game getGame() {
-        return game;
-    }
-
-    public Hologram getHologram() {
-        return hologram;
-    }
-
     private void setHologram(Player player, Slot slot) {
         this.slot = slot;
 
@@ -135,50 +130,6 @@ public final class Bet {
                         .replace("%money%", PluginUtils.format(chip.getPrice())));
             }
         }
-    }
-
-    public Chip getChip() {
-        return chip;
-    }
-
-    public void setChip(Chip chip) {
-        this.chip = chip;
-    }
-
-    public Slot getSlot() {
-        return slot;
-    }
-
-    public void setSlot(Slot slot) {
-        this.slot = slot;
-    }
-
-    public PacketStand getStand() {
-        return stand;
-    }
-
-    public boolean isEnPrison() {
-        return isEnPrison;
-    }
-
-    public void setEnPrison(boolean enPrison) {
-        isEnPrison = enPrison;
-    }
-
-    public boolean wasEnPrison() {
-        return wasEnPrison;
-    }
-
-    public void setWasEnPrison(boolean wasEnPrison) {
-        this.wasEnPrison = wasEnPrison;
-    }
-
-    public boolean won() {
-        return won;
-    }
-
-    public void setHasWon(boolean won) {
-        this.won = won;
     }
 
     private void setStand(Slot slot) {

@@ -13,6 +13,7 @@ import me.matsubara.roulette.gui.ConfirmGUI;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.npc.modifier.AnimationModifier;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
@@ -95,16 +96,18 @@ public final class Spinning extends BukkitRunnable {
             return;
         }
 
-        game.broadcast(plugin.getMessageManager().getRandomNPCMessage(game.getNPC(), "no-bets"));
+        NPC npc = game.getNpc();
+
+        game.broadcast(plugin.getMessageManager().getRandomNPCMessage(npc, "no-bets"));
         game.broadcast(MessageManager.Message.SPINNING_START.asString());
 
         // Hide holograms to the players so everyone can see the spinning hologram.
         game.getPlayers().forEach((player, bet) -> bet.getHologram().hideTo(player));
 
         // Play NPC spin animation.
-        game.getNPC().metadata().queue(PluginUtils.SNEAKING_METADATA, true).send();
-        game.getNPC().animation().queue(AnimationModifier.EntityAnimation.SWING_MAIN_ARM).send();
-        game.getNPC().equipment().queue(EnumWrappers.ItemSlot.MAINHAND, new ItemStack(Material.AIR)).send();
+        npc.metadata().queue(PluginUtils.SNEAKING_METADATA, true).send();
+        npc.animation().queue(AnimationModifier.EntityAnimation.SWING_MAIN_ARM).send();
+        npc.equipment().queue(EnumWrappers.ItemSlot.MAINHAND, new ItemStack(Material.AIR)).send();
 
         // Show ball, shouldn't be null.
         if (ball != null) ball.setEquipment(new ItemStack(Material.END_ROD), PacketStand.ItemSlot.HEAD);
@@ -121,7 +124,7 @@ public final class Spinning extends BukkitRunnable {
             game.getSpinHologram().setLine(0, ConfigManager.Config.WINNING_NUMBER.asString());
 
             // Stop NPC animation, check if there are winners and stop.
-            game.getNPC().metadata().queue(PluginUtils.SNEAKING_METADATA, false).send();
+            game.getNpc().metadata().queue(PluginUtils.SNEAKING_METADATA, false).send();
             game.setState(GameState.ENDING);
             game.checkWinner();
 

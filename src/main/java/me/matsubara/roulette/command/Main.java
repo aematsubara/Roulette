@@ -63,6 +63,7 @@ public final class Main implements CommandExecutor, TabCompleter {
 
                     // Reload main config.
                     plugin.reloadConfig();
+                    plugin.reloadAbbreviations();
 
                     // Reload winners config.
                     plugin.getWinnerManager().reloadConfig();

@@ -1,5 +1,6 @@
 package me.matsubara.roulette.manager;
 
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.util.PluginUtils;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+@Getter
 public final class ChipManager {
 
     private final RoulettePlugin plugin;
@@ -45,7 +47,7 @@ public final class ChipManager {
     private void update() {
         chips.clear();
 
-        ConfigurationSection section = getConfig().getConfigurationSection("chips");
+        ConfigurationSection section = configuration.getConfigurationSection("chips");
         if (section == null) return;
 
         int loaded = 0;
@@ -53,8 +55,8 @@ public final class ChipManager {
         for (String path : section.getKeys(false)) {
             String displayName = hasDisplayName(path) ? getDisplayName(path) : null;
             List<String> lore = hasLore(path) ? getLore(path) : null;
-            String url = getConfig().getString("chips." + path + ".url");
-            double price = getConfig().getDouble("chips." + path + ".price");
+            String url = configuration.getString("chips." + path + ".url");
+            double price = configuration.getDouble("chips." + path + ".price");
 
             Chip chip = new Chip(path, displayName, lore, url, price);
             chips.add(chip);
@@ -71,19 +73,19 @@ public final class ChipManager {
     }
 
     private boolean hasDisplayName(String path) {
-        return getConfig().get("chips." + path + ".display-name") != null;
+        return configuration.get("chips." + path + ".display-name") != null;
     }
 
     private boolean hasLore(String path) {
-        return getConfig().get("chips." + path + ".lore") != null;
+        return configuration.get("chips." + path + ".lore") != null;
     }
 
     private String getDisplayName(String path) {
-        return PluginUtils.translate(getConfig().getString("chips." + path + ".display-name"));
+        return PluginUtils.translate(configuration.getString("chips." + path + ".display-name"));
     }
 
     private List<String> getLore(String path) {
-        return PluginUtils.translate(getConfig().getStringList("chips." + path + ".lore"));
+        return PluginUtils.translate(configuration.getStringList("chips." + path + ".lore"));
     }
 
     public Double getMinAmount() {
@@ -107,13 +109,5 @@ public final class ChipManager {
         } catch (IOException | InvalidConfigurationException exception) {
             exception.printStackTrace();
         }
-    }
-
-    public List<Chip> getChipsList() {
-        return chips;
-    }
-
-    public FileConfiguration getConfig() {
-        return configuration;
     }
 }

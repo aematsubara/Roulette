@@ -98,7 +98,7 @@ public class VisibilityModifier extends NPCModifier {
                         NativeGameMode.CREATIVE,
                         profile,
                         null,
-                        null);
+                        (WrappedProfilePublicKey.WrappedProfileKeyData) null);
             } else {
                 data = new PlayerInfoData(
                         profile,

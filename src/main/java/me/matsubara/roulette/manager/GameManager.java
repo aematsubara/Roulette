@@ -1,6 +1,8 @@
 package me.matsubara.roulette.manager;
 
 import com.cryptomorin.xseries.XMaterial;
+import com.google.common.base.Preconditions;
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
@@ -24,7 +26,7 @@ import java.util.*;
 public final class GameManager {
 
     private final RoulettePlugin plugin;
-    private final List<Game> games;
+    private final @Getter List<Game> games;
 
     private File file;
     private FileConfiguration configuration;
@@ -211,6 +213,8 @@ public final class GameManager {
 
     private Location loadLocation(String path) {
         String worldName = configuration.getString("games." + path + ".location.world");
+        Preconditions.checkNotNull(worldName);
+
         double x = configuration.getDouble("games." + path + ".location.x");
         double y = configuration.getDouble("games." + path + ".location.y");
         double z = configuration.getDouble("games." + path + ".location.z");
@@ -255,7 +259,7 @@ public final class GameManager {
 
     public Game getGameByNPC(NPC npc) {
         for (Game game : games) {
-            if (game.getNPC().equals(npc)) return game;
+            if (game.getNpc().equals(npc)) return game;
         }
         return null;
     }
@@ -273,10 +277,6 @@ public final class GameManager {
             if (game.getName().equalsIgnoreCase(name)) return true;
         }
         return false;
-    }
-
-    public List<Game> getGames() {
-        return games;
     }
 
     private void saveConfig() {

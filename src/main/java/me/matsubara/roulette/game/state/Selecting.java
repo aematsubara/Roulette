@@ -26,7 +26,7 @@ public final class Selecting extends BukkitRunnable {
 
         game.setState(GameState.SELECTING);
 
-        game.broadcast(plugin.getMessageManager().getRandomNPCMessage(game.getNPC(), "bets"));
+        game.broadcast(plugin.getMessageManager().getRandomNPCMessage(game.getNpc(), "bets"));
         game.broadcast(MessageManager.Message.SELECT_BET.asString());
 
         // Hide the join hologram for every player.

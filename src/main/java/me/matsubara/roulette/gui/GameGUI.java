@@ -65,8 +65,8 @@ public final class GameGUI implements InventoryHolder {
         if (npcName == null) npcName = ConfigManager.Config.UNNAMED_CROUPIER.asString();
 
         String url = null;
-        if (!game.getNPC().getProfile().getProperties().get("textures").isEmpty()) {
-            for (WrappedSignedProperty property : game.getNPC().getProfile().getProperties().get("textures")) {
+        if (!game.getNpc().getProfile().getProperties().get("textures").isEmpty()) {
+            for (WrappedSignedProperty property : game.getNpc().getProfile().getProperties().get("textures")) {
                 url = property.getValue();
                 break;
             }
@@ -126,7 +126,7 @@ public final class GameGUI implements InventoryHolder {
 
         List<Winner.WinnerData> winners = new ArrayList<>();
 
-        for (Winner winner : plugin.getWinnerManager().getWinnersSet()) {
+        for (Winner winner : plugin.getWinnerManager().getWinners()) {
             for (Winner.WinnerData data : winner.getWinnerData()) {
                 if (!game.getName().equalsIgnoreCase(data.getGame())) continue;
                 winners.add(data);

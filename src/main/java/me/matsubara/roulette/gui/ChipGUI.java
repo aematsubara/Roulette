@@ -1,6 +1,7 @@
 package me.matsubara.roulette.gui;
 
 import com.cryptomorin.xseries.XMaterial;
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Chip;
@@ -13,12 +14,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Getter
 public final class ChipGUI implements InventoryHolder {
 
     // The instance of the plugin.
@@ -76,7 +77,7 @@ public final class ChipGUI implements InventoryHolder {
         inventory.clear();
 
         // Get list of chips.
-        List<Chip> chips = plugin.getChipManager().getChipsList();
+        List<Chip> chips = plugin.getChipManager().getChips();
 
         // Page formula.
         pages = (int) (Math.ceil((double) chips.size() / SLOTS.length));
@@ -158,14 +159,5 @@ public final class ChipGUI implements InventoryHolder {
         // Go to the next page.
         current++;
         updateInventory();
-    }
-
-    public int getCurrent() {
-        return current;
-    }
-
-    @Override
-    public @NotNull Inventory getInventory() {
-        return inventory;
     }
 }

@@ -1,5 +1,6 @@
 package me.matsubara.roulette.event;
 
+import lombok.Getter;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.WinType;
 import me.matsubara.roulette.game.data.Slot;
@@ -10,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Map;
 
 @SuppressWarnings("unused")
+@Getter
 public class RouletteEndEvent extends RouletteEvent {
 
     private final Map<Player, WinType> winners;
@@ -21,14 +23,6 @@ public class RouletteEndEvent extends RouletteEvent {
         super(game);
         this.winners = winners;
         this.winnerSlot = winnerSlot;
-    }
-
-    public Map<Player, WinType> getWinners() {
-        return winners;
-    }
-
-    public Slot getWinnerSlot() {
-        return winnerSlot;
     }
 
     @Override

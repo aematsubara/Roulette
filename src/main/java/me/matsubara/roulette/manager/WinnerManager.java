@@ -1,6 +1,7 @@
 package me.matsubara.roulette.manager;
 
 import com.google.common.base.Strings;
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.WinType;
 import me.matsubara.roulette.game.data.Slot;
@@ -26,7 +27,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-
+@Getter
 public final class WinnerManager extends BukkitRunnable {
 
     private final RoulettePlugin plugin;
@@ -61,7 +62,7 @@ public final class WinnerManager extends BukkitRunnable {
         if (!plugin.getServer().getPluginManager().isPluginEnabled(plugin.setupEconomy())) return;
 
         winners.forEach(winner -> {
-            OfflinePlayer player = Bukkit.getOfflinePlayer(winner.getUUID());
+            OfflinePlayer player = Bukkit.getOfflinePlayer(winner.getUuid());
 
             String playerName = player.getName();
             if (playerName == null) return;
@@ -91,33 +92,33 @@ public final class WinnerManager extends BukkitRunnable {
     private void update() {
         winners.clear();
 
-        ConfigurationSection winners = getConfig().getConfigurationSection("winners");
+        ConfigurationSection winners = configuration.getConfigurationSection("winners");
         if (winners == null) return;
 
         for (String path : winners.getKeys(false)) {
             Winner winner = new Winner(UUID.fromString(path));
 
-            ConfigurationSection games = getConfig().getConfigurationSection("winners." + path);
+            ConfigurationSection games = configuration.getConfigurationSection("winners." + path);
             if (games == null) continue;
 
             for (String innerPath : games.getKeys(false)) {
-                String game = getConfig().getString("winners." + path + "." + innerPath + ".game");
+                String game = configuration.getString("winners." + path + "." + innerPath + ".game");
                 Integer mapId;
                 try {
-                    String asString = getConfig().getString("winners." + path + "." + innerPath + ".map-id");
+                    String asString = configuration.getString("winners." + path + "." + innerPath + ".map-id");
                     //noinspection ConstantConditions
                     mapId = Integer.parseInt(asString);
                 } catch (NumberFormatException exception) {
                     mapId = null;
                 }
-                double money = getConfig().getDouble("winners." + path + "." + innerPath + ".money");
-                long date = getConfig().getLong("winners." + path + "." + innerPath + ".date");
-                Slot slot = Slot.valueOf(getConfig().getString("winners." + path + "." + innerPath + ".slot"));
-                Slot winnerSlot = Slot.valueOf(getConfig().getString("winners." + path + "." + innerPath + ".winner"));
+                double money = configuration.getDouble("winners." + path + "." + innerPath + ".money");
+                long date = configuration.getLong("winners." + path + "." + innerPath + ".date");
+                Slot slot = Slot.valueOf(configuration.getString("winners." + path + "." + innerPath + ".slot"));
+                Slot winnerSlot = Slot.valueOf(configuration.getString("winners." + path + "." + innerPath + ".winner"));
 
-                WinType winType = WinType.valueOf(getConfig().getString("winners." + path + "." + innerPath + ".win-type"));
+                WinType winType = WinType.valueOf(configuration.getString("winners." + path + "." + innerPath + ".win-type"));
 
-                double originalMoney = getConfig().getDouble("winners." + path + "." + innerPath + ".original-money");
+                double originalMoney = configuration.getDouble("winners." + path + "." + innerPath + ".original-money");
 
                 winner.add(game, mapId, money, date, slot, winnerSlot, winType, originalMoney);
             }
@@ -131,14 +132,14 @@ public final class WinnerManager extends BukkitRunnable {
 
         for (Winner.WinnerData data : winner.getWinnerData()) {
             int index = winner.getWinnerData().indexOf(data) + 1;
-            getConfig().set("winners." + winner.getUUID() + "." + index + ".game", data.getGame());
-            getConfig().set("winners." + winner.getUUID() + "." + index + ".map-id", data.getMapId());
-            getConfig().set("winners." + winner.getUUID() + "." + index + ".money", data.getMoney());
-            getConfig().set("winners." + winner.getUUID() + "." + index + ".date", data.getDate());
-            getConfig().set("winners." + winner.getUUID() + "." + index + ".slot", data.getSelected().name());
-            getConfig().set("winners." + winner.getUUID() + "." + index + ".winner", data.getWinner().name());
-            getConfig().set("winners." + winner.getUUID() + "." + index + ".win-type", data.getWinType().name());
-            getConfig().set("winners." + winner.getUUID() + "." + index + ".original-money", data.getOriginalMoney());
+            configuration.set("winners." + winner.getUuid() + "." + index + ".game", data.getGame());
+            configuration.set("winners." + winner.getUuid() + "." + index + ".map-id", data.getMapId());
+            configuration.set("winners." + winner.getUuid() + "." + index + ".money", data.getMoney());
+            configuration.set("winners." + winner.getUuid() + "." + index + ".date", data.getDate());
+            configuration.set("winners." + winner.getUuid() + "." + index + ".slot", data.getSelected().name());
+            configuration.set("winners." + winner.getUuid() + "." + index + ".winner", data.getWinner().name());
+            configuration.set("winners." + winner.getUuid() + "." + index + ".win-type", data.getType().name());
+            configuration.set("winners." + winner.getUuid() + "." + index + ".original-money", data.getOriginalMoney());
         }
 
         saveConfig();
@@ -170,7 +171,7 @@ public final class WinnerManager extends BukkitRunnable {
                     .replace("%date%", new SimpleDateFormat("dd-MM-yyyy").format(new Date(data.getDate())))
                     .replace("%selected-slot%", PluginUtils.getSlotName(data.getSelected()))
                     .replace("%winner-slot%", PluginUtils.getSlotName(data.getWinner()))
-                    .replace("%type%", data.getWinType().getFormatName()));
+                    .replace("%type%", data.getType().getFormatName()));
         }
 
         // For some reason, the map doesn't exist in the server (probably a crash?).
@@ -182,20 +183,20 @@ public final class WinnerManager extends BukkitRunnable {
 
     @SuppressWarnings("unused")
     public void deleteWinner(Winner winner) {
-        getConfig().set("winners." + winner.getUUID(), null);
+        configuration.set("winners." + winner.getUuid(), null);
         saveConfig();
     }
 
     public Winner getByUniqueId(UUID uuid) {
         for (Winner winner : winners) {
-            if (winner.getUUID().equals(uuid)) return winner;
+            if (winner.getUuid().equals(uuid)) return winner;
         }
         return null;
     }
 
     private void saveConfig() {
         try {
-            getConfig().save(file);
+            configuration.save(file);
         } catch (IOException exception) {
             exception.printStackTrace();
         }
@@ -209,13 +210,5 @@ public final class WinnerManager extends BukkitRunnable {
         } catch (IOException | InvalidConfigurationException exception) {
             exception.printStackTrace();
         }
-    }
-
-    public Set<Winner> getWinnersSet() {
-        return winners;
-    }
-
-    public FileConfiguration getConfig() {
-        return configuration;
     }
 }

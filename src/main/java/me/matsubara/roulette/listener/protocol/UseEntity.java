@@ -37,7 +37,7 @@ public final class UseEntity extends PacketAdapter {
         int entityId = event.getPacket().getIntegers().readSafely(0);
 
         EnumWrappers.EntityUseAction action;
-        if (ReflectionUtils.VER > 16) {
+        if (ReflectionUtils.MINOR_NUMBER > 16) {
             action = event.getPacket().getEnumEntityUseActions().readSafely(0).getAction();
         } else {
             action = event.getPacket().getEntityUseActions().readSafely(0);
@@ -48,9 +48,11 @@ public final class UseEntity extends PacketAdapter {
 
         Player player = event.getPlayer();
 
-        for (Game game : plugin.getGameManager().getGames()) {
-            handleInteract(game, player, entityId, game.getModel().getStands().values(), game.getJoinHologram().getStands());
-        }
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            for (Game game : plugin.getGameManager().getGames()) {
+                handleInteract(game, player, entityId, game.getModel().getStands().values(), game.getJoinHologram().getStands());
+            }
+        });
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -139,19 +141,7 @@ public final class UseEntity extends PacketAdapter {
                     return;
                 }
 
-                // Check if player is vanished using EssentialsX.
-                if (plugin.hasDependency("Essentials")) {
-                    Essentials essentials = (Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
-                    if (essentials != null) {
-                        User user = essentials.getUser(player);
-                        if (user != null && user.isVanished()) {
-                            plugin.getMessageManager().send(player, MessageManager.Message.VANISH);
-                            return;
-                        }
-                    }
-                }
-
-                // Check if player is vanished using SuperVanish, PremiumVanish, VanishNoPacket, etc.
+                // Check if player is vanished using EssentialsX, SuperVanish, PremiumVanish, VanishNoPacket, etc.
                 if (isPluginVanished(player)) {
                     plugin.getMessageManager().send(player, MessageManager.Message.VANISH);
                     return;
@@ -206,6 +196,21 @@ public final class UseEntity extends PacketAdapter {
             meta = iterator.next();
         } while (!meta.asBoolean());
 
-        return plugin.getEssXExtension().isVanished(player);
+        boolean vanished = plugin.getEssXExtension().isVanished(player);
+        if (vanished) return true;
+
+        // Check if player is vanished using EssentialsX.
+        if (!plugin.hasDependency("Essentials")) return false;
+
+        Essentials essentials = (Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
+        if (essentials == null) return false;
+
+        User user = essentials.getUser(player);
+        if (user != null && user.isVanished()) {
+            plugin.getMessageManager().send(player, MessageManager.Message.VANISH);
+            return true;
+        }
+
+        return false;
     }
 }

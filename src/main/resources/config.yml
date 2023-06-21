@@ -8,6 +8,9 @@
 # Developed by Matsuneitor.
 # :)
 
+# Don't touch this!
+config-version: 1
+
 # The render distance for the models. Default: 96, good distance to prevent seeing players lonely.
 render-distance: 96
 
@@ -28,16 +31,16 @@ move-interval: 150
 hit-on-game: false
 
 # If you want to use abbreviation format when naming money. Useful for prison type servers where money values are much higher.
+# You can add your own translations per value, using the abbreviation as the key.
 # For more info on scales, take a look here: https://en.wikipedia.org/wiki/Long_and_short_scales
-# Available scales: SHORT (default), LONG
 money-abbreviation-format:
   enabled: false
-  scale: SHORT
   translations:
-    K: "K"
-    M: "M"
-    B: "B"
-    T: "T"
+    K: 1_000
+    M: 1_000_000
+    B: 1_000_000_000
+    T: 1_000_000_000_000
+    Q: 1_000_000_000_000_000
 
 croupier-ball:
   # The material that'll be used as a ball by the croupier.

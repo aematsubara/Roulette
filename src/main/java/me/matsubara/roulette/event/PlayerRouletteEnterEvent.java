@@ -1,5 +1,6 @@
 package me.matsubara.roulette.event;
 
+import lombok.Getter;
 import me.matsubara.roulette.game.Game;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -8,18 +9,14 @@ import org.jetbrains.annotations.NotNull;
 
 public class PlayerRouletteEnterEvent extends RouletteEvent implements Cancellable {
 
-    private final Player player;
+    private final @Getter Player player;
     private boolean cancelled;
 
     private static final HandlerList handlers = new HandlerList();
 
     public PlayerRouletteEnterEvent(Game game, Player player) {
-        super(game, true);
+        super(game);
         this.player = player;
-    }
-
-    public Player getPlayer() {
-        return player;
     }
 
     @Override

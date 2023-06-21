@@ -87,7 +87,7 @@ public final class PAPIExtension extends PlaceholderExpansion {
 
                 return String.valueOf(winner.getWinnerData()
                         .stream()
-                        .filter(winnerData -> winnerData.getWinType().name().toLowerCase().contains(type))
+                        .filter(winnerData -> winnerData.getType().name().toLowerCase().contains(type))
                         .count());
             }
         }

@@ -3,6 +3,7 @@ package me.matsubara.roulette;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.cryptomorin.xseries.ReflectionUtils;
 import com.tchristofferson.configupdater.ConfigUpdater;
+import lombok.Getter;
 import me.matsubara.roulette.command.Main;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
@@ -20,6 +21,7 @@ import me.matsubara.roulette.npc.NPCPool;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -29,13 +31,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
+@Getter
 public final class RoulettePlugin extends JavaPlugin {
 
     // Managers.
@@ -57,6 +61,7 @@ public final class RoulettePlugin extends JavaPlugin {
     private EssXExtension essXExtension;
 
     private final String[] DEPENDENCIES = {"ProtocolLib", "Vault"};
+    private final NavigableMap<Long, String> abbreviations = new TreeMap<>();
 
     private Team hideTeam;
     private Team collisionTeam;
@@ -67,9 +72,9 @@ public final class RoulettePlugin extends JavaPlugin {
     public void onEnable() {
         PluginManager pluginManager = getServer().getPluginManager();
 
-        // Disable plugin if server version is older than 1.12.
-        if (ReflectionUtils.VER < 12 || ReflectionUtils.VER == 16) {
-            getLogger().info("This plugin only works from 1.12 and up (except 1.16), disabling...");
+        // Disable plugin if server version is older than 1.13.
+        if (ReflectionUtils.MINOR_NUMBER < 13 || ReflectionUtils.MINOR_NUMBER == 16) {
+            getLogger().info("This plugin only works from 1.13 and up (except 1.16), disabling...");
             pluginManager.disablePlugin(this);
             return;
         }
@@ -140,6 +145,20 @@ public final class RoulettePlugin extends JavaPlugin {
         // Save models to /models.
         saveModels(GameType.AMERICAN.getModelName(), GameType.EUROPEAN.getModelName());
         loadConfigAndUpdateIt();
+
+        reloadAbbreviations();
+    }
+
+    public void reloadAbbreviations() {
+        abbreviations.clear();
+
+        ConfigurationSection abbreviations = getConfig().getConfigurationSection("money-abbreviation-format.translations");
+        if (abbreviations == null) return;
+
+        for (String key : abbreviations.getKeys(false)) {
+            long bound = getConfig().getLong("money-abbreviation-format.translations." + key);
+            this.abbreviations.put(bound, key);
+        }
     }
 
     private void loadConfigAndUpdateIt() {
@@ -153,6 +172,17 @@ public final class RoulettePlugin extends JavaPlugin {
             if (config.contains(path)) ignore.add(path);
         }
 
+        Predicate<FileConfiguration> noVersion = temp -> !temp.contains("config-version");
+
+        // Update translations (vX.X{0} -> v1.9.6{1}).
+        handleConfigChanges(
+                file,
+                config,
+                "config.yml",
+                noVersion,
+                temp -> temp.set("money-abbreviation-format.translations", null),
+                1);
+
         try {
             ConfigUpdater.update(this, "config.yml", file, ignore);
         } catch (IOException exception) {
@@ -160,6 +190,20 @@ public final class RoulettePlugin extends JavaPlugin {
         }
 
         reloadConfig();
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private void handleConfigChanges(@NotNull File file, FileConfiguration config, String fileTargetName, Predicate<FileConfiguration> predicate, Consumer<FileConfiguration> consumer, int newVersion) {
+        if (!file.getName().equals(fileTargetName) || !predicate.test(config)) return;
+
+        consumer.accept(config);
+        config.set("config-version", newVersion);
+
+        try {
+            config.save(file);
+        } catch (IOException exception) {
+            exception.printStackTrace();
+        }
     }
 
     private Team createTeam(String teamName, Team.Option toDisable) {
@@ -218,47 +262,6 @@ public final class RoulettePlugin extends JavaPlugin {
         getLogger().info("Using " + plugin.getDescription().getFullName() + " as the economy provider.");
         economy = provider.getProvider();
         return plugin;
-    }
-
-    public NPCPool getNPCPool() {
-        return npcPool;
-    }
-
-    public Economy getEconomy() {
-        return economy;
-    }
-
-    public EssXExtension getEssXExtension() {
-        return essXExtension;
-    }
-
-    public ChipManager getChipManager() {
-        return chipManager;
-    }
-
-    public ConfigManager getConfigManager() {
-        return configManager;
-    }
-
-    public GameManager getGameManager() {
-        return gameManager;
-    }
-
-    public InputManager getInputManager() {
-        return inputManager;
-    }
-
-    public MessageManager getMessageManager() {
-        return messageManager;
-    }
-
-    @SuppressWarnings("unused")
-    public StandManager getStandManager() {
-        return standManager;
-    }
-
-    public WinnerManager getWinnerManager() {
-        return winnerManager;
     }
 
     public Team getHideTeam() {

@@ -1,7 +1,7 @@
 package me.matsubara.roulette.model.stand;
 
 import com.cryptomorin.xseries.ReflectionUtils;
-import com.google.common.collect.Lists;
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.hook.ViaExtension;
 import me.matsubara.roulette.util.Lang3Utils;
@@ -26,6 +26,7 @@ import java.lang.reflect.Parameter;
 import java.util.*;
 
 @SuppressWarnings({"ConstantConditions"})
+@Getter
 public final class PacketStand {
 
     // Plugin instance.
@@ -43,9 +44,6 @@ public final class PacketStand {
     // Entity unique id.
     private int entityId;
 
-    // Entity passengers.
-    private int[] passengersId;
-
     // Entity properties.
     private StandSettings settings;
 
@@ -53,7 +51,7 @@ public final class PacketStand {
     private static int PROTOCOL = -1;
 
     // Version of the server.
-    private static final int VERSION = ReflectionUtils.VER;
+    private static final int VERSION = ReflectionUtils.MINOR_NUMBER;
 
     // Methods factory.
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
@@ -77,7 +75,6 @@ public final class PacketStand {
     private static final Class<?> PACKET_ENTITY_LOOK;
     private static final Class<?> DATA_WATCHER;
     private static final Class<?> PACKET_ENTITY_METADATA;
-    private static final Class<?> PACKET_MOUNT;
     private static final Class<?> PACKET_ENTITY_EQUIPMENT;
     private static final Class<?> ENUM_ITEM_SLOT;
     private static final Class<?> ITEM_STACK;
@@ -87,10 +84,6 @@ public final class PacketStand {
     private static final Class<?> GAME_VERSION;
     private static final Class<?> VECTOR3F;
     private static final Class<?> I_CHAT_BASE_COMPONENT;
-    private static final Class<?> ATTRIBUTE_MODIFIABLE;
-    private static final Class<?> ATTRIBUTE_BASE;
-    private static final Class<?> GENERIC_ATTRIBUTES;
-    private static final Class<?> PACKET_UPDATE_ATTRIBUTES;
 
     // Methods.
     private static final MethodHandle getHandle;
@@ -115,8 +108,6 @@ public final class PacketStand {
     private static final MethodHandle setRightArmPose;
     private static final MethodHandle setLeftLegPose;
     private static final MethodHandle setRightLegPose;
-    private static final MethodHandle getAttributeInstance;
-    private static final MethodHandle setValue;
     private static final MethodHandle getNonDefaultValues;
 
     // Constructors.
@@ -126,14 +117,9 @@ public final class PacketStand {
     private static final MethodHandle packetEntityTeleport;
     private static final MethodHandle packetEntityLook;
     private static final MethodHandle packetEntityMetadata;
-    private static final MethodHandle packetMount;
     private static final MethodHandle packetEntityEquipment;
     private static final MethodHandle packetEntityDestroy;
     private static final MethodHandle vector3f;
-    private static final MethodHandle packetUpdateAttributes;
-
-    // Fields.
-    private static final MethodHandle maxHealth;
 
     static {
         // Initialize classes.
@@ -154,7 +140,6 @@ public final class PacketStand {
         PACKET_ENTITY_LOOK = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntity$PacketPlayOutEntityLook");
         DATA_WATCHER = ReflectionUtils.getNMSClass("network.syncher", "DataWatcher");
         PACKET_ENTITY_METADATA = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityMetadata");
-        PACKET_MOUNT = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutMount");
         PACKET_ENTITY_EQUIPMENT = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityEquipment");
         ENUM_ITEM_SLOT = ReflectionUtils.getNMSClass("world.entity", "EnumItemSlot");
         ITEM_STACK = ReflectionUtils.getNMSClass("world.item", "ItemStack");
@@ -164,10 +149,6 @@ public final class PacketStand {
         GAME_VERSION = (VERSION == 17) ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
         VECTOR3F = ReflectionUtils.getNMSClass("core", "Vector3f");
         I_CHAT_BASE_COMPONENT = ReflectionUtils.getNMSClass("network.chat", "IChatBaseComponent");
-        ATTRIBUTE_MODIFIABLE = ReflectionUtils.getNMSClass("world.entity.ai.attributes", (VERSION > 15) ? "AttributeModifiable" : "AttributeInstance");
-        ATTRIBUTE_BASE = ReflectionUtils.getNMSClass("world.entity.ai.attributes", (VERSION > 15) ? "AttributeBase" : "IAttribute");
-        GENERIC_ATTRIBUTES = ReflectionUtils.getNMSClass("world.entity.ai.attributes", "GenericAttributes");
-        PACKET_UPDATE_ATTRIBUTES = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutUpdateAttributes");
 
         // Initialize methods.
         getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
@@ -175,8 +156,6 @@ public final class PacketStand {
         asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true, true);
         of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true, true);
         getBukkitEntity = getMethod(ENTITY_ARMOR_STAND, "getBukkitEntity", MethodType.methodType(CRAFT_ENTITY));
-        getAttributeInstance = getMethod(ENTITY_ARMOR_STAND, "getAttributeInstance", MethodType.methodType(ATTRIBUTE_MODIFIABLE, ATTRIBUTE_BASE), false, true, "a");
-        setValue = getMethod(ATTRIBUTE_MODIFIABLE, "setValue", MethodType.methodType(void.class, double.class), false, true, "a");
         getNonDefaultValues = getMethod(DATA_WATCHER, "getNonDefaultValues", MethodType.methodType(List.class), false, false, "c");
 
         // Since 1.18 is obfuscated af, we're using getBukkitEntity() and then bukkit methods.
@@ -227,13 +206,11 @@ public final class PacketStand {
         packetEntityLook = getConstructor(PACKET_ENTITY_LOOK, int.class, byte.class, byte.class, boolean.class);
         MethodHandle metadata = getConstructor(PACKET_ENTITY_METADATA, false, int.class, DATA_WATCHER, boolean.class);
         packetEntityMetadata = metadata != null ? metadata : getConstructor(PACKET_ENTITY_METADATA, int.class, List.class);
-        packetMount = (VERSION > 16) ? getConstructor(PACKET_MOUNT, ENTITY) : getConstructor(PACKET_MOUNT);
         packetEntityEquipment = (VERSION > 15) ?
                 getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, List.class) :
                 getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, ENUM_ITEM_SLOT, ITEM_STACK);
         packetEntityDestroy = getConstructor(PACKET_ENTITY_DESTROY, PROTOCOL == 755 ? int.class : int[].class);
         vector3f = getConstructor(VECTOR3F, float.class, float.class, float.class);
-        packetUpdateAttributes = getConstructor(PACKET_UPDATE_ATTRIBUTES, int.class, Collection.class);
 
         try {
             // Get protocol version, only needed for 1.17.
@@ -247,8 +224,6 @@ public final class PacketStand {
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
-
-        maxHealth = getField(GENERIC_ATTRIBUTES, "MAX_HEALTH", "maxHealth", "a");
     }
 
     public PacketStand(Location location, StandSettings settings) {
@@ -266,7 +241,6 @@ public final class PacketStand {
             this.location = location;
             this.ignored = new HashSet<>();
             this.entityId = (getId != null) ? (int) getId.invoke(stand) : getBukkitEntity().getEntityId();
-            this.passengersId = new int[]{};
             this.settings = settings;
 
             // Set the initial location of this entity.
@@ -275,10 +249,10 @@ public final class PacketStand {
             // Set settings.
             setInvisible(settings.isInvisible());
             setSmall(settings.isSmall());
-            setBasePlate(settings.hasBasePlate());
-            setArms(settings.hasArms());
+            setBasePlate(settings.isBasePlate());
+            setArms(settings.isArms());
             setMarker(settings.isMarker());
-            setOnFire(settings.isOnFire());
+            setOnFire(settings.isFire());
             if (settings.getCustomName() != null) setCustomName(settings.getCustomName());
             setCustomNameVisible(settings.isCustomNameVisible());
 
@@ -303,19 +277,6 @@ public final class PacketStand {
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
-    }
-
-    public int getEntityId() {
-        return entityId;
-    }
-
-    public Location getLocation() {
-        return location;
-    }
-
-    @SuppressWarnings("unused")
-    public StandSettings getSettings() {
-        return settings;
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -355,12 +316,10 @@ public final class PacketStand {
             ignored.remove(player.getUniqueId());
 
             Bukkit.getScheduler().runTaskAsynchronously(PLUGIN, () -> {
-                showPassenger(player);
                 updateLocation();
                 updateRotation();
                 updateMetadata();
                 updateEquipment();
-                hideHearts();
             });
         } catch (Throwable exception) {
             exception.printStackTrace();
@@ -499,7 +458,7 @@ public final class PacketStand {
         // Only works on 1.9+.
         if (VERSION < 9) return;
 
-        settings.setOnFire(fire);
+        settings.setFire(fire);
 
         try {
             setFlag.invoke(stand, 0, fire);
@@ -536,82 +495,6 @@ public final class PacketStand {
             } else {
                 getBukkitEntity().setCustomNameVisible(customNameVisible);
             }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    /**
-     * Set a player as a passenger of this entity and show to everyone.
-     */
-    public void setPassenger(Player player) {
-        // If player isn't in range, can't be a passenger.
-        if (player != null && isIgnored(player)) return;
-
-        // If the array is empty, entity won't have passengers.
-        this.passengersId = (player != null) ? new int[]{player.getEntityId()} : new int[]{};
-        sendPassenger(null);
-    }
-
-    /**
-     * Show passenger of this entity (if it has) to a player.
-     */
-    public void showPassenger(Player notSeeing) {
-        if (!hasPassenger()) return;
-        sendPassenger(notSeeing);
-    }
-
-    /**
-     * Show the passenger of this entity to a certain player or everyone (if @to is null).
-     */
-    private void sendPassenger(@Nullable Player to) {
-        try {
-            Object packetMount;
-            if (VERSION > 16) {
-                packetMount = PacketStand.packetMount.invoke(stand);
-            } else {
-                packetMount = PacketStand.packetMount.invoke();
-            }
-
-            Field a = PACKET_MOUNT.getDeclaredField("a");
-            a.setAccessible(true);
-            a.set(packetMount, entityId);
-
-            Field b = PACKET_MOUNT.getDeclaredField("b");
-            b.setAccessible(true);
-            b.set(packetMount, passengersId);
-
-            if (to != null) {
-                sendPacket(to, packetMount);
-            } else {
-                sendPacket(packetMount);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public boolean hasPassenger() {
-        return passengersId != null && passengersId.length > 0;
-    }
-
-    public boolean isPassenger(Player player) {
-        for (int passengerId : passengersId) {
-            if (passengerId == player.getEntityId()) return true;
-        }
-        return false;
-    }
-
-    public void hideHearts() {
-        // Hide hearts when riding.
-        try {
-            Object maxHealthAttribute = maxHealth.invoke();
-
-            Object attribute = getAttributeInstance.invoke(stand, maxHealthAttribute);
-            setValue.invoke(attribute, 1);
-
-            Object packet = packetUpdateAttributes.invoke(entityId, Lists.newArrayList(attribute));
-            sendPacket(packet);
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
@@ -716,7 +599,7 @@ public final class PacketStand {
 
         public Object get() {
             try {
-                Field field = ENUM_ITEM_SLOT.getField(VERSION > 16 ? "" + alphabet[ordinal()] : name());
+                Field field = ENUM_ITEM_SLOT.getField(VERSION > 16 ? String.valueOf(alphabet[ordinal()]) : name());
                 return field.get(null);
             } catch (Throwable exception) {
                 exception.printStackTrace();
@@ -864,7 +747,7 @@ public final class PacketStand {
         }
     }
 
-    @SuppressWarnings("SameParameterValue")
+    @SuppressWarnings({"SameParameterValue", "unused"})
     private static MethodHandle getField(Class<?> refc, String name, String... extraNames) {
         try {
             Field field = refc.getDeclaredField(name);

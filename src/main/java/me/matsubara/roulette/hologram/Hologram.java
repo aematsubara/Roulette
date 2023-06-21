@@ -1,5 +1,6 @@
 package me.matsubara.roulette.hologram;
 
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Getter
 public final class Hologram {
 
     // Plugin instance.
@@ -197,14 +199,6 @@ public final class Hologram {
         return lines.size();
     }
 
-    public Location getLocation() {
-        return location;
-    }
-
-    public List<PacketStand> getStands() {
-        return stands;
-    }
-
     private void checkForTask() {
         // Check if the task should be started.
         boolean startTask = false;
@@ -246,6 +240,7 @@ public final class Hologram {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static String[] arrayToStrings(Object... array) {
         String[] result = new String[array.length];
         for (int i = 0; i < array.length; i++) {

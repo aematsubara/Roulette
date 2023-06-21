@@ -1,5 +1,7 @@
 package me.matsubara.roulette.manager.winner;
 
+import lombok.Getter;
+import lombok.Setter;
 import me.matsubara.roulette.game.WinType;
 import me.matsubara.roulette.game.data.Slot;
 
@@ -7,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Getter
 public final class Winner {
 
     private final UUID uuid;
@@ -25,14 +28,8 @@ public final class Winner {
         winnerData.add(new WinnerData(game, mapId, money, date, slot, winner, type, originalMoney));
     }
 
-    public UUID getUUID() {
-        return uuid;
-    }
-
-    public List<WinnerData> getWinnerData() {
-        return winnerData;
-    }
-
+    @Getter
+    @Setter
     public static final class WinnerData {
 
         // Name of the game.
@@ -68,42 +65,6 @@ public final class Winner {
             this.winner = winner;
             this.type = type;
             this.originalMoney = originalMoney;
-        }
-
-        public String getGame() {
-            return game;
-        }
-
-        public Integer getMapId() {
-            return mapId;
-        }
-
-        public void setMapId(Integer mapId) {
-            this.mapId = mapId;
-        }
-
-        public double getMoney() {
-            return money;
-        }
-
-        public long getDate() {
-            return date;
-        }
-
-        public Slot getSelected() {
-            return selected;
-        }
-
-        public Slot getWinner() {
-            return winner;
-        }
-
-        public WinType getWinType() {
-            return type;
-        }
-
-        public double getOriginalMoney() {
-            return originalMoney;
         }
 
         public boolean hasValidId() {

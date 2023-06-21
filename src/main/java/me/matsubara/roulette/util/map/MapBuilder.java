@@ -38,7 +38,7 @@ public final class MapBuilder {
     private boolean rendered;
     private boolean renderOnce;
 
-    private static final boolean IS_MODERN = ReflectionUtils.VER > 12;
+    private static final boolean IS_MODERN = ReflectionUtils.MINOR_NUMBER > 12;
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
     private static final MethodHandle GET_MAP = getMethod(Bukkit.class, "getMap", short.class);
     private static final MethodHandle GET_ID = getMethod(MapView.class, "getId");
@@ -201,6 +201,9 @@ public final class MapBuilder {
                     }
 
                     if (!texts.isEmpty()) {
+                        // https://www.spigotmc.org/threads/custom-font-for-map-text-drawing.469604/
+                        // https://www.spigotmc.org/threads/unicode-map-font-bananatypefont.451390/
+
                         // Write text centered.
                         texts.forEach(text -> {
                             try {

@@ -60,7 +60,7 @@ public final class InputManager implements Listener {
 
         event.setCancelled(true);
 
-        if (type.isAccountName()) {
+        if (type == InputType.ACCOUNT_NAME) {
             if (isInvalidPlayerName(player, message, true)) return;
 
             @SuppressWarnings("deprecation") OfflinePlayer target = Bukkit.getOfflinePlayer(ChatColor.stripColor(message));
@@ -72,7 +72,7 @@ public final class InputManager implements Listener {
             } else {
                 plugin.getMessageManager().send(player, MessageManager.Message.UNKNOWN_ACCOUNT);
             }
-        } else if (type.isCroupierName()) {
+        } else if (type == InputType.CROUPIER_NAME) {
             if (isInvalidPlayerName(player, message, false)) return;
 
             // Limited to 16 characters.
@@ -155,18 +155,6 @@ public final class InputManager implements Listener {
     public enum InputType {
         ACCOUNT_NAME,
         CROUPIER_NAME,
-        CROUPIER_TEXTURE;
-
-        public boolean isAccountName() {
-            return this == ACCOUNT_NAME;
-        }
-
-        public boolean isCroupierName() {
-            return this == CROUPIER_NAME;
-        }
-
-        public boolean isCroupierTexture() {
-            return this == CROUPIER_TEXTURE;
-        }
+        CROUPIER_TEXTURE
     }
 }

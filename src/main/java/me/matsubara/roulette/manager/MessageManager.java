@@ -1,6 +1,7 @@
 package me.matsubara.roulette.manager;
 
 import com.cryptomorin.xseries.messages.ActionBar;
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.util.PluginUtils;
@@ -24,7 +25,7 @@ public final class MessageManager {
 
     // I/O objects.
     private File file;
-    private FileConfiguration configuration;
+    private @Getter FileConfiguration configuration;
 
     public MessageManager(RoulettePlugin plugin) {
         MessageManager.plugin = plugin;
@@ -115,10 +116,6 @@ public final class MessageManager {
         return list.get(random.nextInt(list.size()));
     }
 
-    public FileConfiguration getConfig() {
-        return configuration;
-    }
-
     public enum Message {
         CROUPIER_PREFIX("npc.croupier-prefix"),
         BETS("npc.bets"),
@@ -182,11 +179,11 @@ public final class MessageManager {
         }
 
         public String asString() {
-            return PluginUtils.translate(plugin.getMessageManager().getConfig().getString(path));
+            return PluginUtils.translate(plugin.getMessageManager().getConfiguration().getString(path));
         }
 
         public List<String> asList() {
-            return PluginUtils.translate(plugin.getMessageManager().getConfig().getStringList(path));
+            return PluginUtils.translate(plugin.getMessageManager().getConfiguration().getStringList(path));
         }
 
         public String getPath() {

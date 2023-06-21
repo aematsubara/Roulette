@@ -1,9 +1,11 @@
 package me.matsubara.roulette.game.data;
 
+import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
+@Getter
 public final class Chip {
 
     private final String name;
@@ -23,25 +25,5 @@ public final class Chip {
         this.lore = lore;
         this.url = url;
         this.price = price;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public List<String> getLore() {
-        return lore;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public double getPrice() {
-        return price;
     }
 }

@@ -64,7 +64,7 @@ public final class InventoryClick implements Listener {
         if (item == null || !item.hasItemMeta()) return;
 
         // Play click sound.
-        XSound.play(player, ConfigManager.Config.SOUND_CLICK.asString());
+        XSound.matchXSound(ConfigManager.Config.SOUND_CLICK.asString()).ifPresent(temp -> temp.play(player));
 
         if (holder instanceof ConfirmGUI) {
             handleConfirmGUI(event, game);
@@ -117,7 +117,7 @@ public final class InventoryClick implements Listener {
                         money);
 
                 // If the bet-all money is the same of one chip from chips.yml, use that chip.
-                for (Chip chip : plugin.getChipManager().getChipsList()) {
+                for (Chip chip : plugin.getChipManager().getChips()) {
                     if (money == chip.getPrice()) betAll = chip;
                 }
 

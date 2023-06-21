@@ -16,6 +16,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -51,7 +54,7 @@ public final class PluginUtils {
 
     public static final Color[] COLORS = getColors();
 
-    private static Color[] getColors() {
+    private static Color @NotNull [] getColors() {
         Field[] fields = Color.class.getDeclaredFields();
 
         List<Color> results = new ArrayList<>();
@@ -67,11 +70,8 @@ public final class PluginUtils {
         return results.toArray(new Color[0]);
     }
 
-    private static final NavigableMap<Long, String> SHORT = new TreeMap<>();
-    private static final NavigableMap<Long, String> LONG = new TreeMap<>();
-
     static {
-        if (ReflectionUtils.VER > 13) {
+        if (ReflectionUtils.MINOR_NUMBER > 13) {
             Class<?> ENTITY_POSE = ReflectionUtils.getNMSClass("world.entity", "EntityPose");
 
             Method valueOf = null;
@@ -80,7 +80,7 @@ public final class PluginUtils {
                 //noinspection ConstantConditions
                 valueOf = ENTITY_POSE.getMethod("valueOf", String.class);
 
-                int ver = ReflectionUtils.VER;
+                int ver = ReflectionUtils.MINOR_NUMBER;
                 SNEAKING = valueOf.invoke(null, ver == 14 ? "SNEAKING" : "CROUCHING");
                 STANDING = valueOf.invoke(null, "STANDING");
             } catch (IllegalArgumentException exception) {
@@ -96,16 +96,6 @@ public final class PluginUtils {
                 exception.printStackTrace();
             }
         }
-
-        SHORT.put(1_000L, "K");
-        SHORT.put(1_000_000L, "M");
-        SHORT.put(1_000_000_000L, "B");
-        SHORT.put(1_000_000_000_000L, "T");
-
-        LONG.put(1_000L, "K");
-        LONG.put(1_000_000L, "M");
-        LONG.put(1_000_000_000_000L, "B");
-        LONG.put(1_000_000_000_000_000_000L, "T");
     }
 
     /**
@@ -124,18 +114,19 @@ public final class PluginUtils {
                     input -> (input ? SNEAKING : STANDING),
                     () -> NPCModifier.MINECRAFT_VERSION >= 14));
 
-    public static BlockFace getFace(float yaw, boolean subCardinal) {
+    public static @NotNull BlockFace getFace(float yaw, boolean subCardinal) {
         return (subCardinal ? RADIAL[Math.round(yaw / 45f) & 0x7] : AXIS[Math.round(yaw / 90f) & 0x3]).getOppositeFace();
     }
 
-    public static Vector getDirection(BlockFace face) {
+    public static @NotNull Vector getDirection(@NotNull BlockFace face) {
         int modX = face.getModX(), modY = face.getModY(), modZ = face.getModZ();
         Vector direction = new Vector(modX, modY, modZ);
         if (modX != 0 || modY != 0 || modZ != 0) direction.normalize();
         return direction;
     }
 
-    public static Vector offsetVector(Vector vector, float yawDegrees, float pitchDegrees) {
+    @Contract("_, _, _ -> new")
+    public static @NotNull Vector offsetVector(@NotNull Vector vector, float yawDegrees, float pitchDegrees) {
         double yaw = Math.toRadians(-yawDegrees), pitch = Math.toRadians(-pitchDegrees);
 
         double cosYaw = Math.cos(yaw), cosPitch = Math.cos(pitch);
@@ -160,7 +151,7 @@ public final class PluginUtils {
         return createHead(url, true);
     }
 
-    public static ItemStack createHead(String url, boolean isMCUrl) {
+    public static @Nullable ItemStack createHead(String url, boolean isMCUrl) {
         ItemStack item = XMaterial.PLAYER_HEAD.parseItem();
         if (item == null) return null;
 
@@ -174,7 +165,7 @@ public final class PluginUtils {
     public static String translate(String message) {
         Lang3Utils.notNull(message, "Message can't be null.");
 
-        if (ReflectionUtils.VER < 16) return oldTranslate(message);
+        if (ReflectionUtils.MINOR_NUMBER < 16) return oldTranslate(message);
 
         Matcher matcher = PATTERN.matcher(oldTranslate(message));
         StringBuffer buffer = new StringBuffer();
@@ -186,18 +177,20 @@ public final class PluginUtils {
         return matcher.appendTail(buffer).toString();
     }
 
-    public static List<String> translate(List<String> messages) {
+    @Contract("_ -> param1")
+    public static @NotNull List<String> translate(List<String> messages) {
         Lang3Utils.notNull(messages, "Messages can't be null.");
 
         messages.replaceAll(PluginUtils::translate);
         return messages;
     }
 
-    private static String oldTranslate(String message) {
+    @Contract("_ -> new")
+    private static @NotNull String oldTranslate(String message) {
         return ChatColor.translateAlternateColorCodes('&', message);
     }
 
-    public static String getSlotName(Slot slot) {
+    public static String getSlotName(@NotNull Slot slot) {
         if (slot.isSingleInclusive()) {
             String number = slot.isDoubleZero() ? "00" : String.valueOf(slot.getInts()[0]);
             switch (slot.getColor()) {
@@ -228,12 +221,9 @@ public final class PluginUtils {
     }
 
     public static String format(double value) {
-        if (!ConfigManager.Config.MONEY_ABBREVIATION_FORMAT_ENABLED.asBoolean()) {
-            return PLUGIN.getEconomy().format(value);
-        }
-
-        String scale = ConfigManager.Config.MONEY_ABBREVIATION_FORMAT_SCALE.asString();
-        return format(value, scale.equalsIgnoreCase("LONG") ? LONG : scale.equalsIgnoreCase("SHORT") ? SHORT : LONG);
+        return ConfigManager.Config.MONEY_ABBREVIATION_FORMAT_ENABLED.asBoolean() ?
+                format(value, PLUGIN.getAbbreviations()) :
+                PLUGIN.getEconomy().format(value);
     }
 
     @SuppressWarnings("IntegerDivisionInFloatingPointContext")
@@ -245,7 +235,6 @@ public final class PluginUtils {
         Map.Entry<Long, String> entry = lang.floorEntry((long) value);
         Long divideBy = entry.getKey();
         String suffix = entry.getValue();
-        suffix = PLUGIN.getConfig().getString("money-abbreviation-format.translations." + suffix, suffix);
 
         long truncated = (long) value / (divideBy / 10);
         boolean hasDecimal = truncated < 100 && (truncated / 10.0d) != (truncated / 10);
