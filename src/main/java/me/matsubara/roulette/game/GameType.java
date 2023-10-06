@@ -1,12 +1,11 @@
 package me.matsubara.roulette.game;
 
 import me.matsubara.roulette.manager.ConfigManager;
+import org.jetbrains.annotations.NotNull;
 
 public enum GameType {
-    // 0 & 00.
-    AMERICAN,
-    // Single 0.
-    EUROPEAN;
+    AMERICAN, // 0 & 00.
+    EUROPEAN; // Single 0.
 
     public boolean isAmerican() {
         return this == AMERICAN;
@@ -20,7 +19,7 @@ public enum GameType {
         return isAmerican() ? ConfigManager.Config.TYPE_AMERICAN.asString() : ConfigManager.Config.TYPE_EUROPEAN.asString();
     }
 
-    public String getModelName() {
+    public @NotNull String getModelName() {
         return (name() + "_roulette").toLowerCase();
     }
 }

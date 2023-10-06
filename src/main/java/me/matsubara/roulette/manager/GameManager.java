@@ -9,7 +9,7 @@ import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.npc.NPC;
-import me.matsubara.roulette.util.Lang3Utils;
+import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
@@ -17,6 +17,8 @@ import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -96,7 +98,7 @@ public final class GameManager {
         save(game);
     }
 
-    public void save(Game game) {
+    public void save(@NotNull Game game) {
         // Save model related data.
         configuration.set("games." + game.getName() + ".model.id", game.getModelId().toString());
         configuration.set("games." + game.getName() + ".model.type", game.getType().name());
@@ -211,7 +213,8 @@ public final class GameManager {
         plugin.getLogger().info("No games have been loaded from games.yml, why don't you create one?");
     }
 
-    private Location loadLocation(String path) {
+    @Contract("_ -> new")
+    private @NotNull Location loadLocation(String path) {
         String worldName = configuration.getString("games." + path + ".location.world");
         Preconditions.checkNotNull(worldName);
 
@@ -224,8 +227,8 @@ public final class GameManager {
         return new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
     }
 
-    private void saveLocation(String path, Location location) {
-        Lang3Utils.notNull(location.getWorld(), "World can't be null.");
+    private void saveLocation(String path, @NotNull Location location) {
+        Validate.notNull(location.getWorld(), "World can't be null.");
         configuration.set("games." + path + ".location.world", location.getWorld().getName());
         configuration.set("games." + path + ".location.x", location.getX());
         configuration.set("games." + path + ".location.y", location.getY());
@@ -241,14 +244,14 @@ public final class GameManager {
         return false;
     }
 
-    public Game getGame(String name) {
+    public @Nullable Game getGame(String name) {
         for (Game game : games) {
             if (game.getName().equalsIgnoreCase(name)) return game;
         }
         return null;
     }
 
-    public void deleteGame(Game game) {
+    public void deleteGame(@NotNull Game game) {
         game.remove();
         games.remove(game);
 
@@ -257,14 +260,15 @@ public final class GameManager {
         saveConfig();
     }
 
-    public Game getGameByNPC(NPC npc) {
+    public @Nullable Game getGameByNPC(NPC npc) {
         for (Game game : games) {
             if (game.getNpc().equals(npc)) return game;
         }
         return null;
     }
 
-    public Game getGameByPlayer(Player player) {
+    @Contract(pure = true)
+    public @Nullable Game getGameByPlayer(Player player) {
         for (Game game : games) {
             if (!game.isPlaying(player)) continue;
             return game;

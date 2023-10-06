@@ -8,6 +8,7 @@ import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 
 public final class Starting extends BukkitRunnable {
 
@@ -16,7 +17,7 @@ public final class Starting extends BukkitRunnable {
 
     private int seconds;
 
-    public Starting(RoulettePlugin plugin, Game game) {
+    public Starting(RoulettePlugin plugin, @NotNull Game game) {
         this.plugin = plugin;
         this.game = game;
 
@@ -28,8 +29,7 @@ public final class Starting extends BukkitRunnable {
     public void run() {
         if (seconds == 0) {
             // Start selecting task.
-            game.setSelectingTask(new Selecting(plugin, game)
-                    .runTaskTimer(plugin, 20L, 20L));
+            game.setSelectingTask(new Selecting(plugin, game).runTaskTimer(plugin, 20L, 20L));
 
             RouletteStartEvent startEvent = new RouletteStartEvent(game);
             plugin.getServer().getPluginManager().callEvent(startEvent);
@@ -37,6 +37,7 @@ public final class Starting extends BukkitRunnable {
             cancel();
             return;
         }
+
         if (seconds % 5 == 0 || seconds == 3 || seconds == 2 || seconds == 1) {
             // Play countdown sound.
             game.playSound(ConfigManager.Config.SOUND_COUNTDOWN.asString());
@@ -44,6 +45,7 @@ public final class Starting extends BukkitRunnable {
             // Send countdown.
             game.broadcast(MessageManager.Message.STARTING.asString().replace("%seconds%", String.valueOf(seconds)));
         }
+
         seconds--;
     }
 }

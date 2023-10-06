@@ -15,39 +15,44 @@ import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.state.Starting;
+import me.matsubara.roulette.gui.RouletteGUI;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
+import me.matsubara.roulette.manager.WinnerManager;
 import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.npc.NPC;
-import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.runnable.MoneyAnimation;
-import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
 import net.milkbowl.vault.economy.EconomyResponse;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Consumer;
 import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @SuppressWarnings("deprecation")
 @Getter
@@ -120,7 +125,12 @@ public final class Game {
     private PacketStand selectedOne, selectedTwo;
 
     // Chairs of this game, range goes from 0 to max amount of chairs; 10 in this case.
-    public static final int[] CHAIRS = IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray();
+    private static final int[] CHAIRS = Model.CHAIR_SECOND_LAYER;
+
+    // Adam.
+    private static final WrappedSignedProperty ADAM_TEXTURES = new WrappedSignedProperty("textures",
+            "eyJ0aW1lc3RhbXAiOjE1ODgwNjg2NjE4NDIsInByb2ZpbGVJZCI6IjMzZWJkMzJiYjMzOTRhZDlhYzY3MGM5NmM1NDliYTdlIiwicHJvZmlsZU5hbWUiOiJEYW5ub0JhbmFubm9YRCIsInNpZ25hdHVyZVJlcXVpcmVkIjp0cnVlLCJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzEzNzA5NzI0OWM0ZGNiOGU2YzY1ZjBlN2U3NTc3YmI3NzRjNWZjMjc0MTFhMjkwYWM4MGVkZmRmODFlNjk3YiJ9fX0=",
+            "ShX80ZOUh6r67Qq+r8dvFkN7kqEUaUIB0JMdWTYFc0HZk/tqGvkRtExLgak5AWDA1Y2ruleJdCIE6eB851jhmKJG7zi9Zvzcfysb513MY14p2RdL8ZqX5NcC+0Qds2h/0ePlHD/uE3He+Kx43vs4GPl/SfciwlNjlURCeVpJ3MzRhUastaVwFFOFECNacY6HsT9Q6vEr7hLv9wLPvo5DpDU6FvS4v8KLlSGlgTpnayX61cQSeQyHbqabgBglTocp2NFs9YFjVbvq5WtLbsra5GLK+s+43/fN5NP4yBFAr08ZFu22YMeL6w51fDAPwZ2Gk4HunoPQMrhrRQkDN3RBSjALZyASHqVa49BKcJ+RNw08fLcSBYfUUZXDQabWHcqOVOlvE/5kusshcvbR86BWgYQfh5ObjGCt3P5fJ/1Dx3xNb6UKWOjl86ufkPfAhhPeUqYj/l6IAhm849oNl8q+r6nR2A641ibZySk7ZOX+Rr4lh67SgDIy1dPy2VQyHoHDIT4Joq3RNQZR+TwGRWd33EbakM6apDMMcuTxVm8lXMgYP89rBWNeEDsYbJ6L+NsypRfRfCgzap14bQ5vLZisXP1txcMUoUPv7KWJZ1CGmAI0VeODSTEZN73J0icWoniGZE74Eqvf+JGrHMF5keELN6IgQ1CIkMZO7OhxBqgi0o0=");
 
     public Game(
             RoulettePlugin plugin,
@@ -185,7 +195,7 @@ public final class Game {
         this.spinHologram.setVisibleByDefault(false);
     }
 
-    private ArmorStand getChair(int chair) {
+    public @Nullable ArmorStand getChair(int chair) {
         String key = "CHAIR_" + chair;
 
         ArmorStand stand;
@@ -204,32 +214,46 @@ public final class Game {
         PacketStand stand = model.getStands().get(name);
         if (stand == null) return null;
 
-        World world = model.getLocation().getWorld();
+        World world = getLocation().getWorld();
         if (world == null) return null;
 
-        return world.spawn(stand.getLocation(), ArmorStand.class, armorStand -> {
-            StandSettings settings = stand.getSettings();
+        // Fix weird visual issue since 1.20.2.
+        boolean supports20_2 = ReflectionUtils.supports(20, 2);
 
-            armorStand.setInvisible(settings.isInvisible());
-            armorStand.setSmall(settings.isSmall());
-            armorStand.setBasePlate(settings.isBasePlate());
-            armorStand.setArms(settings.isArms());
-            armorStand.setFireTicks(settings.isFire() ? Integer.MAX_VALUE : 0);
-            armorStand.setMarker(settings.isMarker());
-            if (ReflectionUtils.supports(13)) armorStand.setPersistent(false);
+        Location standLocation = stand.getLocation().clone();
+        if (supports20_2) {
+            standLocation.subtract(0.0d, 0.3d, 0.0d);
+        }
 
-            // Set poses.
-            armorStand.setHeadPose(settings.getHeadPose());
-            armorStand.setBodyPose(settings.getBodyPose());
-            armorStand.setLeftArmPose(settings.getLeftArmPose());
-            armorStand.setRightArmPose(settings.getRightArmPose());
-            armorStand.setLeftLegPose(settings.getLeftLegPose());
-            armorStand.setRightLegPose(settings.getRightLegPose());
-        });
+        ArmorStand bukkit = world.spawn(standLocation, ArmorStand.class);
+        StandSettings settings = stand.getSettings();
+
+        bukkit.setInvisible(settings.isInvisible());
+        bukkit.setSmall(settings.isSmall());
+        bukkit.setBasePlate(settings.isBasePlate());
+        bukkit.setArms(settings.isArms());
+        bukkit.setFireTicks(settings.isFire() ? Integer.MAX_VALUE : 0);
+        bukkit.setMarker(settings.isMarker());
+        bukkit.setPersistent(false);
+        if (supports20_2) bukkit.setGravity(false);
+
+        // Set poses.
+        bukkit.setHeadPose(settings.getHeadPose());
+        bukkit.setBodyPose(settings.getBodyPose());
+        bukkit.setLeftArmPose(settings.getLeftArmPose());
+        bukkit.setRightArmPose(settings.getRightArmPose());
+        bukkit.setLeftLegPose(settings.getLeftLegPose());
+        bukkit.setRightLegPose(settings.getRightLegPose());
+
+        // Hide hearts.
+        AttributeInstance attribute = bukkit.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        if (attribute != null) attribute.setBaseValue(1);
+
+        return bukkit;
     }
 
-    public Location getNPCLocation() {
-        Location location = model.getLocation().clone();
+    public @NotNull Location getNPCLocation() {
+        Location location = getLocation().clone();
         location.add(PluginUtils.offsetVector(new Vector(-3, 0, 1), location.getYaw(), location.getPitch()));
         return location.setDirection(PluginUtils.getDirection(PluginUtils.getFace(location.getYaw(), false).getOppositeFace()));
     }
@@ -238,23 +262,17 @@ public final class Game {
         return !npc.getProfile().getProperties().get("textures").isEmpty();
     }
 
-    public String getNPCTexture() {
-        for (WrappedSignedProperty property : npc.getProfile().getProperties().get("textures")) {
-            return property.getValue();
-        }
-        return null;
+    public @Nullable String getNPCTexture() {
+        return npc.getProfile().getProperties().get("textures").stream().findFirst().map(WrappedSignedProperty::getValue).orElse(null);
     }
 
-    public String getNPCSignature() {
-        for (WrappedSignedProperty property : npc.getProfile().getProperties().get("textures")) {
-            return property.getSignature();
-        }
-        return null;
+    public @Nullable String getNPCSignature() {
+        return npc.getProfile().getProperties().get("textures").stream().findFirst().map(WrappedSignedProperty::getSignature).orElse(null);
     }
 
     public void setNPC(@Nullable String name, @Nullable String texture, @Nullable String signature) {
         // If this game already has an NPC, remove first.
-        if (this.npc != null) {
+        if (npc != null) {
             plugin.getNpcPool().removeNPC(npc.getEntityId());
         }
 
@@ -269,32 +287,20 @@ public final class Game {
         WrappedGameProfile profile = new WrappedGameProfile(UUID.randomUUID(), name);
 
         // Set NPC skin texture (if possible).
-        if (texture != null && signature != null) {
-            profile.getProperties().put("textures", new WrappedSignedProperty("textures", texture, signature));
-        }
+        profile.getProperties().put("textures", texture != null && signature != null ? new WrappedSignedProperty("textures", texture, signature) : ADAM_TEXTURES);
 
         Location npcLocation = getNPCLocation();
 
-        this.npc = NPC.builder()
+        npc = NPC.builder()
                 .profile(profile)
                 .location(npcLocation)
                 .lookAtPlayer(false)
                 .imitatePlayer(false)
-                .spawnCustomizer((npc, player) -> {
-                    npc.rotation().queueRotate(npcLocation.getYaw(), npcLocation.getPitch()).send(player);
-
-                    // Set item (ball) in main hand.
-                    if (!state.isSpinning() && !state.isEnding()) {
-                        npc.equipment().queue(EnumWrappers.ItemSlot.MAINHAND, plugin.getConfigManager().getBall()).send(player);
-                    }
-
-                    // Show skin layers.
-                    npc.metadata().queue(MetadataModifier.EntityMetadata.SKIN_LAYERS, true).send(player);
-                })
+                .spawnCustomizer(new NPCSpawn(this, npcLocation))
                 .build(plugin.getNpcPool());
 
         // Fix looking direction.
-        this.npc.rotation().queueRotate(npcLocation.getYaw(), npcLocation.getPitch()).send();
+        npc.rotation().queueRotate(npcLocation.getYaw(), npcLocation.getPitch()).send();
     }
 
     public void playSound(String sound) {
@@ -309,7 +315,7 @@ public final class Game {
         }
     }
 
-    public void broadcast(List<String> messages) {
+    public void broadcast(@NotNull List<String> messages) {
         for (String message : messages) {
             broadcast(message);
         }
@@ -323,12 +329,19 @@ public final class Game {
         return state.isIdle() || state.isStarting();
     }
 
-    public void add(Player player) {
+    public void add(Player player, int sitAt) {
         // The player may still be in the game if prison rule is enabled.
         if (!isPlaying(player)) {
             // Add player to the game and sit.
             players.put(player, new Bet(this));
-            sitPlayer(player, true);
+
+            if (sitAt != -1) {
+                // At this point, this won't be null.
+                ArmorStand stand = getChair(sitAt);
+                if (stand != null) fixChairCamera(player, stand);
+            } else {
+                sitPlayer(player, true);
+            }
         }
 
         // Can be greater than 0 when prison rule is enabled, since players aren't removed from the game.
@@ -341,9 +354,6 @@ public final class Game {
         updateJoinHologram(false);
 
         spinHologram.showTo(player);
-
-        // Add player to the collision team to prevent collisions.
-        plugin.getCollisionTeam().addEntry(player.getName());
     }
 
     public void remove(Player player, boolean isRestart) {
@@ -373,9 +383,6 @@ public final class Game {
 
         // Hide spin hologram to the player.
         spinHologram.hideTo(player);
-
-        // Remove player from the collision team.
-        plugin.getCollisionTeam().removeEntry(player.getName());
     }
 
     public void updateJoinHologram(boolean isReload) {
@@ -398,7 +405,7 @@ public final class Game {
         }
     }
 
-    private String replaceJoinHologramLines(String line) {
+    private @NotNull String replaceJoinHologramLines(@NotNull String line) {
         return line
                 .replace("%name%", name.replace("_", " "))
                 .replace("%playing%", String.valueOf(size()))
@@ -406,9 +413,6 @@ public final class Game {
                 .replace("%type%", type.getName());
     }
 
-    /**
-     * Remove the player from its chair.
-     */
     public void kickPlayer(Player player) {
         int sittingOn = getSittingOn(player);
 
@@ -417,7 +421,7 @@ public final class Game {
         if (sitting != null) sitting.removePassenger(player);
     }
 
-    private void cancelTasks(BukkitTask... tasks) {
+    private void cancelTasks(BukkitTask @NotNull ... tasks) {
         for (BukkitTask task : tasks) {
             if (task != null && !task.isCancelled()) task.cancel();
         }
@@ -470,8 +474,7 @@ public final class Game {
             for (int chair : CHAIRS) {
                 ArmorStand stand = getChair(chair);
                 if (stand == null || !stand.getPassengers().isEmpty()) continue;
-
-                stand.addPassenger(player);
+                fixChairCamera(player, stand);
                 break;
             }
             return;
@@ -485,7 +488,7 @@ public final class Game {
         ArmorStand sitting = getChair(sittingOn);
         if (sitting != null) sitting.removePassenger(player);
 
-        int ordinal = Lang3Utils.indexOf(CHAIRS, sittingOn);
+        int ordinal = ArrayUtils.indexOf(CHAIRS, sittingOn);
 
         ArmorStand stand;
 
@@ -501,24 +504,18 @@ public final class Game {
             stand = getChair(CHAIRS[ordinal]);
         } while (stand == null || !stand.getPassengers().isEmpty());
 
-        fixChairCamera(player, stand, temp -> {
-            // Play move from chair sound at player location.
-            XSound.play(player.getLocation(), ConfigManager.Config.SOUND_SWAP_CHAIR.asString());
-            temp.addPassenger(player);
-        });
+        fixChairCamera(player, stand);
     }
 
-    private void fixChairCamera(Player player, ArmorStand stand, Consumer<ArmorStand> andThen) {
-        if (!ConfigManager.Config.FIX_CHAIR_CAMERA.asBoolean()) {
-            andThen.accept(stand);
-            return;
+    private void fixChairCamera(Player player, ArmorStand stand) {
+        if (ConfigManager.Config.FIX_CHAIR_CAMERA.asBool()) {
+            // Add a bit of offset.
+            player.teleport(stand.getLocation().clone().add(0.0d, 0.25d, 0.0d));
         }
 
-        // Add a bit of offset.
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
-            player.teleport(stand.getLocation().clone().add(0.0d, 0.25d, 0.0d));
-            andThen.accept(stand);
-        });
+        // Play move from chair sound at player location.
+        XSound.play(player.getLocation(), ConfigManager.Config.SOUND_SWAP_CHAIR.asString());
+        stand.addPassenger(player);
     }
 
     public void moveChip(Player player, boolean toTheRight) {
@@ -526,22 +523,23 @@ public final class Game {
         if (!isSlotAvailable()) return;
 
         // If the player didn't select a chip from the GUI yet, return.
-        if (!players.get(player).hasChip()) return;
+        Bet bet = players.get(player);
+        if (!bet.hasChip()) return;
 
-        if (toTheRight && !players.get(player).hasSlot()) {
+        if (toTheRight && !bet.hasSlot()) {
             for (Slot slot : Slot.values(this)) {
                 if (alreadySelected(slot)) continue;
 
                 // Spawn hologram and chip (if not spawned).
-                players.get(player).handle(player, slot);
-                if (ReflectionUtils.MINOR_NUMBER == 17) players.get(player).handle(player, slot);
+                bet.handle(player, slot);
+                if (ReflectionUtils.MINOR_NUMBER == 17) bet.handle(player, slot);
 
                 break;
             }
             return;
         }
 
-        int ordinal = Lang3Utils.indexOf(Slot.values(this), players.get(player).getSlot());
+        int ordinal = ArrayUtils.indexOf(Slot.values(this), bet.getSlot());
 
         Slot slot;
 
@@ -558,21 +556,25 @@ public final class Game {
         } while (alreadySelected(slot));
 
         // Teleport hologram and chip.
-        players.get(player).handle(player, slot);
+        bet.handle(player, slot);
     }
 
     public void checkWinner() {
         spawnBottle();
 
+        MessageManager messages = plugin.getMessageManager();
+        WinnerManager winnerManager = plugin.getWinnerManager();
+
         Map<Player, WinType> winners = new HashMap<>();
 
         for (Player player : players.keySet()) {
-            Slot slot = players.get(player).getSlot();
             Bet bet = players.get(player);
+            Slot slot = bet.getSlot();
 
             // Check for single numbers or slots with more than 1 number.
             if (slot == winner || slot.contains(winner)) {
-                winners.put(player, WinType.NORMAL);
+                boolean prisonWin = isRuleEnabled(GameRule.EN_PRISON) && slot.applyForRules() && bet.isEnPrison();
+                winners.put(player, prisonWin ? WinType.EN_PRISON : WinType.NORMAL);
                 continue;
             }
 
@@ -581,15 +583,6 @@ public final class Game {
             // Partage.
             if (isRuleEnabled(GameRule.LA_PARTAGE) && winner.isZero() && slot.applyForRules()) {
                 winners.put(player, WinType.LA_PARTAGE);
-                continue;
-            }
-
-            // Prison.
-            if (isRuleEnabled(GameRule.EN_PRISON) && winner.isZero() && slot.applyForRules() && bet.isEnPrison()) {
-                winners.put(player, WinType.EN_PRISON);
-
-                // Remove prison state to prevent re-starting the game over and over.
-                bet.setWasEnPrison(true);
                 continue;
             }
 
@@ -631,7 +624,7 @@ public final class Game {
 
             if (giveTo.isOnline() && total > 0) {
                 String totalMoney = String.valueOf(total);
-                plugin.getMessageManager().send(giveTo.getPlayer(), MessageManager.Message.RECEIVED, message -> message
+                messages.send(giveTo.getPlayer(), MessageManager.Message.RECEIVED, message -> message
                         .replace("%money%", totalMoney)
                         .replace("%name%", name.replace("_", " ")));
             }
@@ -640,6 +633,7 @@ public final class Game {
         if (winners.isEmpty()) {
             broadcast(MessageManager.Message.NO_WINNER.asString().replace("%winner%", PluginUtils.getSlotName(winner)));
             broadcast(MessageManager.Message.RESTART.asString());
+            remindBetInPrison();
             restartRunnable();
             return;
         }
@@ -649,15 +643,18 @@ public final class Game {
             return entry.getKey().getName() + " (" + entry.getValue().getFormatName() + ")";
         }).toArray(String[]::new);
 
-        broadcast(plugin.getMessageManager().getRandomNPCMessage(npc, "winner"));
+        broadcast(messages.getRandomNPCMessage(npc, "winner"));
         broadcast(MessageManager.Message.WINNERS.asList().stream().map(message -> message
                 .replace("%amount%", String.valueOf(names.length))
                 .replace("%winners%", Arrays.toString(names))
                 .replace("%winner%", PluginUtils.getSlotName(winner))).collect(Collectors.toList()));
+        broadcast(MessageManager.Message.RESTART.asString());
+        remindBetInPrison();
 
         for (Player winner : winners.keySet()) {
-            Chip chip = players.get(winner).getChip();
-            Slot slot = players.get(winner).getSlot();
+            Bet bet = players.get(winner);
+            Chip chip = bet.getChip();
+            Slot slot = bet.getSlot();
             WinType winType = winners.get(winner);
 
             double price;
@@ -678,18 +675,18 @@ public final class Game {
             }
 
             if (winType.isNormalWin()) {
-                plugin.getMessageManager().send(winner, MessageManager.Message.PRICE, message -> message
+                messages.send(winner, MessageManager.Message.PRICE, message -> message
                         .replace("%amount%", PluginUtils.format(price))
                         .replace("%multiplier%", String.valueOf(slot.getMultiplier(this))));
             } else if (winType.isLaPartageWin()) {
-                plugin.getMessageManager().send(winner, MessageManager.Message.LA_PARTAGE);
+                messages.send(winner, MessageManager.Message.LA_PARTAGE);
             } else if (winType.isEnPrisonWin()) {
-                plugin.getMessageManager().send(winner, MessageManager.Message.EN_PRISON);
+                messages.send(winner, MessageManager.Message.EN_PRISON);
             } else {
-                plugin.getMessageManager().send(winner, MessageManager.Message.SURRENDER);
+                messages.send(winner, MessageManager.Message.SURRENDER);
             }
 
-            Winner win = plugin.getWinnerManager().getByUniqueId(winner.getUniqueId());
+            Winner win = winnerManager.getByUniqueId(winner.getUniqueId());
             if (win == null) {
                 win = new Winner(winner.getUniqueId());
             }
@@ -705,7 +702,7 @@ public final class Game {
                     chip.getPrice());
 
             Map.Entry<Winner.WinnerData, ItemStack> entry;
-            if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBoolean() && (entry = plugin.getWinnerManager().render(winner.getName(), winnerData)) != null) {
+            if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBool() && (entry = winnerManager.render(winner.getName(), winnerData, null)) != null) {
                 winnerData.setMapId(entry.getKey().getMapId());
 
                 // Add map to inventory.
@@ -717,15 +714,15 @@ public final class Game {
             win.add(winnerData);
 
             // Save data to file.
-            plugin.getWinnerManager().saveWinner(win);
+            winnerManager.saveWinner(win);
         }
 
         if (ConfigManager.Config.RESTART_FIREWORKS.asInt() == 0) {
-            broadcast(MessageManager.Message.RESTART.asString());
             restartRunnable();
             return;
         }
 
+        long period = plugin.getConfigManager().getPeriod();
         new BukkitRunnable() {
             int amount = 0;
 
@@ -738,9 +735,17 @@ public final class Game {
                 spawnFirework(joinHologram.getLocation().clone().add(0.0d, 3.5d, 0.0d));
                 amount++;
             }
-        }.runTaskTimer(plugin, 0L, plugin.getConfigManager().getPeriod());
+        }.runTaskTimer(plugin, period, period);
+    }
 
-        broadcast(MessageManager.Message.RESTART.asString());
+    private void remindBetInPrison() {
+        players.entrySet().stream()
+                .filter(entry -> {
+                    Bet bet = entry.getValue();
+                    return isRuleEnabled(GameRule.EN_PRISON) && bet.getSlot().applyForRules() && !bet.isWon() && !bet.isEnPrison() && winner.isZero();
+                })
+                .map(Map.Entry::getKey)
+                .forEach(player -> player.sendMessage(MessageManager.Message.PRISON_REMINDER.asString()));
     }
 
     private void spawnBottle() {
@@ -758,12 +763,11 @@ public final class Game {
         // First part.
         selectedOne = new PacketStand(baseLocation, oneSettings);
 
+        Location modelLocation = getLocation();
+        float yaw = modelLocation.getYaw(), pitch = modelLocation.getPitch();
+
         // Offset for the second part.
-        Vector offset = new Vector(-0.32d, 0.0d, -0.24d);
-        offset = PluginUtils.offsetVector(
-                offset,
-                model.getLocation().getYaw(),
-                model.getLocation().getPitch());
+        Vector offset = PluginUtils.offsetVector(new Vector(-0.32d, 0.0d, -0.24d), yaw, pitch);
 
         StandSettings twoSettings = oneSettings.clone();
         twoSettings.setRightArmPose(new EulerAngle(angle, angle, 0.0d));
@@ -772,19 +776,37 @@ public final class Game {
         selectedTwo = new PacketStand(baseLocation.clone().add(offset), twoSettings);
 
         // Where to teleport the bottle.
-        Location finalLocation = model.getLocations().get(winner.name()).getKey()
-                .clone()
-                .add(PluginUtils.offsetVector(
-                        new Vector(0.2525d, 0.0d, 0.5375d),
-                        model.getLocation().getYaw(),
-                        model.getLocation().getPitch()));
+        Location bottleLocation = model.getLocations().get(winner.name()).getKey().clone();
+
+        // Offset depending on the amount of bets in the winner slot.
+        Vector slotOffset = getWinnerSlotOffset();
+        if (slotOffset != null) bottleLocation.add(PluginUtils.offsetVector(slotOffset, yaw, pitch));
+
+        // offset from the slot location.
+        bottleLocation.add(PluginUtils.offsetVector(new Vector(0.2525d, 0.0d, 0.5375d), yaw, pitch));
 
         // Add a bit of offset in the Y axis if there's a bet placed.
-        if (alreadySelected(winner)) finalLocation.add(0.0d, 0.135d, 0.0d);
+        if (slotOffset != null) bottleLocation.add(0.0d, 0.135d, 0.0d);
 
         // Teleport.
-        selectedOne.teleport(finalLocation);
-        selectedTwo.teleport(finalLocation.add(offset));
+        selectedOne.teleport(bottleLocation);
+        selectedTwo.teleport(bottleLocation.add(offset));
+    }
+
+    private @Nullable Vector getWinnerSlotOffset() {
+        Pair<Axis, double[]> offset = winner.getOffsets(type.isEuropean());
+
+        double[] offsets = offset.getRight();
+        Axis axis = offset.getLeft();
+
+        // If no bet in the winning slot, place it at the table.
+        List<Bet> betsInWinnerSlot = players.values().stream().filter(bet -> bet.getSlot() == winner).toList();
+        if (betsInWinnerSlot.isEmpty()) return null;
+
+        Bet randomBet = betsInWinnerSlot.get(RandomUtils.nextInt(0, betsInWinnerSlot.size()));
+        int offsetIndex = randomBet.getOffsetIndex();
+
+        return new Vector(axis == Axis.X ? offsets[offsetIndex] : 0.0d, 0.0d, axis == Axis.Z ? offsets[offsetIndex] : 0.0d);
     }
 
     public void restartRunnable() {
@@ -802,7 +824,7 @@ public final class Game {
         }.runTaskTimer(plugin, 0L, 20L);
     }
 
-    private void spawnFirework(Location location) {
+    private void spawnFirework(@NotNull Location location) {
         Preconditions.checkNotNull(location.getWorld());
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
@@ -824,12 +846,16 @@ public final class Game {
         meta.setPower(random.nextInt(1, 5));
         firework.setFireworkMeta(meta);
 
-        if (ConfigManager.Config.INSTANT_EXPLODE.asBoolean()) {
+        if (ConfigManager.Config.INSTANT_EXPLODE.asBool()) {
             plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, firework::detonate, 1L);
         }
     }
 
     public void restart() {
+        restart(false);
+    }
+
+    public void restart(boolean forceRemove) {
         // Set game state to idle.
         setState(GameState.IDLE);
 
@@ -858,19 +884,26 @@ public final class Game {
             Bet bet = entry.getValue();
 
             // Remove player only if prison rule isn't enabled (or the selected slot doesn't apply for that rule).
-            if (!isRuleEnabled(GameRule.EN_PRISON) || !bet.getSlot().applyForRules() || bet.isWasEnPrison() || bet.isWon()) {
+            if (!isRuleEnabled(GameRule.EN_PRISON) || !bet.getSlot().applyForRules() || bet.isWon() || bet.isEnPrison() || !winner.isZero()) {
                 // Remove hologram and chip.
                 bet.remove();
 
-                // Remove player.
-                iterator.remove();
-                remove(player, true);
+                // If the player dismounted his seat, don't count him for the next game.
+                if (!forceRemove && ConfigManager.Config.KEEP_SEAT.asBool() && isSittingOn(player)) {
+                    // Keep player, put bet manually since it's not set in add().
+                    players.put(player, new Bet(this));
+                    add(player, -1);
+                } else {
+                    // Remove player.
+                    iterator.remove();
+                    remove(player, true);
+                }
                 continue;
             }
 
             // Set the bet in prison and re-add player.
             bet.setEnPrison(true);
-            add(player);
+            add(player, -1);
         }
 
         if (players.isEmpty()) {
@@ -886,6 +919,12 @@ public final class Game {
         if (spinHologram.size() > 0) {
             spinHologram.destroy();
         }
+
+        // Show holograms for the players that are left in the table.
+        for (Player player : players.keySet()) {
+            // joinHologram.hideTo(player);
+            spinHologram.showTo(player);
+        }
     }
 
     public boolean isSlotAvailable() {
@@ -897,15 +936,29 @@ public final class Game {
     }
 
     public boolean alreadySelected(Slot slot) {
+        int count = 0;
         for (Player player : players.keySet()) {
-            if (players.get(player).getSlot() == slot) return true;
+            if (players.get(player).getSlot() == slot) {
+                count++;
+            }
         }
-        return false;
+        return count == slot.getMaxBets(type.isEuropean());
     }
 
     public void remove() {
+        if (plugin.isEnabled()) {
+            players.keySet().forEach(player -> plugin.getMessageManager().send(player, MessageManager.Message.GAME_STOPPED));
+        }
+
         // First, restart game.
-        restart();
+        restart(true);
+
+        // Close GUIs related to this game.
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Inventory inventory = player.getOpenInventory().getTopInventory();
+            if (!(inventory.getHolder() instanceof RouletteGUI gui)) continue;
+            if (gui.getGame().equals(this)) player.closeInventory();
+        }
 
         // Remove model.
         model.kill();
@@ -934,7 +987,7 @@ public final class Game {
         return model.getModelUniqueId();
     }
 
-    public String getNPCName() {
+    public @Nullable String getNPCName() {
         return npc.getProfile().getName().equalsIgnoreCase("") ? null : npc.getProfile().getName();
     }
 

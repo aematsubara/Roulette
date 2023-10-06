@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.jetbrains.annotations.NotNull;
 
 public final class PlayerNPCInteract implements Listener {
 
@@ -18,7 +19,7 @@ public final class PlayerNPCInteract implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerNPCInteract(PlayerNPCInteractEvent event) {
+    public void onPlayerNPCInteract(@NotNull PlayerNPCInteractEvent event) {
         Player player = event.getPlayer();
 
         // If for some reason the game is null or othe player is playing, return.

@@ -119,18 +119,18 @@ public class NPC {
     protected void show(@NotNull Player player, @NotNull Plugin plugin, long tabListRemoveTicks) {
         this.seeingPlayers.add(player);
 
-        VisibilityModifier modifier = visibility();
-        modifier.queuePlayerListChange(PlayerInfoAction.ADD_PLAYER).send(player);
+        VisibilityModifier visibility = visibility();
+        visibility.queuePlayerListChange(PlayerInfoAction.ADD_PLAYER).send(player);
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            modifier.queueSpawn().send(player);
+            visibility.queueSpawn().send(player);
             this.spawnCustomizer.handleSpawn(this, player);
 
             if (tabListRemoveTicks >= 0) {
                 // Keeping the NPC longer in the player list, otherwise the skin might not be shown sometimes.
                 Bukkit.getScheduler().runTaskLater(
                         plugin,
-                        () -> modifier.queuePlayerListChange(PlayerInfoAction.REMOVE_PLAYER).send(player),
+                        () -> visibility.queuePlayerListChange(PlayerInfoAction.REMOVE_PLAYER).send(player),
                         tabListRemoveTicks);
             }
 
@@ -498,8 +498,8 @@ public class NPC {
          */
         @NotNull
         public NPC build(@NotNull NPCPool pool) {
-            if (!this.usePlayerProfiles && (this.profile == null || !this.profile.isComplete())) {
-                throw new IllegalArgumentException("No profile given or not completed");
+            if (!this.usePlayerProfiles && this.profile == null) {
+                throw new IllegalArgumentException("No profile given!");
             }
 
             NPC npc = new NPC(

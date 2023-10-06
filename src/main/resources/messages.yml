@@ -1,5 +1,8 @@
 # All messages are customizable, you can use HEX colors using &#RRGGBB (1.16+).
 
+# Don't touch this!
+config-version: 1
+
 # NPC related messages.
 #
 # Available placeholders:
@@ -32,6 +35,7 @@ command:
   sintax: "&cInvalid command! check the correct syntax with /roulette."
   from-console: "&cThis command can't be executed from the console!"
   not-permission: "&cYou don't have permission to execute this command!"
+  reloading: "&6The plugin is being reloaded in another thread, wait a few seconds..."
   reload: "&6The configuration files have been reloaded!"
 
 # Game related messages.
@@ -51,6 +55,8 @@ command:
 game:
   starting: "&6Starting the game in &e%seconds% &6seconds..."
   select-bet: "&6Please, select your bet."
+  bet-in-prison: "&cYour bet is in prison, you can't move it."
+  change-glow-color: "&bYou can change the glow color by using the space (jump) key to make it easier to identify your bet."
   spinning: "&6Spinning the roulette in &e%seconds% &6seconds..."
   out-of-time: "&cYou haven't made your bet, you're out of the game."
   your-bet:
@@ -78,6 +84,7 @@ game:
     - "&7"
   price: "&6¡You won &a%amount% &6(&bx%multiplier% &lMULTIPLIER&6)!"
   restart: "&6Restarting game, please wait..."
+  prison-reminder: "&aYour bet is in prison as the number 0 is the winner; stay at the table and win the next game to get your money back (you can leave if you want)."
   leave-player: "&cYou've left the game!"
   la-partage: "&6You've earned half your money due to &eLa Partage &6rule!"
   en-prison: "&6You've earned your money original due to &eEn Prison &6rule!"
@@ -85,12 +92,15 @@ game:
 
 # Avalaible placeholders.
 # %money% - the money involved. (@min-required, @selected-amount and @received)
+# %money-left% - they money left in your account. (@selected-amount)
 # %name% - the name of the game. (@received)
 other:
   already-ingame: "&c¡You're already in game!"
   already-started: "&cThe game is already started."
+  seat-taken: "&cThis seat is already taken!"
+  game-stopped: "&cThe game you were playing was stopped or deleted!"
   min-required: "&cSorry, but you need at least &a%money% &cto play."
-  selected-amount: "&a%money% &6will be taken from your account."
+  selected-amount: "&c%money% &6will be taken from your account (&a%money-left% &6left)."
   control: "&7Use the WASD keys to choose a bet."
   account: "&6The account has been changed!"
   no-account: "&cThe game account has been deleted!"
@@ -110,14 +120,3 @@ other:
   request-invalid: "&cThe given input is invalid!"
   npc-renamed: "&6The name of the NPC has been changed!"
   npc-texturized: "&6The texture of the NPC has been changed!"
-
-help:
-  - "&7"
-  - "&8&m--------------------------------------------------"
-  - "&6Roulette commands:"
-  - "&7/roulette create <name> <type> - create a new roulette."
-  - "&7/roulette delete <name> - delete a game."
-  - "&7/roulette reload - reload configuration files."
-  - "&7/roulette map - gives a win voucher."
-  - "&8&m--------------------------------------------------"
-  - "&7"

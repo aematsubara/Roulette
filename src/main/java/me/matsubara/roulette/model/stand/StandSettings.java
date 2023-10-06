@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.EulerAngle;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 @Getter
@@ -70,7 +71,8 @@ public final class StandSettings implements Cloneable {
         return !isArrayNull(helmet, chestplate, leggings, boots, mainHand, offHand);
     }
 
-    private boolean isArrayNull(Object... objects) {
+    @Contract(pure = true)
+    private boolean isArrayNull(Object @NotNull ... objects) {
         for (Object object : objects) {
             if (object != null) return false;
         }

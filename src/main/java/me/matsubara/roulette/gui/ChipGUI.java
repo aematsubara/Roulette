@@ -8,19 +8,20 @@ import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.InventoryUpdate;
 import me.matsubara.roulette.util.ItemBuilder;
-import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Getter
-public final class ChipGUI implements InventoryHolder {
+public final class ChipGUI implements InventoryHolder, RouletteGUI {
 
     // The instance of the plugin.
     private final RoulettePlugin plugin;
@@ -53,21 +54,23 @@ public final class ChipGUI implements InventoryHolder {
         this(game, player, 0);
     }
 
-    public ChipGUI(Game game, Player player, int current) {
+    public ChipGUI(@NotNull Game game, Player player, int current) {
         this.plugin = game.getPlugin();
         this.game = game;
         this.player = player;
         this.inventory = plugin.getServer().createInventory(this, 36);
         this.current = current;
 
+        ConfigManager configManager = plugin.getConfigManager();
+
         background = new ItemBuilder(XMaterial.GRAY_STAINED_GLASS_PANE.parseItem()).setDisplayName("&7").build();
-        previous = plugin.getConfigManager().getItem("shop", "previous", null);
+        previous = configManager.getItem("shop", "previous", null);
 
-        money = plugin.getConfigManager().getItem("shop", "money", PluginUtils.format(plugin.getEconomy().getBalance(player)));
-        betAll = plugin.getConfigManager().getItem("shop", "bet-all", null);
+        money = configManager.getItem("shop", "money", PluginUtils.format(plugin.getEconomy().getBalance(player)));
+        betAll = configManager.getItem("shop", "bet-all", null);
 
-        exit = plugin.getConfigManager().getItem("shop", "exit", null);
-        next = plugin.getConfigManager().getItem("shop", "next", null);
+        exit = configManager.getItem("shop", "exit", null);
+        next = configManager.getItem("shop", "next", null);
 
         player.openInventory(inventory);
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::updateInventory);
@@ -84,7 +87,7 @@ public final class ChipGUI implements InventoryHolder {
 
         // Set background items, except the last, since we're putting the close item there.
         for (int i = 0; i < 35; i++) {
-            if (Lang3Utils.contains(SLOTS, i) || Lang3Utils.contains(HOTBAR, i)) continue;
+            if (ArrayUtils.contains(SLOTS, i) || ArrayUtils.contains(HOTBAR, i)) continue;
             // Set background item in the current slot from the loop.
             inventory.setItem(i, background);
         }
@@ -107,7 +110,7 @@ public final class ChipGUI implements InventoryHolder {
         // Assigning slots.
         Map<Integer, Integer> slotIndex = new HashMap<>();
         for (int i : SLOTS) {
-            slotIndex.put(Lang3Utils.indexOf(SLOTS, i), i);
+            slotIndex.put(ArrayUtils.indexOf(SLOTS, i), i);
         }
 
         // Where to start.

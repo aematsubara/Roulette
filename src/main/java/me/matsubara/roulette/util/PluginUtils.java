@@ -10,6 +10,7 @@ import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.npc.modifier.NPCModifier;
 import net.md_5.bungee.api.ChatColor;
+import org.apache.commons.lang3.Validate;
 import org.bukkit.Color;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.ItemStack;
@@ -163,23 +164,23 @@ public final class PluginUtils {
     }
 
     public static String translate(String message) {
-        Lang3Utils.notNull(message, "Message can't be null.");
+        Validate.notNull(message, "Message can't be null.");
 
         if (ReflectionUtils.MINOR_NUMBER < 16) return oldTranslate(message);
 
         Matcher matcher = PATTERN.matcher(oldTranslate(message));
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder builder = new StringBuilder();
 
         while (matcher.find()) {
-            matcher.appendReplacement(buffer, ChatColor.of("#" + matcher.group(1)).toString());
+            matcher.appendReplacement(builder, ChatColor.of("#" + matcher.group(1)).toString());
         }
 
-        return matcher.appendTail(buffer).toString();
+        return matcher.appendTail(builder).toString();
     }
 
     @Contract("_ -> param1")
     public static @NotNull List<String> translate(List<String> messages) {
-        Lang3Utils.notNull(messages, "Messages can't be null.");
+        Validate.notNull(messages, "Messages can't be null.");
 
         messages.replaceAll(PluginUtils::translate);
         return messages;
@@ -193,35 +194,29 @@ public final class PluginUtils {
     public static String getSlotName(@NotNull Slot slot) {
         if (slot.isSingleInclusive()) {
             String number = slot.isDoubleZero() ? "00" : String.valueOf(slot.getInts()[0]);
-            switch (slot.getColor()) {
-                case RED:
-                    return ConfigManager.Config.SINGLE_RED.asString().replace("%number%", number);
-                case BLACK:
-                    return ConfigManager.Config.SINGLE_BLACK.asString().replace("%number%", number);
-                default:
-                    return ConfigManager.Config.SINGLE_ZERO.asString().replace("%number%", number);
-            }
-        } else if (slot.isColumn() || slot.isDozen()) {
+            return switch (slot.getColor()) {
+                case RED -> ConfigManager.Config.SINGLE_RED.asString().replace("%number%", number);
+                case BLACK -> ConfigManager.Config.SINGLE_BLACK.asString().replace("%number%", number);
+                default -> ConfigManager.Config.SINGLE_ZERO.asString().replace("%number%", number);
+            };
+        }
+
+        if (slot.isColumn() || slot.isDozen()) {
             return PLUGIN.getConfigManager().getColumnOrDozen(slot.isColumn() ? "column" : "dozen", slot.getColumnOrDozen());
         }
-        switch (slot) {
-            case SLOT_LOW:
-                return ConfigManager.Config.LOW.asString();
-            case SLOT_EVEN:
-                return ConfigManager.Config.EVEN.asString();
-            case SLOT_ODD:
-                return ConfigManager.Config.ODD.asString();
-            case SLOT_HIGH:
-                return ConfigManager.Config.HIGH.asString();
-            case SLOT_RED:
-                return ConfigManager.Config.RED.asString();
-            default:
-                return ConfigManager.Config.BLACK.asString();
-        }
+
+        return switch (slot) {
+            case SLOT_LOW -> ConfigManager.Config.LOW.asString();
+            case SLOT_EVEN -> ConfigManager.Config.EVEN.asString();
+            case SLOT_ODD -> ConfigManager.Config.ODD.asString();
+            case SLOT_HIGH -> ConfigManager.Config.HIGH.asString();
+            case SLOT_RED -> ConfigManager.Config.RED.asString();
+            default -> ConfigManager.Config.BLACK.asString();
+        };
     }
 
     public static String format(double value) {
-        return ConfigManager.Config.MONEY_ABBREVIATION_FORMAT_ENABLED.asBoolean() ?
+        return ConfigManager.Config.MONEY_ABBREVIATION_FORMAT_ENABLED.asBool() ?
                 format(value, PLUGIN.getAbbreviations()) :
                 PLUGIN.getEconomy().format(value);
     }

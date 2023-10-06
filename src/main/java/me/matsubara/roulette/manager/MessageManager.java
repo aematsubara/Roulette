@@ -2,67 +2,42 @@ package me.matsubara.roulette.manager;
 
 import com.cryptomorin.xseries.messages.ActionBar;
 import lombok.Getter;
+import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.UnaryOperator;
 
 public final class MessageManager {
 
-    // Instance of the plugin.
-    private static RoulettePlugin plugin;
+    private final RoulettePlugin plugin;
 
-    // I/O objects.
-    private File file;
-    private @Getter FileConfiguration configuration;
+    @Getter
+    private @Setter FileConfiguration configuration;
 
     public MessageManager(RoulettePlugin plugin) {
-        MessageManager.plugin = plugin;
-        load();
+        this.plugin = plugin;
+        this.plugin.saveResource("messages.yml");
     }
 
-    private void load() {
-        file = new File(plugin.getDataFolder(), "messages.yml");
-        if (!file.exists()) {
-            plugin.saveResource("messages.yml", false);
-        }
-        configuration = new YamlConfiguration();
-        try {
-            configuration.load(file);
-        } catch (IOException | InvalidConfigurationException exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void reloadConfig() {
-        try {
-            configuration = new YamlConfiguration();
-            configuration.load(file);
-        } catch (IOException | InvalidConfigurationException exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void send(CommandSender sender, Message message) {
+    public void send(CommandSender sender, @NotNull Message message) {
         send(sender, message.getPath(), null);
     }
 
-    public void send(CommandSender sender, Message message, UnaryOperator<String> operator) {
+    public void send(CommandSender sender, @NotNull Message message, UnaryOperator<String> operator) {
         send(sender, message.getPath(), operator);
     }
 
-    public void send(CommandSender sender, Message... messages) {
+    public void send(CommandSender sender, Message @NotNull ... messages) {
         for (Message message : messages) {
             send(sender, message.getPath(), null);
         }
@@ -93,25 +68,18 @@ public final class MessageManager {
         }
     }
 
-    public String getRandomNPCMessage(NPC npc, String type) {
+    public String getRandomNPCMessage(@NotNull NPC npc, @NotNull String type) {
         String npcName = npc.getProfile().getName().equalsIgnoreCase("") ? null : npc.getProfile().getName();
-        String message;
-        switch (type) {
-            case "bets":
-                message = getMessage(Message.BETS.asList());
-                break;
-            case "no-bets":
-                message = getMessage(Message.NO_BETS.asList());
-                break;
-            default:
-                message = getMessage(Message.WINNER.asList());
-                break;
-        }
+        String message = switch (type) {
+            case "bets" -> getMessage(Message.BETS.asList());
+            case "no-bets" -> getMessage(Message.NO_BETS.asList());
+            default -> getMessage(Message.WINNER.asList());
+        };
         if (npcName == null || Message.CROUPIER_PREFIX.asString().equalsIgnoreCase("")) return message;
         return Message.CROUPIER_PREFIX.asString().replace("%croupier%", npcName).concat(message);
     }
 
-    private String getMessage(List<String> list) {
+    private String getMessage(@NotNull List<String> list) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         return list.get(random.nextInt(list.size()));
     }
@@ -128,9 +96,12 @@ public final class MessageManager {
         SINTAX("command.sintax"),
         FROM_CONSOLE("command.from-console"),
         NOT_PERMISSION("command.not-permission"),
+        RELOADING("command.reloading"),
         RELOAD("command.reload"),
         STARTING("game.starting"),
         SELECT_BET("game.select-bet"),
+        BET_IN_PRISON("game.bet-in-prison"),
+        CHANGE_GLOW_COLOR("game.change-glow-color"),
         SPINNING("game.spinning"),
         OUT_OF_TIME("game.out-of-time"),
         YOUR_BET("game.your-bet"),
@@ -141,12 +112,15 @@ public final class MessageManager {
         WINNERS("game.winners"),
         PRICE("game.price"),
         RESTART("game.restart"),
+        PRISON_REMINDER("game.prison-reminder"),
         LEAVE_PLAYER("game.leave-player"),
         LA_PARTAGE("game.la-partage"),
         EN_PRISON("game.en-prison"),
         SURRENDER("game.surrender"),
         ALREADY_INGAME("other.already-ingame"),
         ALREADY_STARTED("other.already-started"),
+        SEAT_TAKEN("other.seat-taken"),
+        GAME_STOPPED("other.game-stopped"),
         MIN_REQUIRED("other.min-required"),
         CONFIRM("other.confirm"),
         CONFIRM_LOSE("other.confirm-lose"),
@@ -169,9 +143,9 @@ public final class MessageManager {
         REQUEST_CANCELLED("other.request-cancelled"),
         REQUEST_INVALID("other.request-invalid"),
         NPC_RENAMED("other.npc-renamed"),
-        NPC_TEXTURIZED("other.npc-texturized"),
-        HELP("help");
+        NPC_TEXTURIZED("other.npc-texturized");
 
+        private final RoulettePlugin plugin = JavaPlugin.getPlugin(RoulettePlugin.class);
         private final String path;
 
         Message(String path) {
@@ -182,7 +156,7 @@ public final class MessageManager {
             return PluginUtils.translate(plugin.getMessageManager().getConfiguration().getString(path));
         }
 
-        public List<String> asList() {
+        public @NotNull List<String> asList() {
             return PluginUtils.translate(plugin.getMessageManager().getConfiguration().getStringList(path));
         }
 

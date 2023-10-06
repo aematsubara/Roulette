@@ -10,6 +10,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
+import org.bukkit.map.MapView;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 
@@ -202,6 +203,13 @@ public final class ItemBuilder {
             meta.setLore(meta.getLore().stream().map(line -> line.replace(target, replace)).collect(Collectors.toList()));
         }
 
+        item.setItemMeta(meta);
+        return this;
+    }
+
+    public ItemBuilder setMapView(MapView view) {
+        if (!(item.getItemMeta() instanceof MapMeta meta)) return this;
+        meta.setMapView(view);
         item.setItemMeta(meta);
         return this;
     }

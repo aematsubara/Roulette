@@ -17,7 +17,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 9c4ccb83813a3bcdcf72bfeed0cdcd710802f0782565497973023d115d82c9db
+        url: aa1e95bd36ac82ce0722890fe7ebedad22f998f5e56d58dc6c812d32447e8ba2
   PART_2:
     offset:
       x: -1.186
@@ -36,7 +36,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: ac82febeb5ecdc49aef9483120d9cc9223ff62c491c15186c86c726ca2e0021f
+        url: aa6cfec92e86324fc47ff3622d92b7527478b9040d2886e09c6e5ef656e27260
   PART_3:
     offset:
       x: -0.593
@@ -55,7 +55,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 50e23e45e2bdff6f18145fd600e5fd0e73d4e79d648ecb2f69c349bca7c0a42c
+        url: 7cd59e2fdcbc800337f82ba51ea15d20e0e7126ef28c1a3ea60d924b2a42d5
   PART_4:
     offset:
       x: 0.0
@@ -74,7 +74,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: fed81842d19ab80777ee2d0707a128cb58bcf7f561dbe6828739f8496ea15760
+        url: 6802b4da6887a04ab7660c91e4b8a643a5dcb0f90edd29a03e9cb9ea7575762e
   PART_5:
     offset:
       x: 0.593
@@ -93,7 +93,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: fd9688933422478b6bb936fbe05f132b1dfcbf0de743b3166a39abc77836f35f
+        url: b7e703a7de89687d7990572011be99a05c5b86ae7f141d1199a27fdbfa307a1c
   PART_6:
     offset:
       x: 1.186
@@ -112,7 +112,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: d9efd5586c2413847b5930e12c103eaf788b9bc9f13389b0b6164c1cf94315b1
+        url: 9d34093084a6af5fbc5e10b69e4f00f9cb6d615e72dd56b7b1bc39afb47a530b
   PART_7:
     offset:
       x: 1.779
@@ -131,7 +131,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 6bd69fefd30930200eb2eb49738acb44c182f26f76ca1feea022655e75f8c4d5
+        url: 3cbb372de3bd1d1e8adc65f270fc39e671379a0c363b5a66614b6c38a25e7445
   PART_8:
     offset:
       x: -1.779
@@ -150,7 +150,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 99dcf9e97714e9294c92f2e0e4e38b0541523d8fcce35d93c0c3fd9513c97120
+        url: 3927173e3a1dc84284ea15cc96d9f3f8897d3e7c6c3cd9ca4a390fea8b38956d
   PART_9:
     offset:
       x: -1.186
@@ -169,7 +169,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: ad2d442a3d08f9aa9d07513bbc07e72b27dd598f991246412b07a8eaba7e5617
+        url: 816c7ed9e2067105bdabebc0cb030201333600e099ed1da1bdb01bbf8e34afe9
   PART_10:
     offset:
       x: -0.593
@@ -188,7 +188,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 158e22754a694251c82c5077dc6f0ddebc5f4905d45b8afa1886a12ccad4370b
+        url: 19283f918003bc21e7f7108297d9f77dd111ea11f459e70f1cf7cb78e02448b7
   PART_11:
     offset:
       x: 0.0
@@ -207,7 +207,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 25debf11e12c1ec74bf4deb17ff55eba0eb4d7c23055de74ca5205798204ce0f
+        url: dbf25452ec2703d0de08009af4d65f155ddb1be8eabaf883f1cdd0d04dd2ce3b
   PART_12:
     offset:
       x: 0.593
@@ -226,7 +226,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: ad2d442a3d08f9aa9d07513bbc07e72b27dd598f991246412b07a8eaba7e5617
+        url: 816c7ed9e2067105bdabebc0cb030201333600e099ed1da1bdb01bbf8e34afe9
   PART_13:
     offset:
       x: 1.186
@@ -245,7 +245,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 158e22754a694251c82c5077dc6f0ddebc5f4905d45b8afa1886a12ccad4370b
+        url: 19283f918003bc21e7f7108297d9f77dd111ea11f459e70f1cf7cb78e02448b7
   PART_14:
     offset:
       x: 1.779
@@ -264,7 +264,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: f0b05700dd0eefdbd595fd75400ba969605d62249fa3df333a653e814a3d7776
+        url: 409be118b71c604e715b21a50ecf8973aef0d27371ccb3636e23a41335503a6c
   PART_15:
     offset:
       x: -1.779
@@ -283,7 +283,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: dcd9bf37a36019a92e6bdca577bcc6601aed6317f1c5b09799f1f7fa00edcb7d
+        url: 489ad933865ed17f68c6493be825b42ec7c5422b52db1f0355119bc29b5f5e1a
   PART_16:
     offset:
       x: -1.186
@@ -302,7 +302,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 753197a604c3452b0210c601fb902ad045b0e98585ec1e563b63d77ac5b717c1
+        url: 30d024b316c05bc9303337286b456a5b523ad39a0170736d00546c240aa1b7d6
   PART_17:
     offset:
       x: -0.593
@@ -321,7 +321,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: c42ddacdfd9f389668bce1ca7f9840f80b9f23dcabee804e6839467879fd0704
+        url: fda6ac30ba5e411530a8ce163db7e818b6d1bc58ce859bffea5493086db747ac
   PART_18:
     offset:
       x: 0.0
@@ -340,7 +340,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: f52de0bbe26b67d13017f18b0d67259f48e3f14f7ec37389663e01f17846de83
+        url: 363f54505e6a7fbd3cac048610ef6bb85c6893a774d095dea8bb9647a38eedc8
   PART_19:
     offset:
       x: 0.593
@@ -359,7 +359,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 753197a604c3452b0210c601fb902ad045b0e98585ec1e563b63d77ac5b717c1
+        url: 30d024b316c05bc9303337286b456a5b523ad39a0170736d00546c240aa1b7d6
   PART_20:
     offset:
       x: 1.186
@@ -378,7 +378,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: c42ddacdfd9f389668bce1ca7f9840f80b9f23dcabee804e6839467879fd0704
+        url: fda6ac30ba5e411530a8ce163db7e818b6d1bc58ce859bffea5493086db747ac
   PART_21:
     offset:
       x: 1.779
@@ -397,7 +397,7 @@ parts:
     equipment:
       helmet:
         material: PLAYER_HEAD
-        url: 4fc94663fc58921da8bcb196507701a711e2161f1fb2739a09a69aae2830958c
+        url: 734e5e20c34effbef14fb32c304f0c11d77094aeddb908ad11405f4c756d543d
   PART_22:
     offset:
       x: -2.965

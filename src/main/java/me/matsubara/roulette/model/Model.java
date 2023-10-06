@@ -7,8 +7,8 @@ import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
-import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -83,6 +83,9 @@ public final class Model {
             // Variant #4
             {"#  ", "###", "## "}};
 
+    public static final int[] CHAIR_FIRST_LAYER = IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray();
+    public static final int[] CHAIR_SECOND_LAYER = IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray();
+
     public Model(
             RoulettePlugin plugin,
             String name,
@@ -145,6 +148,10 @@ public final class Model {
         Location finalLocation = copyLocation != null ? copyLocation : location;
         if (yaw != null) finalLocation.setYaw(finalLocation.getYaw() + yaw);
 
+        if (name.startsWith("SPINNER")) {
+            finalLocation.subtract(0.0d, 0.002d, 0.0d);
+        }
+
         if (name.startsWith("SIDE")) {
             settings.setHelmet(slabsType.parseItem());
         }
@@ -155,12 +162,13 @@ public final class Model {
 
         if (name.startsWith("CHAIR")) {
             int current = Integer.parseInt(name.split("_")[1]);
-            if (Lang3Utils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 1).toArray(), current)) {
+            if (ArrayUtils.contains(CHAIR_FIRST_LAYER, current)) {
                 settings.setHelmet(planksType.parseItem());
-            } else if (Lang3Utils.contains(IntStream.range(0, 10).map(x -> (x * 3) + 2).toArray(), current)) {
+            } else if (ArrayUtils.contains(CHAIR_SECOND_LAYER, current)) {
                 settings.setHelmet(slabsType.parseItem());
             } else {
                 settings.setHelmet(carpetsType.parseItem());
+                settings.setMarker(true);
             }
         }
 
@@ -255,7 +263,7 @@ public final class Model {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private ItemStack loadEquipment(String path, String equipment) {
+    private @Nullable ItemStack loadEquipment(String path, String equipment) {
         String defaultPath = "parts." + path + ".equipment." + equipment;
         if (configuration.get(defaultPath) == null) return null;
 
@@ -285,7 +293,7 @@ public final class Model {
         return EulerAngle.ZERO;
     }
 
-    public PacketStand getByName(String name) {
+    public @Nullable PacketStand getByName(String name) {
         for (Map.Entry<String, PacketStand> stand : stands.entrySet()) {
             if (stand.getKey().equalsIgnoreCase(name)) return stand.getValue();
         }

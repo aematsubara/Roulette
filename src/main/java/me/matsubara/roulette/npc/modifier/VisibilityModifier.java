@@ -3,10 +3,12 @@ package me.matsubara.roulette.npc.modifier;
 import com.comphenix.protocol.PacketType.Play.Server;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.reflect.EquivalentConverter;
+import com.comphenix.protocol.utility.MinecraftVersion;
 import com.comphenix.protocol.wrappers.*;
 import com.comphenix.protocol.wrappers.EnumWrappers.NativeGameMode;
 import com.google.common.collect.Lists;
 import me.matsubara.roulette.npc.NPC;
+import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,6 +25,7 @@ public class VisibilityModifier extends NPCModifier {
 
     // Static actions we need to send out for all player updates (since 1.19.3).
     private static final EnumSet<EnumWrappers.PlayerInfoAction> ADD_ACTIONS;
+    private static final boolean IS_1_20_2_OR_NEW = new MinecraftVersion("1.20.2").atOrAbove();
 
     static {
         if (NPC.IS_1_19_3_OR_ABOVE) {
@@ -122,9 +125,13 @@ public class VisibilityModifier extends NPCModifier {
     @NotNull
     public VisibilityModifier queueSpawn() {
         super.queueInstantly((targetNpc, target) -> {
-            PacketContainer container = new PacketContainer(Server.NAMED_ENTITY_SPAWN);
+            PacketContainer container = new PacketContainer(IS_1_20_2_OR_NEW ? Server.SPAWN_ENTITY : Server.NAMED_ENTITY_SPAWN);
             container.getIntegers().write(0, targetNpc.getEntityId());
             container.getUUIDs().write(0, targetNpc.getProfile().getUUID());
+
+            if (IS_1_20_2_OR_NEW) {
+                container.getEntityTypeModifier().write(0, EntityType.PLAYER);
+            }
 
             double x = targetNpc.getLocation().getX();
             double y = targetNpc.getLocation().getY();

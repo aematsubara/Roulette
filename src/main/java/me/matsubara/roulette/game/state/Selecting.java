@@ -9,6 +9,7 @@ import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
@@ -19,7 +20,7 @@ public final class Selecting extends BukkitRunnable {
 
     private int seconds;
 
-    public Selecting(RoulettePlugin plugin, Game game) {
+    public Selecting(@NotNull RoulettePlugin plugin, @NotNull Game game) {
         this.plugin = plugin;
         this.game = game;
         this.seconds = ConfigManager.Config.COUNTDOWN_SELECTING.asInt();
@@ -27,16 +28,22 @@ public final class Selecting extends BukkitRunnable {
         game.setState(GameState.SELECTING);
 
         game.broadcast(plugin.getMessageManager().getRandomNPCMessage(game.getNpc(), "bets"));
-        game.broadcast(MessageManager.Message.SELECT_BET.asString());
+
+        for (Map.Entry<Player, Bet> entry : game.getPlayers().entrySet()) {
+            entry.getKey().sendMessage(entry.getValue().isEnPrison() ?
+                    MessageManager.Message.BET_IN_PRISON.asString() :
+                    MessageManager.Message.SELECT_BET.asString());
+        }
 
         // Hide the join hologram for every player.
         game.getJoinHologram().setVisibleByDefault(false);
 
         for (Map.Entry<Player, Bet> entry : game.getPlayers().entrySet()) {
-            // If prison rule is enabled, the player may already have a chip, no need to open gui.
-            if (entry.getValue().hasChip()) {
+            // If prison rule is enabled, the player may already have a chip, no need to open GUI.
+            Bet bet = entry.getValue();
+            if (bet.hasChip()) {
                 // Show hologram again.
-                entry.getValue().getHologram().showTo(entry.getKey());
+                bet.getHologram().showTo(entry.getKey());
                 continue;
             }
 
@@ -49,9 +56,7 @@ public final class Selecting extends BukkitRunnable {
     public void run() {
         if (seconds == 0) {
             // Start spinning task.
-            game.setSpinningTask(new Spinning(plugin, game)
-                    .runTaskTimer(plugin, 1L, 1L));
-
+            game.setSpinningTask(new Spinning(plugin, game).runTaskTimer(plugin, 1L, 1L));
             cancel();
             return;
         }

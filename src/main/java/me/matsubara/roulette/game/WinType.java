@@ -1,6 +1,6 @@
 package me.matsubara.roulette.game;
 
-import me.matsubara.roulette.util.Lang3Utils;
+import org.apache.commons.lang3.text.WordUtils;
 
 public enum WinType {
     NORMAL,
@@ -24,7 +24,8 @@ public enum WinType {
         return this == SURRENDER;
     }
 
+    @SuppressWarnings("deprecation")
     public String getFormatName() {
-        return Lang3Utils.capitalizeFully(name().replace("_", " "));
+        return WordUtils.capitalizeFully(name().replace("_", " "));
     }
 }

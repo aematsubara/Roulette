@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.jetbrains.annotations.NotNull;
 
 public final class EntityDamageByEntity implements Listener {
 
@@ -20,7 +21,7 @@ public final class EntityDamageByEntity implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+    public void onEntityDamageByEntity(@NotNull EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
 
         if (damager.getType() == EntityType.FIREWORK) {
@@ -29,7 +30,7 @@ public final class EntityDamageByEntity implements Listener {
             return;
         }
 
-        if (ConfigManager.Config.HIT_ON_GAME.asBoolean()) return;
+        if (ConfigManager.Config.HIT_ON_GAME.asBool()) return;
 
         if (isInGame(damager) || (isInGame(event.getEntity()) && damager.getType() == EntityType.PLAYER)) {
             plugin.getMessageManager().send(damager, MessageManager.Message.CAN_NOT_HIT);
@@ -37,7 +38,7 @@ public final class EntityDamageByEntity implements Listener {
         }
     }
 
-    private boolean isInGame(Entity entity) {
+    private boolean isInGame(@NotNull Entity entity) {
         if (entity.getType() != EntityType.PLAYER) return false;
         return plugin.getGameManager().isPlaying((Player) entity);
     }

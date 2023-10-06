@@ -6,19 +6,24 @@ import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.WinType;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.manager.winner.Winner;
-import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
 import me.matsubara.roulette.util.map.MapBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.server.MapInitializeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapFont;
+import org.bukkit.map.MapView;
 import org.bukkit.map.MinecraftFont;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -28,7 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Getter
-public final class WinnerManager extends BukkitRunnable {
+public final class WinnerManager implements Listener {
 
     private final RoulettePlugin plugin;
     private final Set<Winner> winners;
@@ -39,6 +44,7 @@ public final class WinnerManager extends BukkitRunnable {
 
     public WinnerManager(RoulettePlugin plugin) {
         this.plugin = plugin;
+        this.plugin.getServer().getPluginManager().registerEvents(this, plugin);
         this.winners = new HashSet<>();
 
         // Load image if not loaded.
@@ -52,27 +58,24 @@ public final class WinnerManager extends BukkitRunnable {
         }
 
         load();
-
-        runTaskTimer(plugin, 20L, 20L);
     }
 
-    @Override
-    public void run() {
-        // Sometimes the economy provider plugin is enabled AFTER this plugin, so we need to wait for it to be enabled.
-        if (!plugin.getServer().getPluginManager().isPluginEnabled(plugin.setupEconomy())) return;
+    @EventHandler
+    public void onMapInitialize(@NotNull MapInitializeEvent event) {
+        MapView view = event.getMap();
 
-        winners.forEach(winner -> {
+        for (Winner winner : winners) {
             OfflinePlayer player = Bukkit.getOfflinePlayer(winner.getUuid());
 
             String playerName = player.getName();
-            if (playerName == null) return;
+            if (playerName == null) continue;
 
             for (Winner.WinnerData data : winner.getWinnerData()) {
-                if (data.hasValidId()) render(playerName, data);
+                if (data.hasValidId() && data.getMapId() == view.getId()) {
+                    if (render(playerName, data, view) == null) break;
+                }
             }
-        });
-
-        cancel();
+        }
     }
 
     private void load() {
@@ -131,63 +134,73 @@ public final class WinnerManager extends BukkitRunnable {
         winners.add(winner);
 
         for (Winner.WinnerData data : winner.getWinnerData()) {
+            UUID uuid = winner.getUuid();
             int index = winner.getWinnerData().indexOf(data) + 1;
-            configuration.set("winners." + winner.getUuid() + "." + index + ".game", data.getGame());
-            configuration.set("winners." + winner.getUuid() + "." + index + ".map-id", data.getMapId());
-            configuration.set("winners." + winner.getUuid() + "." + index + ".money", data.getMoney());
-            configuration.set("winners." + winner.getUuid() + "." + index + ".date", data.getDate());
-            configuration.set("winners." + winner.getUuid() + "." + index + ".slot", data.getSelected().name());
-            configuration.set("winners." + winner.getUuid() + "." + index + ".winner", data.getWinner().name());
-            configuration.set("winners." + winner.getUuid() + "." + index + ".win-type", data.getType().name());
-            configuration.set("winners." + winner.getUuid() + "." + index + ".original-money", data.getOriginalMoney());
+            configuration.set("winners." + uuid + "." + index + ".game", data.getGame());
+            configuration.set("winners." + uuid + "." + index + ".map-id", data.getMapId());
+            configuration.set("winners." + uuid + "." + index + ".money", data.getMoney());
+            configuration.set("winners." + uuid + "." + index + ".date", data.getDate());
+            configuration.set("winners." + uuid + "." + index + ".slot", data.getSelected().name());
+            configuration.set("winners." + uuid + "." + index + ".winner", data.getWinner().name());
+            configuration.set("winners." + uuid + "." + index + ".win-type", data.getType().name());
+            configuration.set("winners." + uuid + "." + index + ".original-money", data.getOriginalMoney());
         }
 
         saveConfig();
     }
 
-    public Map.Entry<Winner.WinnerData, ItemStack> render(String playerName, Winner.WinnerData data) {
+    public Map.@Nullable Entry<Winner.WinnerData, ItemStack> render(String playerName, Winner.WinnerData data, @Nullable MapView view) {
         MapFont font = MinecraftFont.Font;
 
-        MapBuilder builder = new MapBuilder().setRenderOnce(true);
+        MapBuilder builder = new MapBuilder(plugin);
         if (image != null) builder.setImage(image, true);
-        if (data.hasValidId()) builder.setId(data.getMapId());
+
+        String moneyFormatted = PluginUtils.format(data.getMoney());
+        String originalFormatted = PluginUtils.format(data.getOriginalMoney());
+        String date = new SimpleDateFormat(ConfigManager.Config.MAP_IMAGE_DATE_FORMAT.asString()).format(new Date(data.getDate()));
+        String selected = PluginUtils.getSlotName(data.getSelected());
+        String winner = PluginUtils.getSlotName(data.getWinner());
 
         for (String text : ConfigManager.Config.MAP_IMAGE_TEXT.asList()) {
             if (Strings.isNullOrEmpty(text) || text.equalsIgnoreCase("none")) continue;
-            String[] split = Lang3Utils.split(Lang3Utils.deleteWhitespace(text), ',');
+            String[] split = StringUtils.split(StringUtils.deleteWhitespace(text), ',');
             if (split.length == 0) continue;
 
             int posY;
             try {
-                posY = Integer.parseInt(Lang3Utils.deleteWhitespace(split[0]));
+                posY = Integer.parseInt(StringUtils.deleteWhitespace(split[0]));
             } catch (NumberFormatException exception) {
                 continue;
             }
 
             builder.addText(0, posY, font, split[1]
                     .replace("%player%", playerName)
-                    .replace("%money%", PluginUtils.format(data.getMoney()))
-                    .replace("%original-money%", PluginUtils.format(data.getOriginalMoney()))
-                    .replace("%date%", new SimpleDateFormat("dd-MM-yyyy").format(new Date(data.getDate())))
-                    .replace("%selected-slot%", PluginUtils.getSlotName(data.getSelected()))
-                    .replace("%winner-slot%", PluginUtils.getSlotName(data.getWinner()))
-                    .replace("%type%", data.getType().getFormatName()));
+                    .replace("%money%", moneyFormatted)
+                    .replace("%original-money%", originalFormatted)
+                    .replace("%date%", date)
+                    .replace("%selected-slot%", selected)
+                    .replace("%winner-slot%", winner));
         }
 
-        // For some reason, the map doesn't exist in the server (probably a crash?).
-        if (builder.build().getView() == null) return null;
+        if (view != null) {
+            view.setScale(MapView.Scale.NORMAL);
+            view.getRenderers().forEach(view::removeRenderer);
+            view.addRenderer(builder);
+            return null;
+        }
 
-        data.setMapId((int) MapBuilder.getMapId(builder.getView()));
-        return new AbstractMap.SimpleEntry<>(data, builder.getItem());
+        ItemStack item = builder.build(playerName, moneyFormatted, originalFormatted, date, selected, winner);
+        data.setMapId(builder.getView().getId());
+        return new AbstractMap.SimpleEntry<>(data, item);
     }
 
     @SuppressWarnings("unused")
-    public void deleteWinner(Winner winner) {
+    public void deleteWinner(@NotNull Winner winner) {
         configuration.set("winners." + winner.getUuid(), null);
         saveConfig();
     }
 
-    public Winner getByUniqueId(UUID uuid) {
+    public @Nullable Winner getByUniqueId(UUID uuid) {
         for (Winner winner : winners) {
             if (winner.getUuid().equals(uuid)) return winner;
         }

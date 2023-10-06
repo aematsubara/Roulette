@@ -14,6 +14,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -39,7 +40,7 @@ public final class InputManager implements Listener {
     }
 
     @EventHandler(priority = EventPriority.LOW)
-    public void onAsyncPlayerChat(AsyncPlayerChatEvent event) {
+    public void onAsyncPlayerChat(@NotNull AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         if (!player.hasMetadata("rouletteEditing")) return;
 
@@ -102,7 +103,7 @@ public final class InputManager implements Listener {
                     connection.setReadTimeout(30000);
 
                     DataOutputStream out = new DataOutputStream(connection.getOutputStream());
-                    out.writeBytes("url=" + URLEncoder.encode(message, "UTF-8"));
+                    out.writeBytes("url=" + URLEncoder.encode(message, StandardCharsets.UTF_8));
                     out.close();
 
                     BufferedReader reader = new BufferedReader(
@@ -142,12 +143,12 @@ public final class InputManager implements Listener {
         return true;
     }
 
-    public void newInput(Player player, InputType type, Game game) {
+    public void newInput(@NotNull Player player, InputType type, @NotNull Game game) {
         players.put(player.getUniqueId(), type);
         player.setMetadata("rouletteEditing", new FixedMetadataValue(plugin, game.getName()));
     }
 
-    public void remove(Player player) {
+    public void remove(@NotNull Player player) {
         players.remove(player.getUniqueId());
         player.removeMetadata("rouletteEditing", plugin);
     }

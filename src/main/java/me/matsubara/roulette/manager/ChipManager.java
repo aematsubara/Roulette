@@ -8,6 +8,8 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,7 +86,7 @@ public final class ChipManager {
         return PluginUtils.translate(configuration.getString("chips." + path + ".display-name"));
     }
 
-    private List<String> getLore(String path) {
+    private @NotNull List<String> getLore(String path) {
         return PluginUtils.translate(configuration.getStringList("chips." + path + ".lore"));
     }
 
@@ -94,7 +96,7 @@ public final class ChipManager {
         return chips.get(0).getPrice();
     }
 
-    public Chip getByName(String name) {
+    public @Nullable Chip getByName(String name) {
         for (Chip chip : chips) {
             if (chip.getName().equalsIgnoreCase(name)) return chip;
         }

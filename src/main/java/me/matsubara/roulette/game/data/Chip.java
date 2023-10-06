@@ -11,7 +11,6 @@ public final class Chip {
     private final String name;
     private final String url;
     private final double price;
-
     private final String displayName;
     private final List<String> lore;
 

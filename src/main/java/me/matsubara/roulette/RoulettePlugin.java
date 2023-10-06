@@ -2,9 +2,9 @@ package me.matsubara.roulette;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.cryptomorin.xseries.ReflectionUtils;
-import com.tchristofferson.configupdater.ConfigUpdater;
+import com.google.common.collect.Sets;
 import lombok.Getter;
-import me.matsubara.roulette.command.Main;
+import me.matsubara.roulette.command.MainCommand;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.hook.EssXExtension;
@@ -18,6 +18,9 @@ import me.matsubara.roulette.listener.protocol.SteerVehicle;
 import me.matsubara.roulette.listener.protocol.UseEntity;
 import me.matsubara.roulette.manager.*;
 import me.matsubara.roulette.npc.NPCPool;
+import me.matsubara.roulette.util.GlowingEntities;
+import me.matsubara.roulette.util.config.ConfigChanges;
+import me.matsubara.roulette.util.config.ConfigFileUtils;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -32,12 +35,10 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 @Getter
 public final class RoulettePlugin extends JavaPlugin {
@@ -64,9 +65,11 @@ public final class RoulettePlugin extends JavaPlugin {
     private final NavigableMap<Long, String> abbreviations = new TreeMap<>();
 
     private Team hideTeam;
-    private Team collisionTeam;
 
-    private static final List<String> SPECIAL_SECTIONS = Collections.singletonList("custom-win-multiplier.slots");
+    private GlowingEntities glowingEntities;
+
+    private static final Set<String> SPECIAL_SECTIONS = Sets.newHashSet("custom-win-multiplier.slots", "money-abbreviation-format.translations", "not-enough-money");
+    private static final List<String> GUI_TYPES = List.of("game-menu", "shop");
 
     @Override
     public void onEnable() {
@@ -108,7 +111,7 @@ public final class RoulettePlugin extends JavaPlugin {
         // Register main command.
         PluginCommand mainCommand = getCommand("roulette");
         if (mainCommand != null) {
-            Main main = new Main(this);
+            MainCommand main = new MainCommand(this);
             mainCommand.setExecutor(main);
             mainCommand.setTabCompleter(main);
         }
@@ -119,9 +122,6 @@ public final class RoulettePlugin extends JavaPlugin {
 
         // Team used to disable the nametag of NPCs.
         getHideTeam();
-
-        // Team used to disable collisions for players inside the game (sitting on chair).
-        getCollisionTeam();
 
         // Initialize managers.
         chipManager = new ChipManager(this);
@@ -136,17 +136,84 @@ public final class RoulettePlugin extends JavaPlugin {
                 .tabListRemoveTicks(40)
                 .build();
 
-        gameManager = new GameManager(this);
         inputManager = new InputManager(this);
         messageManager = new MessageManager(this);
         standManager = new StandManager(this);
-        winnerManager = new WinnerManager(this);
 
         // Save models to /models.
         saveModels(GameType.AMERICAN.getModelName(), GameType.EUROPEAN.getModelName());
-        loadConfigAndUpdateIt();
+
+        saveDefaultConfig();
+        updateConfigs();
+
+        // AFTER updating configs.
+        gameManager = new GameManager(this);
+        winnerManager = new WinnerManager(this);
+
+        glowingEntities = new GlowingEntities(this);
 
         reloadAbbreviations();
+    }
+
+    private void fillIgnoredSections(FileConfiguration config) {
+        for (String guiType : GUI_TYPES) {
+            ConfigurationSection section = config.getConfigurationSection(guiType);
+            if (section == null) continue;
+
+            for (String key : section.getKeys(false)) {
+                SPECIAL_SECTIONS.add(guiType + "." + key);
+            }
+        }
+    }
+
+    public void updateConfigs() {
+        String folder = getDataFolder().getPath();
+
+        ConfigFileUtils.updateConfig(
+                this,
+                folder,
+                "config.yml",
+                file -> reloadConfig(),
+                file -> saveDefaultConfig(),
+                config -> {
+                    fillIgnoredSections(config);
+                    return SPECIAL_SECTIONS.stream().filter(config::contains).toList();
+                },
+                ConfigChanges.builder()
+                        // Update translations (vX.X{0} -> v1.9.6{1}).
+                        .addChange(
+                                temp -> !temp.contains("config-version"),
+                                temp -> temp.set("money-abbreviation-format.translations", null),
+                                1)
+                        // Move sounds & types to multiline format (vX.X{1} -> v2.0{2}).
+                        .addChange(
+                                temp -> temp.getInt("config-version") == 1,
+                                temp -> {
+                                    // Sounds.
+                                    temp.set("sounds.click", temp.getString("sound.click", "BLOCK_NOTE_BLOCK_PLING"));
+                                    temp.set("sounds.countdown", temp.getString("sound.countdown", "ENTITY_EXPERIENCE_ORB_PICKUP"));
+                                    temp.set("sounds.spinning", temp.getString("sound.spinning", "BLOCK_METAL_PRESSURE_PLATE_CLICK_ON"));
+                                    temp.set("sounds.swap-chair", temp.getString("sound.swap-chair", "ENTITY_PLAYER_ATTACK_CRIT"));
+                                    temp.set("sounds.select", temp.getString("sound.select", "BLOCK_WOOL_PLACE"));
+                                    // Types.
+                                    temp.set("types.european", temp.getString("type.european", "&a(European)"));
+                                    temp.set("types.american", temp.getString("type.american", "&a(American)"));
+                                },
+                                2).build());
+
+        ConfigFileUtils.updateConfig(
+                this,
+                folder,
+                "messages.yml",
+                file -> messageManager.setConfiguration(YamlConfiguration.loadConfiguration(file)),
+                file -> saveResource("messages.yml"),
+                config -> Collections.emptyList(),
+                Collections.emptyList());
+    }
+
+    public void saveResource(String name) {
+        File file = new File(getDataFolder(), name);
+        if (!file.exists()) saveResource(name, false);
     }
 
     public void reloadAbbreviations() {
@@ -161,72 +228,7 @@ public final class RoulettePlugin extends JavaPlugin {
         }
     }
 
-    private void loadConfigAndUpdateIt() {
-        saveDefaultConfig();
-
-        File file = new File(getDataFolder(), "config.yml");
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-
-        List<String> ignore = new ArrayList<>();
-        for (String path : SPECIAL_SECTIONS) {
-            if (config.contains(path)) ignore.add(path);
-        }
-
-        Predicate<FileConfiguration> noVersion = temp -> !temp.contains("config-version");
-
-        // Update translations (vX.X{0} -> v1.9.6{1}).
-        handleConfigChanges(
-                file,
-                config,
-                "config.yml",
-                noVersion,
-                temp -> temp.set("money-abbreviation-format.translations", null),
-                1);
-
-        try {
-            ConfigUpdater.update(this, "config.yml", file, ignore);
-        } catch (IOException exception) {
-            exception.printStackTrace();
-        }
-
-        reloadConfig();
-    }
-
-    @SuppressWarnings("SameParameterValue")
-    private void handleConfigChanges(@NotNull File file, FileConfiguration config, String fileTargetName, Predicate<FileConfiguration> predicate, Consumer<FileConfiguration> consumer, int newVersion) {
-        if (!file.getName().equals(fileTargetName) || !predicate.test(config)) return;
-
-        consumer.accept(config);
-        config.set("config-version", newVersion);
-
-        try {
-            config.save(file);
-        } catch (IOException exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    private Team createTeam(String teamName, Team.Option toDisable) {
-        @SuppressWarnings("ConstantConditions") Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
-
-        // Get team.
-        Team team = scoreboard.getTeam(teamName);
-
-        // Remove entries if exists.
-        if (team != null) {
-            try {
-                team.getEntries().forEach(team::removeEntry);
-            } catch (IllegalStateException ignore) {
-            }
-        } else {
-            team = scoreboard.registerNewTeam(teamName);
-            team.setOption(toDisable, Team.OptionStatus.NEVER);
-        }
-
-        return team;
-    }
-
-    private void saveModels(String... names) {
+    private void saveModels(String @NotNull ... names) {
         for (String name : names) {
             File file = new File(getDataFolder() + File.separator + "models", name + ".yml");
             if (file.exists()) continue;
@@ -241,7 +243,7 @@ public final class RoulettePlugin extends JavaPlugin {
         if (gameManager != null) gameManager.getGames().forEach(Game::remove);
     }
 
-    public boolean hasDependencies(String... dependencies) {
+    public boolean hasDependencies(String @NotNull ... dependencies) {
         for (String plugin : dependencies) {
             if (!hasDependency(plugin)) return false;
         }
@@ -252,7 +254,7 @@ public final class RoulettePlugin extends JavaPlugin {
         return getServer().getPluginManager().getPlugin(plugin) != null;
     }
 
-    public Plugin setupEconomy() {
+    public @Nullable Plugin setupEconomy() {
         RegisteredServiceProvider<Economy> provider = getServer().getServicesManager().getRegistration(Economy.class);
         if (provider == null) return null;
 
@@ -267,16 +269,28 @@ public final class RoulettePlugin extends JavaPlugin {
     public Team getHideTeam() {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         if (hideTeam == null || (manager != null && manager.getMainScoreboard().getTeam("rouletteHide") == null)) {
-            hideTeam = createTeam("rouletteHide", Team.Option.NAME_TAG_VISIBILITY);
+            hideTeam = createHideTeam();
         }
         return hideTeam;
     }
 
-    public Team getCollisionTeam() {
-        ScoreboardManager manager = Bukkit.getScoreboardManager();
-        if (collisionTeam == null || (manager != null && manager.getMainScoreboard().getTeam("rouletteCollide") == null)) {
-            collisionTeam = createTeam("rouletteCollide", Team.Option.COLLISION_RULE);
+    private @NotNull Team createHideTeam() {
+        @SuppressWarnings("ConstantConditions") Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+
+        // Get team.
+        Team team = scoreboard.getTeam("rouletteHide");
+
+        // Remove entries if exists.
+        if (team != null) {
+            try {
+                team.getEntries().forEach(team::removeEntry);
+            } catch (IllegalStateException ignore) {
+            }
+        } else {
+            team = scoreboard.registerNewTeam("rouletteHide");
+            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
         }
-        return collisionTeam;
+
+        return team;
     }
 }

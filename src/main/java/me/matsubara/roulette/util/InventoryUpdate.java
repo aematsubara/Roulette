@@ -149,10 +149,9 @@ public final class InventoryUpdate {
 
             // Get InventoryView from activeContainer.
             Object bukkitView = getBukkitView.invoke(activeContainer);
-            if (!(bukkitView instanceof InventoryView)) return;
+            if (!(bukkitView instanceof InventoryView view)) return;
 
             // Avoiding pattern variable, since some people may be using an older version of java.
-            InventoryView view = (InventoryView) bukkitView;
             InventoryType type = view.getTopInventory().getType();
 
             // Workbenchs and anvils can change their title since 1.14.

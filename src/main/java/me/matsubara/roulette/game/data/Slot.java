@@ -1,13 +1,18 @@
 package me.matsubara.roulette.game.data;
 
+import lombok.Getter;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.util.Lang3Utils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.bukkit.Axis;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Slots of the table, from 0 (including 00 for american table) to 36.
  */
 @SuppressWarnings("unused")
+@Getter
 public enum Slot {
     // Singles.
     SLOT_0("24581d3955e9acd513d28dd32257ae51ff7fd6df05b5f4b921f1deae49b2172", 0),
@@ -74,6 +79,9 @@ public enum Slot {
     private final String url;
     private final int[] ints;
 
+    private static final double[] OFFSET_FOR_7 = {0.0d, -0.15d, 0.15d, -0.3d, 0.3d, -0.45d, 0.45d};
+    private static final double[] OFFSET_FOR_3 = {0.0d, -0.15d, 0.15d};
+
     Slot(String url, int... ints) {
         this.url = url;
         this.ints = ints;
@@ -84,67 +92,62 @@ public enum Slot {
         this.ints = ints;
     }
 
-    public String getUrl() {
-        return url;
+    public int getMaxBets(boolean isEuropean) {
+        return getOffsets(isEuropean).getRight().length;
     }
 
-    public int[] getInts() {
-        return ints;
+    public Pair<Axis, double[]> getOffsets(boolean isEuropean) {
+        return switch (this) {
+            case SLOT_DOZEN_1, SLOT_DOZEN_2, SLOT_DOZEN_3 -> Pair.of(Axis.X, OFFSET_FOR_7);
+            case SLOT_0 -> Pair.of(Axis.Z, isEuropean ? OFFSET_FOR_7 : OFFSET_FOR_3);
+            case SLOT_00 -> Pair.of(Axis.Z, isEuropean ? new double[]{} : OFFSET_FOR_3);
+            case SLOT_LOW, SLOT_EVEN, SLOT_RED, SLOT_BLACK, SLOT_ODD, SLOT_HIGH -> Pair.of(Axis.X, OFFSET_FOR_3);
+            default -> Pair.of(Axis.Z, OFFSET_FOR_3);
+        };
     }
 
     public SlotColor getColor() {
-        switch (this) {
-            case SLOT_RED:
-            case SLOT_1:
-            case SLOT_3:
-            case SLOT_5:
-            case SLOT_7:
-            case SLOT_9:
-            case SLOT_12:
-            case SLOT_14:
-            case SLOT_16:
-            case SLOT_18:
-            case SLOT_19:
-            case SLOT_21:
-            case SLOT_23:
-            case SLOT_25:
-            case SLOT_27:
-            case SLOT_30:
-            case SLOT_32:
-            case SLOT_34:
-            case SLOT_36:
-                return SlotColor.RED;
-            case SLOT_BLACK:
-                return SlotColor.BLACK;
-            case SLOT_0:
-            case SLOT_00:
-                return SlotColor.GREEN;
-        }
-        if (ints.length > 1) {
-            return SlotColor.MIXED;
-        }
-        return SlotColor.BLACK;
+        return switch (this) {
+            case SLOT_RED,
+                    SLOT_1,
+                    SLOT_3,
+                    SLOT_5,
+                    SLOT_7,
+                    SLOT_9,
+                    SLOT_12,
+                    SLOT_14,
+                    SLOT_16,
+                    SLOT_18,
+                    SLOT_19,
+                    SLOT_21,
+                    SLOT_23,
+                    SLOT_25,
+                    SLOT_27,
+                    SLOT_30,
+                    SLOT_32,
+                    SLOT_34,
+                    SLOT_36 -> SlotColor.RED;
+            case SLOT_BLACK -> SlotColor.BLACK;
+            case SLOT_0, SLOT_00 -> SlotColor.GREEN;
+            default -> ints.length > 1 ? SlotColor.MIXED : SlotColor.BLACK;
+        };
     }
 
     private double getMultiplier() {
         if (isSingleInclusive()) return 36.0d;
-        if (isLow() || isEven() || isRed() || isBlack() || isOdd() || isHigh()) return 2.0d;
+        if (applyForRules()) return 2.0d;
         return 3.0d;
     }
 
     public double getMultiplier(Game game) {
         double defaultValue = getMultiplier();
-        if (!ConfigManager.Config.CUSTOM_WIN_MULTIPLIER_ENABLED.asBoolean()) return defaultValue;
+        if (!ConfigManager.Config.CUSTOM_WIN_MULTIPLIER_ENABLED.asBool()) return defaultValue;
         return game.getPlugin().getConfig().getDouble("custom-win-multiplier.slots." + name(), defaultValue);
     }
 
-    public String getChance(boolean isEuropean) {
-        if (isSingleInclusive()) {
-            return isEuropean ? "1/37 (2.7%)" : "1/38 (2.6%)";
-        }
-        if (isLow() || isEven() || isRed() || isBlack() || isOdd() || isHigh()) {
-            return isEuropean ? "18/37 (48%)" : "18/38 (47%)";
-        }
+    public @NotNull String getChance(boolean isEuropean) {
+        if (isSingleInclusive()) return isEuropean ? "1/37 (2.7%)" : "1/38 (2.6%)";
+        if (applyForRules()) return isEuropean ? "18/37 (48%)" : "18/38 (47%)";
         return isEuropean ? "12/37 (32%)" : "12/38 (31%)";
     }
 
@@ -168,12 +171,12 @@ public enum Slot {
         return isSingle() || this == SLOT_00;
     }
 
-    public boolean contains(Slot slot) {
+    public boolean contains(@NotNull Slot slot) {
         // Won't happen for now, maybe when adding more slots.
         if (slot.isAnyZero()) return false;
 
         for (int number : slot.getInts()) {
-            if (Lang3Utils.contains(ints, number)) return true;
+            if (ArrayUtils.contains(ints, number)) return true;
         }
 
         return false;
@@ -223,11 +226,11 @@ public enum Slot {
     /**
      * Return slots values based on the game type (american/european) and remove disabled ones.
      */
-    public static Slot[] values(Game game) {
-        Slot[] values = game.getType().isEuropean() ? Lang3Utils.remove(values(), 1) : values();
+    public static Slot[] values(@NotNull Game game) {
+        Slot[] values = game.getType().isEuropean() ? ArrayUtils.remove(values(), 1) : values();
 
         for (Slot slot : game.getDisabledSlots()) {
-            values = Lang3Utils.removeElement(values, slot);
+            values = ArrayUtils.removeElement(values, slot);
         }
 
         return values;
@@ -237,7 +240,6 @@ public enum Slot {
         RED,
         BLACK,
         GREEN,
-        // For columns, dozens, lows, evens, etc...
-        MIXED
+        MIXED // For columns, dozens, lows, evens, etc...
     }
 }

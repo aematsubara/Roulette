@@ -1,16 +1,11 @@
 package me.matsubara.roulette.game;
 
 public enum GameState {
-    // Idle state.
-    IDLE,
-    // Start cooldown initialized while waiting for more players.
-    STARTING,
-    // Game started, players must place their bets.
-    SELECTING,
-    // No more bets, the wheel starts spinning.
-    SPINNING,
-    // Game is over, the winners (if any) are announced.
-    ENDING;
+    IDLE, // Idle state.
+    STARTING, // Start cooldown initialized while waiting for more players.
+    SELECTING, // Game started, players must place their bets.
+    SPINNING, // No more bets, the wheel starts spinning.
+    ENDING; // Game is over, the winners (if any) are announced.
 
     public boolean isIdle() {
         return this == IDLE;

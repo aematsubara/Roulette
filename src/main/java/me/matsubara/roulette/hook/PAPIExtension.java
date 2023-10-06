@@ -45,7 +45,7 @@ public final class PAPIExtension extends PlaceholderExpansion {
     }
 
     @Override
-    public String onPlaceholderRequest(Player player, @NotNull String params) {
+    public @NotNull String onPlaceholderRequest(Player player, @NotNull String params) {
         // If somehow the player is null, return empty.
         if (player == null) return "";
 
@@ -60,23 +60,22 @@ public final class PAPIExtension extends PlaceholderExpansion {
 
         // if parameter doesn't contain underscores.
         if (values.length == 1) {
-
             switch (params.toLowerCase()) {
                 // Return the amount of wins of a player (%roulette_wins%).
-                case "wins":
+                case "wins" -> {
                     // If the winner is null, return 0.
                     if (winner == null) return "0";
-
                     return String.valueOf(winner.getWinnerData().size());
+                }
                 // Returns all winnings of a player (%roulette_winnings%).
-                case "winnings":
+                case "winnings" -> {
                     // If the winner is null, return 0.
                     if (winner == null) return "0";
-
                     return String.valueOf(winner.getWinnerData()
                             .stream()
                             .mapToDouble(Winner.WinnerData::getMoney)
                             .sum());
+                }
             }
         } else {
             if (values[0].equalsIgnoreCase("wins")) {

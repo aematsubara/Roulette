@@ -2,6 +2,7 @@ package me.matsubara.roulette.hologram;
 
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.util.PluginUtils;
@@ -11,10 +12,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
@@ -27,7 +25,7 @@ public final class Hologram {
     private final List<String> lines;
 
     // Stands of this hologram.
-    private final List<PacketStand> stands;
+    private final Map<String, PacketStand> stands;
 
     // Location of this hologram.
     private Location location;
@@ -56,38 +54,42 @@ public final class Hologram {
     public Hologram(RoulettePlugin plugin, Location location) {
         this.plugin = plugin;
         this.lines = new ArrayList<>();
-        this.stands = new ArrayList<>();
+        this.stands = new LinkedHashMap<>();
         this.location = location;
         this.visibleByDefault = true;
     }
 
     public void setVisibleByDefault(boolean visibleByDefault) {
         if (this.visibleByDefault == visibleByDefault) return;
-
-        boolean oldVisibleByDefault = this.visibleByDefault;
         this.visibleByDefault = visibleByDefault;
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (visibility == null) continue;
-            if (visibility.containsKey(player.getName())) continue;
-
-            if (oldVisibleByDefault) {
-                destroyPackets(player);
-            } else {
-                showPackets(player);
-            }
+            if (skipUpdate(player)) continue;
+            if (visibleByDefault) showPackets(player);
+            else destroyPackets(player);
         }
     }
 
+    @SuppressWarnings("all")
+    private boolean skipUpdate(Player player) {
+        Boolean playerState;
+        if (visibility == null || (playerState = visibility.get(player.getName())) == null) return false;
+
+        // if (!(playerState && !visibleByDefault) && !(!playerState || visibleByDefault)) return true;
+
+        Game gameByPlayer = plugin.getGameManager().getGameByPlayer(player);
+        return gameByPlayer != null && gameByPlayer.getJoinHologram().equals(this);
+    }
+
     private void showPackets(Player player) {
-        for (PacketStand stand : stands) {
+        for (PacketStand stand : stands.values()) {
             stand.spawn(player);
         }
     }
 
     private void destroyPackets(Player player) {
-        for (PacketStand stand : stands) {
-            stand.destroy(player);
+        for (PacketStand stand : stands.values()) {
+            stand.destroy(player, PacketStand.IgnoreReason.HOLOGRAM);
         }
     }
 
@@ -106,7 +108,7 @@ public final class Hologram {
         if (visibility == null) visibility = new ConcurrentHashMap<>();
         visibility.put(player.getName(), false);
 
-        if (wasVisible) destroyPackets(player);
+        if (wasVisible || visibleByDefault) destroyPackets(player);
     }
 
     public boolean isVisibleTo(Player player) {
@@ -119,13 +121,15 @@ public final class Hologram {
 
     public void update(List<String> lines) {
         for (int i = 0; i < stands.size(); i++) {
-            PacketStand stand = stands.get(i);
+            String name = "line-" + (i + 1);
+            PacketStand stand = stands.get(name);
             if (i > lines.size() - 1) stand.destroy();
         }
 
         Location current = location.clone().add(0.0d, (LINE_DISTANCE * lines.size()) - 1.97d, 0.0d);
 
         for (int i = 0; i < lines.size(); i++) {
+            String name = "line-" + (i + 1);
             String text = PluginUtils.translate(lines.get(i));
 
             if (i >= stands.size()) {
@@ -143,17 +147,17 @@ public final class Hologram {
                     if (isVisibleTo(player)) stand.spawn(player);
                 }
 
-                stands.add(stand);
+                stands.put(name, stand);
             } else {
                 // Update.
-                stands.get(i).teleport(current);
-                stands.get(i).setCustomName(text);
-                stands.get(i).updateMetadata();
+                PacketStand stand = stands.get(name);
+                stand.teleport(current);
+                stand.setCustomName(text);
+                stand.updateMetadata();
             }
 
             current.subtract(0.0d, LINE_DISTANCE, 0.0d);
         }
-
     }
 
     public void addLines(String... texts) {
@@ -185,7 +189,7 @@ public final class Hologram {
 
     public void destroy() {
         cancelTask();
-        stands.forEach(PacketStand::destroy);
+        stands.values().forEach(PacketStand::destroy);
         stands.clear();
         lines.clear();
 

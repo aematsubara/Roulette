@@ -4,8 +4,9 @@ import com.cryptomorin.xseries.ReflectionUtils;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.hook.ViaExtension;
-import me.matsubara.roulette.util.Lang3Utils;
 import me.matsubara.roulette.util.PluginUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
@@ -13,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.EulerAngle;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
 
@@ -30,7 +32,7 @@ import java.util.*;
 public final class PacketStand {
 
     // Plugin instance.
-    private static final RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
+    private final RoulettePlugin plugin = JavaPlugin.getPlugin(RoulettePlugin.class);
 
     // Entity instance.
     private Object stand;
@@ -39,7 +41,12 @@ public final class PacketStand {
     private Location location;
 
     // Set with the unique id of the players who aren't seeing the entity due to the distance.
-    private Set<UUID> ignored;
+    private Map<UUID, IgnoreReason> ignored;
+
+    public enum IgnoreReason {
+        NONE,
+        HOLOGRAM
+    }
 
     // Entity unique id.
     private int entityId;
@@ -108,6 +115,7 @@ public final class PacketStand {
     private static final MethodHandle setRightArmPose;
     private static final MethodHandle setLeftLegPose;
     private static final MethodHandle setRightLegPose;
+    private static final MethodHandle setGlowing;
     private static final MethodHandle getNonDefaultValues;
 
     // Constructors.
@@ -177,6 +185,7 @@ public final class PacketStand {
             setRightArmPose = getMethod(ENTITY_ARMOR_STAND, "setRightArmPose", MethodType.methodType(void.class, VECTOR3F));
             setLeftLegPose = getMethod(ENTITY_ARMOR_STAND, "setLeftLegPose", MethodType.methodType(void.class, VECTOR3F));
             setRightLegPose = getMethod(ENTITY_ARMOR_STAND, "setRightLegPose", MethodType.methodType(void.class, VECTOR3F));
+            setGlowing = getMethod(ENTITY_ARMOR_STAND, "setGlowing", MethodType.methodType(void.class, boolean.class), false, true, "setGlowingTag");
         } else {
             // Get setFlag() method by its parameter types since the name is obfuscated.
             setFlag = getSetFlagMethod();
@@ -196,6 +205,7 @@ public final class PacketStand {
             setRightArmPose = null;
             setLeftLegPose = null;
             setRightLegPose = null;
+            setGlowing = null;
         }
 
         // Initialize constructors.
@@ -230,8 +240,8 @@ public final class PacketStand {
         this(location, settings, true);
     }
 
-    public PacketStand(Location location, StandSettings settings, boolean showEveryone) {
-        Lang3Utils.notNull(location.getWorld(), "World can't be null.");
+    public PacketStand(@NotNull Location location, StandSettings settings, boolean showEveryone) {
+        Validate.notNull(location.getWorld(), "World can't be null.");
 
         try {
             Object craftWorld = CRAFT_WORLD.cast(location.getWorld());
@@ -239,7 +249,7 @@ public final class PacketStand {
 
             this.stand = entityArmorStand.invoke(nmsWorld, location.getX(), location.getY(), location.getZ());
             this.location = location;
-            this.ignored = new HashSet<>();
+            this.ignored = new HashMap<>();
             this.entityId = (getId != null) ? (int) getId.invoke(stand) : getBukkitEntity().getEntityId();
             this.settings = settings;
 
@@ -255,6 +265,7 @@ public final class PacketStand {
             setOnFire(settings.isFire());
             if (settings.getCustomName() != null) setCustomName(settings.getCustomName());
             setCustomNameVisible(settings.isCustomNameVisible());
+            setGlowing(settings.isGlow());
 
             // Set poses.
             setHeadPose(settings.getHeadPose());
@@ -280,8 +291,8 @@ public final class PacketStand {
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public boolean isInRange(Location location) {
-        int renderDistance = PLUGIN.getConfigManager().getRenderDistance();
+    public boolean isInRange(@NotNull Location location) {
+        int renderDistance = plugin.getConfigManager().getRenderDistance();
         double distance = Math.min(renderDistance * renderDistance, Math.pow(Bukkit.getViewDistance() << 4, 2));
 
         if (!this.location.getWorld().equals(location.getWorld())) return false;
@@ -305,9 +316,9 @@ public final class PacketStand {
     /**
      * Spawn the entity for a specific player.
      */
-    public void spawn(Player player) {
+    public void spawn(@NotNull Player player) {
         if (!isInRange(player.getLocation())) return;
-        if (!PLUGIN.isEnabled()) return;
+        if (!plugin.isEnabled()) return;
 
         try {
             Object packetSpawn = packetSpawnEntityLiving.invoke(stand);
@@ -315,7 +326,7 @@ public final class PacketStand {
 
             ignored.remove(player.getUniqueId());
 
-            Bukkit.getScheduler().runTaskAsynchronously(PLUGIN, () -> {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                 updateLocation();
                 updateRotation();
                 updateMetadata();
@@ -500,7 +511,7 @@ public final class PacketStand {
         }
     }
 
-    public Object getVector3f(EulerAngle angle) {
+    public @Nullable Object getVector3f(EulerAngle angle) {
         try {
             return vector3f.invoke((float) Math.toDegrees(angle.getX()), (float) Math.toDegrees(angle.getY()), (float) Math.toDegrees(angle.getZ()));
         } catch (Throwable exception) {
@@ -587,6 +598,24 @@ public final class PacketStand {
         }
     }
 
+    public void setGlowing(boolean glow) {
+        try {
+            // In order to glow the equipment of the stand without glowing the entity body, we need to set its marker value to true.
+            if (glow && !settings.isMarker()) setMarker(true);
+
+            settings.setGlow(glow);
+            if (setGlowing != null) {
+                setGlowing.invoke(stand, glow);
+            } else {
+                getBukkitEntity().setGlowing(glow);
+            }
+
+            updateMetadata();
+        } catch (Throwable exception) {
+            exception.printStackTrace();
+        }
+    }
+
     public enum ItemSlot {
         MAINHAND,
         OFFHAND,
@@ -597,7 +626,7 @@ public final class PacketStand {
 
         private final char[] alphabet = "abcdefghijklmnopqrstuvwxyz".toCharArray();
 
-        public Object get() {
+        public @Nullable Object get() {
             try {
                 Field field = ENUM_ITEM_SLOT.getField(VERSION > 16 ? String.valueOf(alphabet[ordinal()]) : name());
                 return field.get(null);
@@ -656,7 +685,7 @@ public final class PacketStand {
         sendPacket(createMetadataPacket());
     }
 
-    private Object createMetadataPacket() {
+    private @Nullable Object createMetadataPacket() {
         try {
             Object watcher = getDataWatcher.invoke(stand);
             Object packetMetadata;
@@ -673,7 +702,7 @@ public final class PacketStand {
         }
     }
 
-    public ArmorStand getBukkitEntity() {
+    public @Nullable ArmorStand getBukkitEntity() {
         try {
             return ((ArmorStand) getBukkitEntity.invoke(stand));
         } catch (Throwable throwable) {
@@ -690,23 +719,22 @@ public final class PacketStand {
     }
 
     public void destroy(Player player) {
-        try {
-            Object packetDestroy;
-            if (PROTOCOL == 755) {
-                packetDestroy = packetEntityDestroy.invoke(entityId);
-            } else {
-                packetDestroy = packetEntityDestroy.invoke(new int[]{entityId});
-            }
+        destroy(player, IgnoreReason.NONE);
+    }
 
+    public void destroy(Player player, IgnoreReason reason) {
+        try {
+            Object packetDestroy = PROTOCOL == 755 ? packetEntityDestroy.invoke(entityId) : packetEntityDestroy.invoke(new int[]{entityId});
             sendPacket(player, packetDestroy);
-            ignored.add(player.getUniqueId());
+
+            ignored.put(player.getUniqueId(), reason);
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
     }
 
-    public boolean isIgnored(Player player) {
-        return ignored.contains(player.getUniqueId());
+    public boolean isIgnored(@NotNull Player player) {
+        return ignored.containsKey(player.getUniqueId());
     }
 
     private void sendPacket(Player player, Object packet) {
@@ -722,9 +750,9 @@ public final class PacketStand {
         sendPacket(packet, false);
     }
 
-    private void sendPacket(Object packet, boolean sync) {
+    private void sendPacket(@NotNull Object packet, boolean sync) {
         boolean isEntityLook = packet.getClass().isAssignableFrom(PACKET_ENTITY_LOOK);
-        boolean usingVia = PLUGIN.hasDependency("ViaVersion");
+        boolean usingVia = plugin.hasDependency("ViaVersion");
 
         for (Player player : location.getWorld().getPlayers()) {
             if (isIgnored(player)) continue;
@@ -738,7 +766,7 @@ public final class PacketStand {
         }
     }
 
-    private static Class<?> getUnversionedClass(String name) {
+    private static @Nullable Class<?> getUnversionedClass(String name) {
         try {
             return Class.forName(name);
         } catch (ClassNotFoundException exception) {
@@ -748,7 +776,7 @@ public final class PacketStand {
     }
 
     @SuppressWarnings({"SameParameterValue", "unused"})
-    private static MethodHandle getField(Class<?> refc, String name, String... extraNames) {
+    private static @Nullable MethodHandle getField(@NotNull Class<?> refc, String name, String... extraNames) {
         try {
             Field field = refc.getDeclaredField(name);
             field.setAccessible(true);
@@ -759,8 +787,8 @@ public final class PacketStand {
                     return getField(refc, extraNames[0]);
                 }
                 for (String extra : extraNames) {
-                    int index = Lang3Utils.indexOf(extraNames, extra);
-                    String[] rest = Lang3Utils.remove(extraNames, index);
+                    int index = ArrayUtils.indexOf(extraNames, extra);
+                    String[] rest = ArrayUtils.remove(extraNames, index);
                     return getField(refc, extra, rest);
                 }
             }
@@ -773,7 +801,7 @@ public final class PacketStand {
         return getConstructor(refc, true, types);
     }
 
-    private static MethodHandle getConstructor(Class<?> refc, boolean printStackTrace, Class<?>... types) {
+    private static @Nullable MethodHandle getConstructor(@NotNull Class<?> refc, boolean printStackTrace, Class<?>... types) {
         try {
             Constructor<?> constructor = refc.getDeclaredConstructor(types);
             constructor.setAccessible(true);
@@ -788,7 +816,7 @@ public final class PacketStand {
         return getMethod(refc, name, type, false, true);
     }
 
-    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, boolean printStackTrace, String... extraNames) {
+    private static @Nullable MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, boolean printStackTrace, String... extraNames) {
         try {
             if (isStatic) return LOOKUP.findStatic(refc, name, type);
             if (VERSION > 17) {
@@ -805,8 +833,8 @@ public final class PacketStand {
                     return getMethod(refc, extraNames[0], type, isStatic, printStackTrace);
                 }
                 for (String extra : extraNames) {
-                    int index = Lang3Utils.indexOf(extraNames, extra);
-                    String[] rest = Lang3Utils.remove(extraNames, index);
+                    int index = ArrayUtils.indexOf(extraNames, extra);
+                    String[] rest = ArrayUtils.remove(extraNames, index);
                     return getMethod(refc, extra, type, isStatic, printStackTrace, rest);
                 }
             }
@@ -815,7 +843,7 @@ public final class PacketStand {
         }
     }
 
-    private static MethodHandle getSetFlagMethod() {
+    private static @Nullable MethodHandle getSetFlagMethod() {
         // There are 2 methods with the same parameter types, the first one is what we want.
         for (Method method : ENTITY_ARMOR_STAND.getMethods()) {
             Parameter[] parameters = method.getParameters();

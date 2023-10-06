@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 
@@ -25,21 +26,27 @@ public final class StandManager implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerJoin(PlayerJoinEvent event) {
+    public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
         Player player = event.getPlayer();
         handleStandRender(player, player.getLocation(), true);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerMove(PlayerMoveEvent event) {
-        if (event.getTo() == null) return;
+    public void onPlayerMove(@NotNull PlayerMoveEvent event) {
+        Location to = event.getTo();
+        if (to == null) return;
+
+        Location from = event.getFrom();
+        if (to.getBlockX() == from.getBlockX()
+                && to.getBlockY() == from.getBlockY()
+                && to.getBlockZ() == from.getBlockZ()) return;
 
         Player player = event.getPlayer();
-        handleStandRender(player, event.getTo(), false);
+        handleStandRender(player, to, false);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+    public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         handleStandRender(player, player.getLocation(), true);
     }
@@ -67,23 +74,23 @@ public final class StandManager implements Listener {
 
                 // Show/hide hologram.
                 if (bet.hasHologram() && bet.getHologram().isVisibleTo(player)) {
-                    handleStandRender(player, bet.getHologram().getStands(), shouldShow, isSpawn);
+                    handleStandRender(player, bet.getHologram().getStands().values(), shouldShow, isSpawn);
                 }
             }
 
             // Show/hide join hologram stands.
             if (game.getJoinHologram().isVisibleTo(player)) {
-                handleStandRender(player, game.getJoinHologram().getStands(), shouldShow, isSpawn);
+                handleStandRender(player, game.getJoinHologram().getStands().values(), shouldShow, isSpawn);
             }
 
             // Show/hide spin hologram stands (only if the player is playing this game).
             if (game.isPlaying(player)) {
-                handleStandRender(player, game.getSpinHologram().getStands(), shouldShow, isSpawn);
+                handleStandRender(player, game.getSpinHologram().getStands().values(), shouldShow, isSpawn);
             }
         }
     }
 
-    private void handleStandRender(Player player, Collection<PacketStand> stands, boolean shouldShow, boolean isSpawn) {
+    private void handleStandRender(Player player, @NotNull Collection<PacketStand> stands, boolean shouldShow, boolean isSpawn) {
         for (PacketStand stand : stands) {
             handleStandRender(player, stand, shouldShow, isSpawn);
         }
@@ -91,7 +98,10 @@ public final class StandManager implements Listener {
 
     private void handleStandRender(Player player, PacketStand stand, boolean shouldShow, boolean isSpawn) {
         if (shouldShow) {
-            if (stand.isIgnored(player) || isSpawn) stand.spawn(player);
+            boolean temp = true;
+            if ((stand.isIgnored(player) && (temp = stand.getIgnored().get(player.getUniqueId()) != PacketStand.IgnoreReason.HOLOGRAM)) || (isSpawn && temp)) {
+                stand.spawn(player);
+            }
         } else {
             if (!stand.isIgnored(player)) stand.destroy(player);
         }

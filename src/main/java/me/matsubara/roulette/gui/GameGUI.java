@@ -3,6 +3,7 @@ package me.matsubara.roulette.gui;
 import com.comphenix.protocol.wrappers.WrappedSignedProperty;
 import com.cryptomorin.xseries.XMaterial;
 import com.google.gson.JsonParser;
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
@@ -25,7 +26,8 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 
-public final class GameGUI implements InventoryHolder {
+@Getter
+public final class GameGUI implements InventoryHolder, RouletteGUI {
 
     // Instance of the plugin.
     private final RoulettePlugin plugin;
@@ -39,7 +41,7 @@ public final class GameGUI implements InventoryHolder {
     // Task id used for changing the winning slots.
     private int taskId;
 
-    public GameGUI(RoulettePlugin plugin, Game game, Player player) {
+    public GameGUI(RoulettePlugin plugin, @NotNull Game game, @NotNull Player player) {
         this.plugin = plugin;
         this.game = game;
         this.inventory = Bukkit.createInventory(
@@ -82,36 +84,38 @@ public final class GameGUI implements InventoryHolder {
                     .getAsString();
         }
 
+        ConfigManager configManager = plugin.getConfigManager();
+
         ItemBuilder croupierBuilder = ((url == null) ?
                 new ItemBuilder(XMaterial.PLAYER_HEAD.parseItem()) :
                 new ItemBuilder(url, true))
-                .setDisplayName(plugin.getConfigManager().getDisplayName("game-menu", "croupier").replace("%croupier-name%", npcName))
-                .setLore(plugin.getConfigManager().getLore("game-menu", "croupier"));
+                .setDisplayName(configManager.getDisplayName("game-menu", "croupier").replace("%croupier-name%", npcName))
+                .setLore(configManager.getLore("game-menu", "croupier"));
 
         inventory.setItem(0, croupierBuilder.build());
 
-        ItemStack account = new ItemBuilder(XMaterial.PLAYER_HEAD.parseItem()).setLore(plugin.getConfigManager().getAccountLore()).build();
-        ItemStack noAccount = plugin.getConfigManager().getItem("game-menu", "no-account", null);
+        ItemStack account = new ItemBuilder(XMaterial.PLAYER_HEAD.parseItem()).setLore(configManager.getAccountLore()).build();
+        ItemStack noAccount = configManager.getItem("game-menu", "no-account", null);
 
         OfflinePlayer accountTo = game.getAccountGiveTo() != null ? Bukkit.getOfflinePlayer(game.getAccountGiveTo()) : null;
 
         inventory.setItem(10, (accountTo != null) ? new ItemBuilder(account)
                 .setOwningPlayer(accountTo)
-                .setDisplayName(plugin.getConfigManager().getAccountDisplayName(accountTo.getName()))
+                .setDisplayName(configManager.getAccountDisplayName(accountTo.getName()))
                 .build() : noAccount);
 
         int minAmount = game.getMinPlayers(), maxAmount = game.getMaxPlayers();
 
-        ItemStack min = plugin.getConfigManager().getItem("game-menu", "min-amount", null);
+        ItemStack min = configManager.getItem("game-menu", "min-amount", null);
         inventory.setItem(11, new ItemBuilder(min).setAmount(minAmount).build());
 
-        ItemStack max = plugin.getConfigManager().getItem("game-menu", "max-amount", null);
+        ItemStack max = configManager.getItem("game-menu", "max-amount", null);
         inventory.setItem(12, new ItemBuilder(max).setAmount(maxAmount).build());
 
         int timeSeconds = game.getStartTime();
-        ItemStack time = plugin.getConfigManager().getItem("game-menu", "start-time", null);
+        ItemStack time = configManager.getItem("game-menu", "start-time", null);
         inventory.setItem(13, new ItemBuilder(time)
-                .setDisplayName(plugin.getConfigManager().getStartTimeDisplayName(timeSeconds))
+                .setDisplayName(configManager.getStartTimeDisplayName(timeSeconds))
                 .setAmount(timeSeconds).build());
 
         // Rules.
@@ -120,8 +124,8 @@ public final class GameGUI implements InventoryHolder {
         inventory.setItem(16, getRuleItem(GameRule.SURRENDER));
 
         String state = game.isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
-        inventory.setItem(8, new ItemBuilder(plugin.getConfigManager().getItem("game-menu", "bet-all", null))
-                .setDisplayName(plugin.getConfigManager().getDisplayName("game-menu", "bet-all").replace("%state%", state))
+        inventory.setItem(8, new ItemBuilder(configManager.getItem("game-menu", "bet-all", null))
+                .setDisplayName(configManager.getDisplayName("game-menu", "bet-all").replace("%state%", state))
                 .build());
 
         List<Winner.WinnerData> winners = new ArrayList<>();
@@ -138,8 +142,8 @@ public final class GameGUI implements InventoryHolder {
 
         if (winners.isEmpty()) {
             inventory.setItem(18, new ItemBuilder("badc048a7ce78f7dad72a07da27d85c0916881e5522eeed1e3daf217a38c1a", true)
-                    .setDisplayName(plugin.getConfigManager().getDisplayName("game-menu", "last-winning-numbers"))
-                    .setLore(plugin.getConfigManager().getLore("game-menu", "last-winning-numbers"))
+                    .setDisplayName(configManager.getDisplayName("game-menu", "last-winning-numbers"))
+                    .setLore(configManager.getLore("game-menu", "last-winning-numbers"))
                     .build());
         }
 
@@ -157,18 +161,18 @@ public final class GameGUI implements InventoryHolder {
                 if (index == winners.size()) index = 0;
 
                 inventory.setItem(18, new ItemBuilder(winners.get(index).getWinner().getUrl(), true)
-                        .setDisplayName(plugin.getConfigManager().getDisplayName("game-menu", "last-winning-numbers"))
-                        .setLore(plugin.getConfigManager().getLore("game-menu", "last-winning-numbers"))
+                        .setDisplayName(configManager.getDisplayName("game-menu", "last-winning-numbers"))
+                        .setLore(configManager.getLore("game-menu", "last-winning-numbers"))
                         .build());
 
                 index++;
             }
         }.runTaskTimer(plugin, 0, 40L).getTaskId();
 
-        inventory.setItem(26, plugin.getConfigManager().getItem("game-menu", "close", null));
+        inventory.setItem(26, configManager.getItem("game-menu", "close", null));
     }
 
-    private ItemStack getRuleItem(GameRule rule) {
+    private ItemStack getRuleItem(@NotNull GameRule rule) {
         String path = rule.name().toLowerCase().replace("_", "-");
 
         List<String> lore = plugin.getConfigManager().getLore("game-menu", path);
@@ -191,17 +195,8 @@ public final class GameGUI implements InventoryHolder {
                 .build();
     }
 
-    public Game getGame() {
-        return game;
-    }
-
-    public int getTaskId() {
-        return taskId;
-    }
-
-    @NotNull
     @Override
-    public Inventory getInventory() {
+    public @NotNull Inventory getInventory() {
         return inventory;
     }
 }

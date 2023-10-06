@@ -11,6 +11,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
+import org.jetbrains.annotations.NotNull;
 
 public final class InventoryClose implements Listener {
 
@@ -21,10 +22,9 @@ public final class InventoryClose implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player)) return;
+    public void onInventoryClose(@NotNull InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) return;
 
-        Player player = (Player) event.getPlayer();
         Inventory inventory = event.getInventory();
 
         if (inventory.getHolder() instanceof GameGUI) {
@@ -53,9 +53,8 @@ public final class InventoryClose implements Listener {
             return;
         }
 
-        if (!(inventory.getHolder() instanceof ConfirmGUI)) return;
+        if (!(inventory.getHolder() instanceof ConfirmGUI gui)) return;
 
-        ConfirmGUI gui = (ConfirmGUI) inventory.getHolder();
         if (gui.getType().isLeave()) return;
 
         // Is bet all confirm gui.

@@ -1,6 +1,8 @@
 package me.matsubara.roulette.gui;
 
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.bukkit.entity.Player;
@@ -11,7 +13,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 
-public final class ConfirmGUI implements InventoryHolder {
+@Getter
+public final class ConfirmGUI implements InventoryHolder, RouletteGUI {
+
+    // The game related to this GUI.
+    private final Game game;
 
     // The inventory being used.
     private final Inventory inventory;
@@ -22,7 +28,10 @@ public final class ConfirmGUI implements InventoryHolder {
     // The previous page of the chip gui.
     private int previousPage;
 
-    public ConfirmGUI(RoulettePlugin plugin, Player player, ConfirmType type) {
+    public ConfirmGUI(@NotNull Game game, Player player, ConfirmType type) {
+        RoulettePlugin plugin = game.getPlugin();
+
+        this.game = game;
         this.inventory = plugin.getServer().createInventory(this, 9, ConfigManager.Config.CONFIRM_GUI_TITLE.asString());
         this.type = type;
         // Set first page as default previous.
@@ -71,6 +80,7 @@ public final class ConfirmGUI implements InventoryHolder {
         this.previousPage = previousPage;
     }
 
+    @SuppressWarnings("unused")
     public enum ConfirmType {
         LEAVE,
         BET_ALL;

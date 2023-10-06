@@ -9,12 +9,12 @@
 # :)
 
 # Don't touch this!
-config-version: 1
+config-version: 2
 
-# The render distance for the models. Default: 96, good distance to prevent seeing players lonely.
+# The render distance for the models. Default: 96.
 render-distance: 96
 
-# Whether to allow players to swap chairs before the game starts. If false, you can bypass this with 'roulette.swap_chair' permission.
+# Whether to allow players to swap chairs before the game starts. If false, you can bypass this with 'roulette.swapchair' permission.
 # if false, players will be seated in the first empty chair.
 swap-chair: true
 
@@ -24,11 +24,14 @@ instant-explode: true
 # Whether to fix the camera when changing chairs so the player looks forward.
 fix-chair-camera: false
 
-# The delay before you can move your chip / from chair (in millis).
-move-interval: 150
+# The delay before you can move your chip / from chair (in millis, minimum value allowed = 200).
+move-interval: 200
 
 # Whether to allow players to hit other players within a game.
 hit-on-game: false
+
+# If true, players will remain seated at the table after a game ends; ready for the next game.
+keep-seat: true
 
 # If you want to use abbreviation format when naming money. Useful for prison type servers where money values are much higher.
 # You can add your own translations per value, using the abbreviation as the key.
@@ -78,24 +81,21 @@ restart:
   # How many fireworks'll be launched (only if there are winners).
   fireworks: 10
 
-# The sound that'll play when you click an item in the chip inventory.
-sound.click: BLOCK_NOTE_BLOCK_PLING
-
-# The sound that'll play along with the countdown messages.
-sound.countdown: ENTITY_EXPERIENCE_ORB_PICKUP
-
-# The sound that'll play when the roulette starts to spin.
-sound.spinning: BLOCK_METAL_PRESSURE_PLATE_CLICK_ON
-
-# The sound that'll play when swapping chairs.
-sound.swap-chair: ENTITY_PLAYER_ATTACK_CRIT
-
-# The sound that'll play when selecting a slot in the table (when moving the chip).
-sound.select: BLOCK_WOOL_PLACE
+sounds:
+  # The sound that'll play when you click an item in the chip inventory.
+  click: BLOCK_NOTE_BLOCK_PLING
+  # The sound that'll play along with the countdown messages.
+  countdown: ENTITY_EXPERIENCE_ORB_PICKUP
+  # The sound that'll play when the roulette starts to spin.
+  spinning: BLOCK_METAL_PRESSURE_PLATE_CLICK_ON
+  # The sound that'll play when swapping chairs.
+  swap-chair: ENTITY_PLAYER_ATTACK_CRIT
+  # The sound that'll play when selecting a slot in the table (when moving the chip).
+  select: BLOCK_WOOL_PLACE
 
 # Here you can disable the slots of the table that you want.
 # https://github.com/aematsubara/Roulette/blob/master/src/main/java/me/matsubara/roulette/game/data/Slot.java
-disabled-slots: []
+disabled-slots: [ ]
 
 # Whether to give a map (or "casino voucher") to the winner of a game.
 # The image must be named "image.png" and must be 128x128 (otherwise will be resized).
@@ -103,15 +103,21 @@ disabled-slots: []
 #
 # Available placeholders:
 # %player% - the player who won.
-# %money% - the amount of money.
+# %money% - the amount of money earned.
+# %original-money% -the original amount of money bet.
+# %date% - which date the game was won.
+# %selected-slot% - the slot in which the bet was placed.
+# %winner-slot% - the winning number of the roulette wheel.
 map-image:
   enabled: true
-  # There are some builds of 1.19 that the map id assigned to the maps is different from the one in the items,
-  # enable this option if the maps don't persist after a restart (REQUIRES RESTART!).
-  shift-id-fix: false
   text:
     - 15, %player%
     - 105, %money%
+  date-format: "dd-MM-yyyy"
+  item:
+    display-name: "&aCongratulations!"
+    lore:
+      - "&7You have won &a%money% &7playing roulette!"
 
 # The word that must be typed to cancel an input request (account name / NPC name / NPC texture).
 cancel-word: cancel
@@ -140,8 +146,9 @@ slots:
     black: "&0&lBlack"
 
 # The name of the %type% variable depending on the type of the game for the join hologram.
-type.european: "&a(European)"
-type.american: "&a(American)"
+types:
+  european: "&a(European)"
+  american: "&a(American)"
 
 confirmation-gui:
   # The title of the confirmation GUI.

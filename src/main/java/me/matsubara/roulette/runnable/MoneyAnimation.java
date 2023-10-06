@@ -4,6 +4,7 @@ import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.model.stand.PacketStand;
 import org.bukkit.Location;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 
 public final class MoneyAnimation extends BukkitRunnable {
 
@@ -14,7 +15,7 @@ public final class MoneyAnimation extends BukkitRunnable {
     private int count;
     private int toFinish;
 
-    public MoneyAnimation(Game game) {
+    public MoneyAnimation(@NotNull Game game) {
         this.game = game;
         this.moneySlot = game.getModel().getByName("MONEY_SLOT");
 
