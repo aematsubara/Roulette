@@ -32,9 +32,7 @@ public final class UseEntity extends PacketAdapter {
     private final RoulettePlugin plugin;
 
     public UseEntity(RoulettePlugin plugin) {
-        super(PacketAdapter.params(plugin, PacketType.Play.Client.USE_ENTITY)
-                .listenerPriority(ListenerPriority.HIGHEST)
-                .optionSync());
+        super(plugin, ListenerPriority.HIGHEST, PacketType.Play.Client.USE_ENTITY);
         this.plugin = plugin;
     }
 
@@ -165,18 +163,21 @@ public final class UseEntity extends PacketAdapter {
                     return;
                 }
 
-                PlayerRouletteEnterEvent enterEvent = new PlayerRouletteEnterEvent(game, player);
-                plugin.getServer().getPluginManager().callEvent(enterEvent);
-                if (enterEvent.isCancelled()) return;
+                // We need to do this part sync to prevent issues.
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    PlayerRouletteEnterEvent enterEvent = new PlayerRouletteEnterEvent(game, player);
+                    plugin.getServer().getPluginManager().callEvent(enterEvent);
+                    if (enterEvent.isCancelled()) return;
 
-                Integer sitAt = handleChairInteract(game, player, entry.getKey());
-                if (sitAt == null) return;
+                    Integer sitAt = handleChairInteract(game, player, entry.getKey());
+                    if (sitAt == null) return;
 
-                game.add(player, sitAt);
-                game.broadcast(MessageManager.Message.JOIN.asString()
-                        .replace("%player%", player.getName())
-                        .replace("%playing%", String.valueOf(game.size()))
-                        .replace("%max%", String.valueOf(game.getMaxPlayers())));
+                    game.add(player, sitAt);
+                    game.broadcast(MessageManager.Message.JOIN.asString()
+                            .replace("%player%", player.getName())
+                            .replace("%playing%", String.valueOf(game.size()))
+                            .replace("%max%", String.valueOf(game.getMaxPlayers())));
+                });
                 return;
             }
         }

@@ -39,7 +39,6 @@ public final class EntityDamageByEntity implements Listener {
     }
 
     private boolean isInGame(@NotNull Entity entity) {
-        if (entity.getType() != EntityType.PLAYER) return false;
-        return plugin.getGameManager().isPlaying((Player) entity);
+        return entity instanceof Player player && plugin.getGameManager().isPlaying(player);
     }
 }
