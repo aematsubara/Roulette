@@ -1,6 +1,5 @@
 package me.matsubara.roulette.model;
 
-import com.cryptomorin.xseries.SkullUtils;
 import com.cryptomorin.xseries.XMaterial;
 import lombok.Getter;
 import lombok.Setter;
@@ -273,7 +272,8 @@ public final class Model {
         }
 
         if (item != null && item.getItemMeta() != null && configuration.get(defaultPath + ".url") != null) {
-            SkullMeta meta = SkullUtils.applySkin(item.getItemMeta(), configuration.getString(defaultPath + ".url"));
+            SkullMeta meta = (SkullMeta) item.getItemMeta();
+            PluginUtils.applySkin(meta, configuration.getString(defaultPath + ".url"), true);
             item.setItemMeta(meta);
         }
 

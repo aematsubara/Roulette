@@ -2,8 +2,10 @@ package me.matsubara.roulette.util;
 
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.cryptomorin.xseries.ReflectionUtils;
-import com.cryptomorin.xseries.SkullUtils;
 import com.cryptomorin.xseries.XMaterial;
+import com.google.common.base.Preconditions;
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.manager.ConfigManager;
@@ -21,6 +23,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -54,6 +57,9 @@ public final class PluginUtils {
     private static Object STANDING;
 
     public static final Color[] COLORS = getColors();
+
+    private static final MethodHandle SET_PROFILE;
+    private static final MethodHandle PROFILE;
 
     private static Color @NotNull [] getColors() {
         Field[] fields = Color.class.getDeclaredFields();
@@ -97,6 +103,12 @@ public final class PluginUtils {
                 exception.printStackTrace();
             }
         }
+
+        Class<?> craftMetaSkull = ReflectionUtils.getCraftClass("inventory.CraftMetaSkull");
+        Preconditions.checkNotNull(craftMetaSkull);
+
+        SET_PROFILE = Reflection.getMethod(craftMetaSkull, "setProfile", GameProfile.class);
+        PROFILE = Reflection.getFieldSetter(craftMetaSkull, "profile");
     }
 
     /**
@@ -159,8 +171,34 @@ public final class PluginUtils {
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         if (meta == null) return null;
 
-        item.setItemMeta(SkullUtils.applySkin(meta, isMCUrl ? "http://textures.minecraft.net/texture/" + url : url));
+        applySkin(meta, url, isMCUrl);
+        item.setItemMeta(meta);
+
         return item;
+    }
+
+    public static void applySkin(SkullMeta meta, String texture, boolean isUrl) {
+        applySkin(meta, UUID.randomUUID(), texture, isUrl);
+    }
+
+    public static void applySkin(SkullMeta meta, UUID uuid, String texture, boolean isUrl) {
+        GameProfile profile = new GameProfile(uuid, "");
+
+        String textureValue = texture;
+        if (isUrl) {
+            textureValue = "http://textures.minecraft.net/texture/" + textureValue;
+            byte[] encodedData = Base64.getEncoder().encode(String.format("{textures:{SKIN:{url:\"%s\"}}}", textureValue).getBytes());
+            textureValue = new String(encodedData);
+        }
+
+        profile.getProperties().put("textures", new Property("textures", textureValue));
+
+        try {
+            // If the serialized profile field isn't set, ItemStack#isSimilar() and ItemStack#equals() throw an error.
+            (SET_PROFILE == null ? PROFILE : SET_PROFILE).invoke(meta, profile);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
     }
 
     public static String translate(String message) {

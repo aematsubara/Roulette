@@ -150,7 +150,12 @@ public final class RoulettePlugin extends JavaPlugin {
         gameManager = new GameManager(this);
         winnerManager = new WinnerManager(this);
 
-        glowingEntities = new GlowingEntities(this);
+        try {
+            glowingEntities = new GlowingEntities(this);
+        } catch (IllegalStateException exception) {
+            getLogger().warning("Your server version doesn't support glowing for betting chips; this feature is disabled.");
+            glowingEntities = null;
+        }
 
         reloadAbbreviations();
     }

@@ -8,6 +8,7 @@ import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
+import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -189,11 +190,14 @@ public final class Bet {
     }
 
     public void updateStandGlow(Player player) {
+        GlowingEntities glowing = game.getPlugin().getGlowingEntities();
+        if (glowing == null) return;
+
         ArmorStand standBukkit;
         if (!hasStand() || (standBukkit = stand.getBukkitEntity()) == null) return;
 
         try {
-            game.getPlugin().getGlowingEntities().setGlowing(
+            glowing.setGlowing(
                     stand.getEntityId(),
                     standBukkit.getUniqueId().toString(),
                     player,

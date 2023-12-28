@@ -225,31 +225,30 @@ public final class Game {
             standLocation.subtract(0.0d, 0.3d, 0.0d);
         }
 
-        ArmorStand bukkit = world.spawn(standLocation, ArmorStand.class);
-        StandSettings settings = stand.getSettings();
+        return world.spawn(standLocation, ArmorStand.class, bukkit -> {
+            StandSettings settings = stand.getSettings();
 
-        bukkit.setInvisible(settings.isInvisible());
-        bukkit.setSmall(settings.isSmall());
-        bukkit.setBasePlate(settings.isBasePlate());
-        bukkit.setArms(settings.isArms());
-        bukkit.setFireTicks(settings.isFire() ? Integer.MAX_VALUE : 0);
-        bukkit.setMarker(settings.isMarker());
-        bukkit.setPersistent(false);
-        if (supports20_2) bukkit.setGravity(false);
+            bukkit.setInvisible(settings.isInvisible());
+            bukkit.setSmall(settings.isSmall());
+            bukkit.setBasePlate(settings.isBasePlate());
+            bukkit.setArms(settings.isArms());
+            bukkit.setFireTicks(settings.isFire() ? Integer.MAX_VALUE : 0);
+            bukkit.setMarker(settings.isMarker());
+            bukkit.setPersistent(false);
+            if (supports20_2) bukkit.setGravity(false);
 
-        // Set poses.
-        bukkit.setHeadPose(settings.getHeadPose());
-        bukkit.setBodyPose(settings.getBodyPose());
-        bukkit.setLeftArmPose(settings.getLeftArmPose());
-        bukkit.setRightArmPose(settings.getRightArmPose());
-        bukkit.setLeftLegPose(settings.getLeftLegPose());
-        bukkit.setRightLegPose(settings.getRightLegPose());
+            // Set poses.
+            bukkit.setHeadPose(settings.getHeadPose());
+            bukkit.setBodyPose(settings.getBodyPose());
+            bukkit.setLeftArmPose(settings.getLeftArmPose());
+            bukkit.setRightArmPose(settings.getRightArmPose());
+            bukkit.setLeftLegPose(settings.getLeftLegPose());
+            bukkit.setRightLegPose(settings.getRightLegPose());
 
-        // Hide hearts.
-        AttributeInstance attribute = bukkit.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-        if (attribute != null) attribute.setBaseValue(1);
-
-        return bukkit;
+            // Hide hearts.
+            AttributeInstance attribute = bukkit.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+            if (attribute != null) attribute.setBaseValue(1);
+        });
     }
 
     public @NotNull Location getNPCLocation() {

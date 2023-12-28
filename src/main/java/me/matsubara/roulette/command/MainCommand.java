@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -34,7 +35,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
     private static final List<String> TYPES = List.of("american", "european");
     private static final List<String> HELP = Stream.of(
             "&8&m--------------------------------------------------",
-            "&6&lRoulette &f&oCommands &c(optional) <required>",
+            "&6&lRoulette &f&oCommands &c<required> | [optional]",
             "&e/roulette create <name> <type> &f- &7Create a new roulette.",
             "&e/roulette delete <name> &f- &7Delete a game.",
             "&e/roulette reload &f- &7Reload configuration files.",
@@ -52,18 +53,12 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
         MessageManager messages = plugin.getMessageManager();
 
-        // This command can't be executed from the console.
-        if (!(sender instanceof Player player)) {
-            messages.send(sender, MessageManager.Message.FROM_CONSOLE);
-            return true;
-        }
-
         // No arguments provided.
         boolean noArgs = args.length == 0;
         if (noArgs || args.length > 3 || !COMMAND_ARGS.contains(args[0].toLowerCase())) {
             // Otherwise, send help message.
-            if (noArgs) HELP.forEach(player::sendMessage);
-            else messages.send(player, MessageManager.Message.SINTAX);
+            if (noArgs) HELP.forEach(sender::sendMessage);
+            else messages.send(sender, MessageManager.Message.SINTAX);
             return true;
         }
 
@@ -71,7 +66,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             switch (args[0].toLowerCase()) {
                 case "reload" -> {
                     // If player doesn't have permission to reload, send @no-permission message.
-                    if (!hasPermission(player, "roulette.reload")) return true;
+                    if (!hasPermission(sender, "roulette.reload")) return true;
 
                     // Log reloading message.
                     plugin.getLogger().info("Reloading " + plugin.getDescription().getFullName());
@@ -95,6 +90,10 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 case "map" -> {
+                    // This command can't be executed from the console.
+                    Player player = getPlayerFromSender(sender);
+                    if (player == null) return true;
+
                     // If player doesn't have permission to get a map, send @no-permission message.
                     if (!hasPermission(player, "roulette.map")) return true;
                     ThreadLocalRandom random = ThreadLocalRandom.current();
@@ -115,7 +114,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 default -> {
-                    messages.send(player, MessageManager.Message.SINTAX);
+                    messages.send(sender, MessageManager.Message.SINTAX);
                     return true;
                 }
             }
@@ -124,30 +123,35 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("delete")) {
                 // If player doesn't have permission to delete games, send @no-permission message.
-                if (!hasPermission(player, "roulette.delete")) return true;
+                if (!hasPermission(sender, "roulette.delete")) return true;
 
                 Game game = plugin.getGameManager().getGame(args[1]);
                 if (game != null) {
-                    // If player doesn't have permission to delete games from other players, send @no-permission message.
-                    if (!game.getOwner().equals(player.getUniqueId()) && !hasPermission(player, "roulette.delete.others")) {
+                    // If the sender is a player and doesn't have permission to delete games from other players, send @no-permission message.
+                    if (sender instanceof Player player
+                            && !game.getOwner().equals(player.getUniqueId())
+                            && !hasPermission(player, "roulette.delete.others")) {
                         return true;
                     }
 
                     plugin.getGameManager().deleteGame(game);
-                    messages.send(player, MessageManager.Message.DELETE, message -> message.replace("%name%", game.getName()));
+                    messages.send(sender, MessageManager.Message.DELETE, message -> message.replace("%name%", game.getName()));
                 } else {
-                    messages.send(player, MessageManager.Message.UNKNOWN, message -> message.replace("%name%", args[1]));
+                    messages.send(sender, MessageManager.Message.UNKNOWN, message -> message.replace("%name%", args[1]));
                 }
             } else {
-                messages.send(player, MessageManager.Message.SINTAX);
+                messages.send(sender, MessageManager.Message.SINTAX);
             }
             return true;
         }
 
         if (!args[0].equalsIgnoreCase("create")) {
-            messages.send(player, MessageManager.Message.SINTAX);
+            messages.send(sender, MessageManager.Message.SINTAX);
             return true;
         }
+
+        Player player = getPlayerFromSender(sender);
+        if (player == null) return true;
 
         // If player doesn't have permission to create games, send @no-permission message.
         if (!hasPermission(player, "roulette.create")) return true;
@@ -184,6 +188,12 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
         messages.send(player, MessageManager.Message.CREATE, message -> message.replace("%name%", args[1]));
         return true;
+    }
+
+    private @Nullable Player getPlayerFromSender(CommandSender sender) {
+        if (sender instanceof Player player) return player;
+        plugin.getMessageManager().send(sender, MessageManager.Message.FROM_CONSOLE);
+        return null;
     }
 
     private <T extends Enum<T>> T getRandomFromEnum(@NotNull Class<T> clazz) {
