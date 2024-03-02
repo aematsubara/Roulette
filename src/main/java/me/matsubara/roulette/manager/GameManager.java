@@ -16,16 +16,20 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.spigotmc.event.entity.EntityDismountEvent;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-public final class GameManager {
+public final class GameManager implements Listener {
 
     private final RoulettePlugin plugin;
     private final @Getter List<Game> games;
@@ -35,8 +39,24 @@ public final class GameManager {
 
     public GameManager(RoulettePlugin plugin) {
         this.plugin = plugin;
+        this.plugin.getServer().getPluginManager().registerEvents(this, plugin);
         this.games = new ArrayList<>();
         load();
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerDismount(@NotNull EntityDismountEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (!(event.getDismounted() instanceof ArmorStand)) return;
+
+        Game playing = getGameByPlayer(player);
+        if (playing == null
+                || playing.getTransfers().remove(player.getUniqueId())
+                || !playing.isPlaying(player)) return;
+
+        // Remove player from game.
+        plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
+        playing.remove(player, false);
     }
 
     private void load() {

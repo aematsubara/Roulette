@@ -1,22 +1,19 @@
 package me.matsubara.roulette.util;
 
+import com.cryptomorin.xseries.ReflectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import sun.misc.Unsafe;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
-// NOTE: Warning ("Usage of API marked for removal") disabled in IDEA.
 public final class Reflection {
 
-    private static final Unsafe UNSAFE = getUnsafe();
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     public static MethodHandle getFieldGetter(Class<?> clazz, String name) {
@@ -27,7 +24,7 @@ public final class Reflection {
         return getField(clazz, name, false);
     }
 
-    public static @Nullable MethodHandle getField(@NotNull Class<?> clazz, String name, boolean isGetter) {
+    private static @Nullable MethodHandle getField(@NotNull Class<?> clazz, String name, boolean isGetter) {
         try {
             Field field = clazz.getDeclaredField(name);
             field.setAccessible(true);
@@ -40,20 +37,30 @@ public final class Reflection {
         }
     }
 
-    public static @Nullable MethodHandle getConstructor(@NotNull Class<?> clazz, Class<?>... parameterTypes) {
+    public static @Nullable Object getFieldValue(MethodHandle handle) {
         try {
-            Constructor<?> constructor = clazz.getDeclaredConstructor(parameterTypes);
-            constructor.setAccessible(true);
-
-            return LOOKUP.unreflectConstructor(constructor);
-        } catch (ReflectiveOperationException exception) {
-            exception.printStackTrace();
+            return handle.invoke();
+        } catch (Throwable throwable) {
             return null;
         }
     }
 
-    public static @Nullable MethodHandle getMethod(@NotNull Class<?> refc, String name, Class<?> parameterTypes) {
-        MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+    public static MethodHandle getConstructor(Class<?> refc, Class<?>... types) {
+        return getConstructor(refc, true, types);
+    }
+
+    public static @Nullable MethodHandle getConstructor(@NotNull Class<?> refc, boolean printStackTrace, Class<?>... types) {
+        try {
+            Constructor<?> constructor = refc.getDeclaredConstructor(types);
+            constructor.setAccessible(true);
+            return LOOKUP.unreflectConstructor(constructor);
+        } catch (ReflectiveOperationException exception) {
+            if (printStackTrace) exception.printStackTrace();
+            return null;
+        }
+    }
+
+    public static @Nullable MethodHandle getMethod(@NotNull Class<?> refc, String name, Class<?>... parameterTypes) {
         try {
             Method method = refc.getDeclaredMethod(name, parameterTypes);
             method.setAccessible(true);
@@ -64,62 +71,47 @@ public final class Reflection {
         }
     }
 
-    public static void setFieldUsingUnsafe(@NotNull Field field, Object object, Object newValue) {
+    public static MethodHandle getMethod(Class<?> refc, String name, MethodType type) {
+        return getMethod(refc, name, type, false, true);
+    }
+
+    public static @Nullable MethodHandle getMethod(Class<?> refc, String name, MethodType type, String... extraNames) {
+        return getMethod(refc, name, type, false, true, extraNames);
+    }
+
+    public static @Nullable MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, boolean printStackTrace, String... extraNames) {
         try {
-            field.setAccessible(true);
-            int fieldModifiersMask = field.getModifiers();
-            boolean isFinalModifierPresent = (fieldModifiersMask & Modifier.FINAL) == Modifier.FINAL;
-            if (isFinalModifierPresent) {
-                AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-                    try {
-                        long offset = UNSAFE.objectFieldOffset(field);
-                        setFieldUsingUnsafe(object, field.getType(), offset, newValue);
-                        return null;
-                    } catch (Throwable throwable) {
-                        throw new RuntimeException(throwable);
-                    }
-                });
-            } else {
-                try {
-                    field.set(object, newValue);
-                } catch (IllegalAccessException exception) {
-                    throw new RuntimeException(exception);
+            if (isStatic) return LOOKUP.findStatic(refc, name, type);
+            if (ReflectionUtils.MINOR_NUMBER > 17) {
+                Method method = refc.getMethod(name, type.parameterArray());
+                if (!method.getReturnType().isAssignableFrom(type.returnType())) {
+                    throw new NoSuchMethodException();
+                }
+                return LOOKUP.unreflect(method);
+            }
+            return LOOKUP.findVirtual(refc, name, type);
+        } catch (ReflectiveOperationException exception) {
+            if (extraNames != null && extraNames.length > 0) {
+                if (extraNames.length == 1) {
+                    return getMethod(refc, extraNames[0], type, isStatic, printStackTrace);
+                }
+                for (String extra : extraNames) {
+                    int index = ArrayUtils.indexOf(extraNames, extra);
+                    String[] rest = ArrayUtils.remove(extraNames, index);
+                    return getMethod(refc, extra, type, isStatic, printStackTrace, rest);
                 }
             }
-        } catch (SecurityException exception) {
-            throw new RuntimeException(exception);
+            if (printStackTrace) exception.printStackTrace();
+            return null;
         }
     }
 
-    private static Unsafe getUnsafe() {
+    public static @Nullable Class<?> getUnversionedClass(String name) {
         try {
-            Field field = Unsafe.class.getDeclaredField("theUnsafe");
-            field.setAccessible(true);
-            return (Unsafe) field.get(null);
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            throw new RuntimeException(exception);
-        }
-    }
-
-    private static void setFieldUsingUnsafe(Object base, Class<?> type, long offset, Object newValue) {
-        if (type == Integer.TYPE) {
-            UNSAFE.putInt(base, offset, ((Integer) newValue));
-        } else if (type == Short.TYPE) {
-            UNSAFE.putShort(base, offset, ((Short) newValue));
-        } else if (type == Long.TYPE) {
-            UNSAFE.putLong(base, offset, ((Long) newValue));
-        } else if (type == Byte.TYPE) {
-            UNSAFE.putByte(base, offset, ((Byte) newValue));
-        } else if (type == Boolean.TYPE) {
-            UNSAFE.putBoolean(base, offset, ((Boolean) newValue));
-        } else if (type == Float.TYPE) {
-            UNSAFE.putFloat(base, offset, ((Float) newValue));
-        } else if (type == Double.TYPE) {
-            UNSAFE.putDouble(base, offset, ((Double) newValue));
-        } else if (type == Character.TYPE) {
-            UNSAFE.putChar(base, offset, ((Character) newValue));
-        } else {
-            UNSAFE.putObject(base, offset, newValue);
+            return Class.forName(name);
+        } catch (ClassNotFoundException exception) {
+            exception.printStackTrace();
+            return null;
         }
     }
 }

@@ -1,31 +1,29 @@
 package me.matsubara.roulette.model.stand;
 
 import com.cryptomorin.xseries.ReflectionUtils;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import lombok.Getter;
+import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.hook.ViaExtension;
-import me.matsubara.roulette.util.PluginUtils;
-import org.apache.commons.lang3.ArrayUtils;
+import me.matsubara.roulette.util.Reflection;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.EulerAngle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.TestOnly;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings({"ConstantConditions"})
 @Getter
@@ -34,25 +32,35 @@ public final class PacketStand {
     // Plugin instance.
     private final RoulettePlugin plugin = JavaPlugin.getPlugin(RoulettePlugin.class);
 
-    // Entity instance.
-    private Object stand;
-
     // Entity location.
     private Location location;
 
+    // Entity yaw and pitch, ready to use in packets.
+    private byte previousYaw, yaw;
+    private byte pitch;
+
     // Set with the unique id of the players who aren't seeing the entity due to the distance.
-    private Map<UUID, IgnoreReason> ignored;
+    private final Map<UUID, IgnoreReason> ignored = new HashMap<>();
 
     public enum IgnoreReason {
         NONE,
         HOLOGRAM
     }
 
+    // The render distance taken from the model.
+    private final double renderDistance;
+
+    // Entity id.
+    private final int entityId;
+
     // Entity unique id.
-    private int entityId;
+    private final UUID entityUniqueId;
 
     // Entity properties.
-    private StandSettings settings;
+    private final StandSettings settings;
+
+    private @Setter boolean cacheMetadata;
+    private List<Object> cachedMetadata;
 
     // Protocol version of the server, only needed for 1.17.
     private static int PROTOCOL = -1;
@@ -60,27 +68,17 @@ public final class PacketStand {
     // Version of the server.
     private static final int VERSION = ReflectionUtils.MINOR_NUMBER;
 
-    // Methods factory.
-    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
-
-    @TestOnly
-    private static final boolean FORCE_SYNC = true;
+    private static final double BUKKIT_VIEW_DISTANCE = Math.pow(Bukkit.getViewDistance() << 4, 2);
+    private final static char[] ALPHABET = "abcdefghijklmnopqrstuvwxyz".toCharArray();
 
     // Classes.
     private static final Class<?> CRAFT_CHAT_MESSAGE;
-    private static final Class<?> CRAFT_ENTITY;
-    private static final Class<?> CRAFT_WORLD;
     private static final Class<?> CRAFT_ITEM_STACK;
-    private static final Class<?> WORLD;
-    private static final Class<?> WORLD_SERVER;
     private static final Class<?> ENTITY;
-    private static final Class<?> ENTITY_LIVING;
     private static final Class<?> ENTITY_ARMOR_STAND;
     private static final Class<?> PACKET_SPAWN_ENTITY_LIVING;
     private static final Class<?> PACKET_ENTITY_HEAD_ROTATION;
     private static final Class<?> PACKET_ENTITY_TELEPORT;
-    private static final Class<?> PACKET_ENTITY_LOOK;
-    private static final Class<?> DATA_WATCHER;
     private static final Class<?> PACKET_ENTITY_METADATA;
     private static final Class<?> PACKET_ENTITY_EQUIPMENT;
     private static final Class<?> ENUM_ITEM_SLOT;
@@ -91,142 +89,145 @@ public final class PacketStand {
     private static final Class<?> GAME_VERSION;
     private static final Class<?> VECTOR3F;
     private static final Class<?> I_CHAT_BASE_COMPONENT;
+    private static final Class<?> PACKET_DATA_SERIALIZER;
+    private static final Class<?> DATA_WATCHER_OBJECT;
+    private static final Class<?> DATA_WATCHER_SERIALIZER;
+    private static final Class<?> DATA_WATCHER_ITEM;
+    private static final Class<?> DATA_WATCHER_REGISTRY;
+    private static final Class<?> ENTITY_TYPES;
+    private static final Class<?> VEC_3D;
 
     // Methods.
-    private static final MethodHandle getHandle;
-    private static final MethodHandle getDataWatcher;
     private static final MethodHandle asNMSCopy;
     private static final MethodHandle of;
-    private static final MethodHandle getBukkitEntity;
-    private static final MethodHandle setFlag;
     private static final MethodHandle fromStringOrNull;
-    private static final MethodHandle getId;
-    private static final MethodHandle setLocation;
-    private static final MethodHandle setInvisible;
-    private static final MethodHandle setArms;
-    private static final MethodHandle setBasePlate;
-    private static final MethodHandle setSmall;
-    private static final MethodHandle setMarker;
-    private static final MethodHandle setCustomName;
-    private static final MethodHandle setCustomNameVisible;
-    private static final MethodHandle setHeadPose;
-    private static final MethodHandle setBodyPose;
-    private static final MethodHandle setLeftArmPose;
-    private static final MethodHandle setRightArmPose;
-    private static final MethodHandle setLeftLegPose;
-    private static final MethodHandle setRightLegPose;
-    private static final MethodHandle setGlowing;
-    private static final MethodHandle getNonDefaultValues;
+    private static final MethodHandle writeInt;
+    private static final MethodHandle writeByte;
+    private static final MethodHandle writeUUID;
+    private static final MethodHandle writeDouble;
+    private static final MethodHandle writeShort;
+    private static final MethodHandle writeBoolean;
+    private static final MethodHandle getObject;
+    private static final MethodHandle getValue;
+    private static final MethodHandle getSerializer;
+    private static final MethodHandle getIndex;
+    private static final MethodHandle getTypeId;
+    private static final MethodHandle serialize;
+    private static final MethodHandle byString;
 
     // Constructors.
-    private static final MethodHandle entityArmorStand;
     private static final MethodHandle packetSpawnEntityLiving;
     private static final MethodHandle packetEntityHeadRotation;
     private static final MethodHandle packetEntityTeleport;
-    private static final MethodHandle packetEntityLook;
-    private static final MethodHandle packetEntityMetadata;
     private static final MethodHandle packetEntityEquipment;
     private static final MethodHandle packetEntityDestroy;
     private static final MethodHandle vector3f;
+    private static final MethodHandle packetDataSerializer;
+    private static final MethodHandle packetEntityMetadata;
+    private static final MethodHandle dataWatcherItem;
+
+    // Fields.
+    private static final Object DWO_ENTITY_DATA;
+    private static final Object DWO_ARMOR_STAND_DATA;
+    private static final Object DWO_CUSTOM_NAME;
+    private static final Object DWO_CUSTOM_NAME_VISIBLE;
+    private static final Object DWO_HEAD_POSE;
+    private static final Object DWO_BODY_POSE;
+    private static final Object DWO_LEFT_ARM_POSE;
+    private static final Object DWO_RIGHT_ARM_POSE;
+    private static final Object DWO_LEFT_LEG_POSE;
+    private static final Object DWO_RIGHT_LEG_POSE;
+    private static final Object ZERO;
+    private static final Object ARMOR_STAND;
+    private static final int ENTITY_TYPE_ID;
+    private static final AtomicInteger ENTITY_COUNTER;
 
     static {
         // Initialize classes.
         CRAFT_CHAT_MESSAGE = (VERSION > 12) ? ReflectionUtils.getCraftClass("util.CraftChatMessage") : null;
-        CRAFT_ENTITY = ReflectionUtils.getCraftClass("entity.CraftEntity");
-        CRAFT_WORLD = ReflectionUtils.getCraftClass("CraftWorld");
         CRAFT_ITEM_STACK = ReflectionUtils.getCraftClass("inventory.CraftItemStack");
-        WORLD = ReflectionUtils.getNMSClass("world.level", "World");
-        WORLD_SERVER = ReflectionUtils.getNMSClass("server.level", "WorldServer");
         ENTITY = ReflectionUtils.getNMSClass("world.entity", "Entity");
-        ENTITY_LIVING = ReflectionUtils.getNMSClass("world.entity", "EntityLiving");
         ENTITY_ARMOR_STAND = ReflectionUtils.getNMSClass("world.entity.decoration", "EntityArmorStand");
         PACKET_SPAWN_ENTITY_LIVING = ReflectionUtils.getNMSClass(
                 "network.protocol.game",
                 VERSION > 18 ? "PacketPlayOutSpawnEntity" : "PacketPlayOutSpawnEntityLiving"); // SpawnEntityLiving is removed since 1.19.
         PACKET_ENTITY_HEAD_ROTATION = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityHeadRotation");
         PACKET_ENTITY_TELEPORT = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityTeleport");
-        PACKET_ENTITY_LOOK = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntity$PacketPlayOutEntityLook");
-        DATA_WATCHER = ReflectionUtils.getNMSClass("network.syncher", "DataWatcher");
         PACKET_ENTITY_METADATA = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityMetadata");
         PACKET_ENTITY_EQUIPMENT = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityEquipment");
         ENUM_ITEM_SLOT = ReflectionUtils.getNMSClass("world.entity", "EnumItemSlot");
         ITEM_STACK = ReflectionUtils.getNMSClass("world.item", "ItemStack");
         PACKET_ENTITY_DESTROY = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutEntityDestroy");
-        PAIR = (VERSION > 15) ? getUnversionedClass("com.mojang.datafixers.util.Pair") : null;
+        PAIR = (VERSION > 15) ? Reflection.getUnversionedClass("com.mojang.datafixers.util.Pair") : null;
         SHARED_CONSTANTS = (VERSION == 17) ? ReflectionUtils.getNMSClass("SharedConstants") : null;
-        GAME_VERSION = (VERSION == 17) ? getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
+        GAME_VERSION = (VERSION == 17) ? Reflection.getUnversionedClass("com.mojang.bridge.game.GameVersion") : null;
         VECTOR3F = ReflectionUtils.getNMSClass("core", "Vector3f");
         I_CHAT_BASE_COMPONENT = ReflectionUtils.getNMSClass("network.chat", "IChatBaseComponent");
+        PACKET_DATA_SERIALIZER = ReflectionUtils.getNMSClass("network", "PacketDataSerializer");
+        DATA_WATCHER_OBJECT = ReflectionUtils.getNMSClass("network.syncher", "DataWatcherObject");
+        DATA_WATCHER_SERIALIZER = ReflectionUtils.getNMSClass("network.syncher", "DataWatcherSerializer");
+        DATA_WATCHER_ITEM = ReflectionUtils.getNMSClass("network.syncher", "DataWatcher$Item");
+        DATA_WATCHER_REGISTRY = ReflectionUtils.getNMSClass("network.syncher", "DataWatcherRegistry");
+        ENTITY_TYPES = ReflectionUtils.getNMSClass("world.entity", "EntityTypes");
+        VEC_3D = ReflectionUtils.getNMSClass("world.phys", "Vec3D");
 
         // Initialize methods.
-        getHandle = getMethod(CRAFT_WORLD, "getHandle", MethodType.methodType(WORLD_SERVER));
-        getDataWatcher = getMethod(ENTITY_ARMOR_STAND, "getDataWatcher", MethodType.methodType(DATA_WATCHER), false, true, "ai", "al", "aj", "an");
-        asNMSCopy = getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true, true);
-        of = (PAIR == null) ? null : getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true, true);
-        getBukkitEntity = getMethod(ENTITY_ARMOR_STAND, "getBukkitEntity", MethodType.methodType(CRAFT_ENTITY));
-        getNonDefaultValues = getMethod(DATA_WATCHER, "getNonDefaultValues", MethodType.methodType(List.class), false, false, "c");
+        asNMSCopy = Reflection.getMethod(CRAFT_ITEM_STACK, "asNMSCopy", MethodType.methodType(ITEM_STACK, ItemStack.class), true, true);
+        of = (PAIR == null) ? null : Reflection.getMethod(PAIR, "of", MethodType.methodType(PAIR, Object.class, Object.class), true, true);
+        fromStringOrNull = (CRAFT_CHAT_MESSAGE == null) ? null : Reflection.getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true, true);
 
-        // Since 1.18 is obfuscated af, we're using getBukkitEntity() and then bukkit methods.
-        if (VERSION < 18) {
-            setFlag = getMethod(ENTITY_ARMOR_STAND, "setFlag", MethodType.methodType(void.class, int.class, boolean.class));
-            fromStringOrNull = (CRAFT_CHAT_MESSAGE == null) ? null : getMethod(CRAFT_CHAT_MESSAGE, "fromStringOrNull", MethodType.methodType(I_CHAT_BASE_COMPONENT, String.class), true, true);
-            getId = getMethod(ENTITY_ARMOR_STAND, "getId", MethodType.methodType(int.class));
-            setLocation = getMethod(ENTITY_ARMOR_STAND, "setLocation", MethodType.methodType(void.class, double.class, double.class, double.class, float.class, float.class));
-            setInvisible = getMethod(ENTITY_ARMOR_STAND, "setInvisible", MethodType.methodType(void.class, boolean.class));
-            setArms = getMethod(ENTITY_ARMOR_STAND, "setArms", MethodType.methodType(void.class, boolean.class));
-            setBasePlate = getMethod(ENTITY_ARMOR_STAND, "setBasePlate", MethodType.methodType(void.class, boolean.class));
-            setSmall = getMethod(ENTITY_ARMOR_STAND, "setSmall", MethodType.methodType(void.class, boolean.class));
-            setMarker = getMethod(ENTITY_ARMOR_STAND, (VERSION == 8) ? "n" : "setMarker", MethodType.methodType(void.class, boolean.class));
-            setCustomName = getMethod(ENTITY_ARMOR_STAND, "setCustomName", MethodType.methodType(void.class, (CRAFT_CHAT_MESSAGE == null) ? String.class : I_CHAT_BASE_COMPONENT));
-            setCustomNameVisible = getMethod(ENTITY_ARMOR_STAND, "setCustomNameVisible", MethodType.methodType(void.class, boolean.class));
-            setHeadPose = getMethod(ENTITY_ARMOR_STAND, "setHeadPose", MethodType.methodType(void.class, VECTOR3F));
-            setBodyPose = getMethod(ENTITY_ARMOR_STAND, "setBodyPose", MethodType.methodType(void.class, VECTOR3F));
-            setLeftArmPose = getMethod(ENTITY_ARMOR_STAND, "setLeftArmPose", MethodType.methodType(void.class, VECTOR3F));
-            setRightArmPose = getMethod(ENTITY_ARMOR_STAND, "setRightArmPose", MethodType.methodType(void.class, VECTOR3F));
-            setLeftLegPose = getMethod(ENTITY_ARMOR_STAND, "setLeftLegPose", MethodType.methodType(void.class, VECTOR3F));
-            setRightLegPose = getMethod(ENTITY_ARMOR_STAND, "setRightLegPose", MethodType.methodType(void.class, VECTOR3F));
-            setGlowing = getMethod(ENTITY_ARMOR_STAND, "setGlowing", MethodType.methodType(void.class, boolean.class), false, true, "setGlowingTag");
+        if (ReflectionUtils.supports(20, 2)) {
+            writeInt = Reflection.getMethod(PACKET_DATA_SERIALIZER, "c", int.class);
         } else {
-            // Get setFlag() method by its parameter types since the name is obfuscated.
-            setFlag = getSetFlagMethod();
-            fromStringOrNull = null;
-            getId = null;
-            setLocation = null;
-            setInvisible = null;
-            setArms = null;
-            setBasePlate = null;
-            setSmall = null;
-            setMarker = null;
-            setCustomName = null;
-            setCustomNameVisible = null;
-            setHeadPose = null;
-            setBodyPose = null;
-            setLeftArmPose = null;
-            setRightArmPose = null;
-            setLeftLegPose = null;
-            setRightLegPose = null;
-            setGlowing = null;
+            writeInt = Reflection.getMethod(PACKET_DATA_SERIALIZER, "d", int.class);
         }
+        writeByte = Reflection.getMethod(PACKET_DATA_SERIALIZER, "writeByte", int.class);
+        writeUUID = Reflection.getMethod(PACKET_DATA_SERIALIZER, "a", UUID.class);
+        writeDouble = Reflection.getMethod(PACKET_DATA_SERIALIZER, "writeDouble", double.class);
+        writeShort = Reflection.getMethod(PACKET_DATA_SERIALIZER, "writeShort", int.class);
+        writeBoolean = Reflection.getMethod(PACKET_DATA_SERIALIZER, "writeBoolean", boolean.class);
+        getObject = Reflection.getMethod(DATA_WATCHER_ITEM, "a");
+        getValue = Reflection.getMethod(DATA_WATCHER_ITEM, "b");
+        getSerializer = Reflection.getMethod(DATA_WATCHER_OBJECT, "b");
+        getIndex = Reflection.getMethod(DATA_WATCHER_OBJECT, "a");
+        getTypeId = Reflection.getMethod(DATA_WATCHER_REGISTRY, "b", MethodType.methodType(int.class, DATA_WATCHER_SERIALIZER), true, true);
+        serialize = Reflection.getMethod(DATA_WATCHER_SERIALIZER, "a", PACKET_DATA_SERIALIZER, Object.class);
+        byString = Reflection.getMethod(ENTITY_TYPES, "a", MethodType.methodType(Optional.class, String.class), true, true);
 
         // Initialize constructors.
-        entityArmorStand = getConstructor(ENTITY_ARMOR_STAND, WORLD, double.class, double.class, double.class);
-        packetSpawnEntityLiving = getConstructor(PACKET_SPAWN_ENTITY_LIVING, VERSION > 18 ? ENTITY : ENTITY_LIVING);
-        packetEntityHeadRotation = getConstructor(PACKET_ENTITY_HEAD_ROTATION, ENTITY, byte.class);
-        packetEntityTeleport = getConstructor(PACKET_ENTITY_TELEPORT, ENTITY);
-        packetEntityLook = getConstructor(PACKET_ENTITY_LOOK, int.class, byte.class, byte.class, boolean.class);
-        MethodHandle metadata = getConstructor(PACKET_ENTITY_METADATA, false, int.class, DATA_WATCHER, boolean.class);
-        packetEntityMetadata = metadata != null ? metadata : getConstructor(PACKET_ENTITY_METADATA, int.class, List.class);
+        if (VERSION > 18) {
+            packetSpawnEntityLiving = Reflection.getConstructor(
+                    PACKET_SPAWN_ENTITY_LIVING,
+                    int.class,
+                    UUID.class,
+                    double.class,
+                    double.class,
+                    double.class,
+                    float.class,
+                    float.class,
+                    ENTITY_TYPES,
+                    int.class,
+                    VEC_3D,
+                    double.class);
+        } else {
+            packetSpawnEntityLiving = Reflection.getConstructor(PACKET_SPAWN_ENTITY_LIVING, PACKET_DATA_SERIALIZER);
+        }
+        packetEntityHeadRotation = Reflection.getConstructor(PACKET_ENTITY_HEAD_ROTATION, PACKET_DATA_SERIALIZER);
+        packetEntityTeleport = Reflection.getConstructor(PACKET_ENTITY_TELEPORT, PACKET_DATA_SERIALIZER);
         packetEntityEquipment = (VERSION > 15) ?
-                getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, List.class) :
-                getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, ENUM_ITEM_SLOT, ITEM_STACK);
-        packetEntityDestroy = getConstructor(PACKET_ENTITY_DESTROY, PROTOCOL == 755 ? int.class : int[].class);
-        vector3f = getConstructor(VECTOR3F, float.class, float.class, float.class);
+                Reflection.getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, List.class) :
+                Reflection.getConstructor(PACKET_ENTITY_EQUIPMENT, int.class, ENUM_ITEM_SLOT, ITEM_STACK);
+        packetEntityDestroy = Reflection.getConstructor(PACKET_ENTITY_DESTROY, PROTOCOL == 755 ? int.class : int[].class);
+        vector3f = Reflection.getConstructor(VECTOR3F, float.class, float.class, float.class);
+        packetDataSerializer = Reflection.getConstructor(PACKET_DATA_SERIALIZER, ByteBuf.class);
+        packetEntityMetadata = Reflection.getConstructor(PACKET_ENTITY_METADATA, PACKET_DATA_SERIALIZER);
+        dataWatcherItem = Reflection.getConstructor(DATA_WATCHER_ITEM, DATA_WATCHER_OBJECT, Object.class);
 
         try {
-            // Get protocol version, only needed for 1.17.
+            // Get the protocol version, only needed for 1.17.
             if (VERSION == 17) {
-                MethodHandle getVersion = getMethod(SHARED_CONSTANTS, "getGameVersion", MethodType.methodType(GAME_VERSION), true, true);
-                MethodHandle getProtocol = getMethod(GAME_VERSION, "getProtocolVersion", MethodType.methodType(int.class));
+                MethodHandle getVersion = Reflection.getMethod(SHARED_CONSTANTS, "getGameVersion", MethodType.methodType(GAME_VERSION), true, true);
+                MethodHandle getProtocol = Reflection.getMethod(GAME_VERSION, "getProtocolVersion", MethodType.methodType(int.class));
 
                 Object gameVersion = getVersion.invoke();
                 PROTOCOL = (int) getProtocol.invoke(gameVersion);
@@ -234,428 +235,254 @@ public final class PacketStand {
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
+
+        // Initialize fields.
+        if (ReflectionUtils.supports(18)) {
+            if (ReflectionUtils.supports(20, 2)) {
+                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "ao"));
+                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aU"));
+                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aV"));
+                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bC"));
+
+                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bD"));
+                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bE"));
+                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bF"));
+                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
+                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
+                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
+            } else if (ReflectionUtils.supports(20)) {
+                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "an"));
+                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aU"));
+                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aV"));
+                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bC"));
+
+                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bD"));
+                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bE"));
+                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bF"));
+                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
+                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
+                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
+            } else if (ReflectionUtils.supports(19, 4)) {
+                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "an"));
+                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aR"));
+                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aS"));
+                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bB"));
+
+                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bC"));
+                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bD"));
+                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bE"));
+                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bF"));
+                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
+                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
+            } else if (ReflectionUtils.supports(18, 2)) {
+                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "Z"));
+                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aM"));
+                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aN"));
+                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
+
+                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
+                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
+                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
+                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
+                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
+                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
+            } else {
+                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aa"));
+                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aL"));
+                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aM"));
+                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
+
+                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
+                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
+                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
+                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
+                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
+                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
+            }
+        } else {
+            DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "Z"));
+            DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aJ"));
+            DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aK"));
+            DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
+
+            DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
+            DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
+            DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
+            DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
+            DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
+            DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
+        }
+
+        ZERO = Reflection.getFieldValue(Reflection.getFieldGetter(VEC_3D, VERSION > 18 ? "b" : "a"));
+        ARMOR_STAND = getArmorStandType();
+        ENTITY_TYPE_ID = getEntityTypeId();
+
+        if (ReflectionUtils.supports(19, 4)) {
+            ENTITY_COUNTER = (AtomicInteger) Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "d"));
+        } else if (ReflectionUtils.supports(18, 2)) {
+            ENTITY_COUNTER = (AtomicInteger) Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "c"));
+        } else {
+            ENTITY_COUNTER = (AtomicInteger) Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "b"));
+        }
     }
 
-    public PacketStand(Location location, StandSettings settings) {
-        this(location, settings, true);
-    }
-
-    public PacketStand(@NotNull Location location, StandSettings settings, boolean showEveryone) {
+    public PacketStand(@NotNull Location location, StandSettings settings, boolean showEveryone, int renderDistance) {
         Validate.notNull(location.getWorld(), "World can't be null.");
 
-        try {
-            Object craftWorld = CRAFT_WORLD.cast(location.getWorld());
-            Object nmsWorld = getHandle.invoke(craftWorld);
+        setLocation(location);
+        this.renderDistance = Math.min(renderDistance * renderDistance, BUKKIT_VIEW_DISTANCE);
+        this.entityId = ENTITY_COUNTER.incrementAndGet();
+        this.entityUniqueId = UUID.randomUUID();
+        this.settings = settings;
 
-            this.stand = entityArmorStand.invoke(nmsWorld, location.getX(), location.getY(), location.getZ());
-            this.location = location;
-            this.ignored = new HashMap<>();
-            this.entityId = (getId != null) ? (int) getId.invoke(stand) : getBukkitEntity().getEntityId();
-            this.settings = settings;
-
-            // Set the initial location of this entity.
-            setLocation(location);
-
-            // Set settings.
-            setInvisible(settings.isInvisible());
-            setSmall(settings.isSmall());
-            setBasePlate(settings.isBasePlate());
-            setArms(settings.isArms());
-            setMarker(settings.isMarker());
-            setOnFire(settings.isFire());
-            if (settings.getCustomName() != null) setCustomName(settings.getCustomName());
-            setCustomNameVisible(settings.isCustomNameVisible());
-            setGlowing(settings.isGlow());
-
-            // Set poses.
-            setHeadPose(settings.getHeadPose());
-            setBodyPose(settings.getBodyPose());
-            setLeftArmPose(settings.getLeftArmPose());
-            setRightArmPose(settings.getRightArmPose());
-            setLeftLegPose(settings.getLeftLegPose());
-            setRightLegPose(settings.getRightLegPose());
-
-            // Set equipment.
-            setEquipment(settings.getHelmet(), ItemSlot.HEAD);
-            setEquipment(settings.getChestplate(), ItemSlot.CHEST);
-            setEquipment(settings.getLeggings(), ItemSlot.LEGS);
-            setEquipment(settings.getBoots(), ItemSlot.FEET);
-            setEquipment(settings.getMainHand(), ItemSlot.MAINHAND);
-            setEquipment(settings.getOffHand(), ItemSlot.OFFHAND);
-
-            // Send spawn and teleport packet to all players.
-            if (showEveryone) spawn();
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
+        if (showEveryone) spawn();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isInRange(@NotNull Location location) {
-        int renderDistance = plugin.getConfigManager().getRenderDistance();
-        double distance = Math.min(renderDistance * renderDistance, Math.pow(Bukkit.getViewDistance() << 4, 2));
-
         if (!this.location.getWorld().equals(location.getWorld())) return false;
-        try {
-            return this.location.distanceSquared(location) <= distance;
-        } catch (IllegalArgumentException exception) {
-            // Player isn't in the same world, don't show.
-            return false;
-        }
+        return this.location.distanceSquared(location) <= renderDistance;
     }
 
-    /**
-     * Spawn the entity to every player in the same world.
-     */
     public void spawn() {
-        for (Player player : location.getWorld().getPlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             spawn(player);
         }
     }
 
-    /**
-     * Spawn the entity for a specific player.
-     */
     public void spawn(@NotNull Player player) {
         if (!isInRange(player.getLocation())) return;
         if (!plugin.isEnabled()) return;
 
+        ignored.remove(player.getUniqueId());
+
+        Object spawnPacket = VERSION > 18 ? after18SpawnPacket() : before18SpawnPacket(yaw, pitch);
+        if (spawnPacket == null) return;
+
+        sendPacket(player, spawnPacket);
+        updateLocation();
+        updateMetadata();
+        updateEquipment();
+    }
+
+    public void setLocation(@NotNull Location location) {
+        this.location = location;
+        this.previousYaw = yaw;
+        this.yaw = (byte) ((int) (location.getYaw() * 256.0f / 360.0f));
+        this.pitch = (byte) ((int) (location.getPitch() * 256.0f / 360.0f));
+    }
+
+    private @Nullable Object after18SpawnPacket() {
+        double x = clampXZ(location.getX());
+        double y = location.getY();
+        double z = clampXZ(location.getZ());
+        float yaw = location.getYaw() % 360.0f;
+        float pitch = clampPitch(location.getPitch()) % 360.0f;
+        double yHeadRot = location.getYaw();
+
         try {
-            Object packetSpawn = packetSpawnEntityLiving.invoke(stand);
-            sendPacket(player, packetSpawn);
-
-            ignored.remove(player.getUniqueId());
-
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                updateLocation();
-                updateRotation();
-                updateMetadata();
-                updateEquipment();
-            });
-        } catch (Throwable exception) {
-            exception.printStackTrace();
+            return packetSpawnEntityLiving.invoke(
+                    entityId,
+                    entityUniqueId,
+                    x,
+                    y,
+                    z,
+                    !Float.isFinite(pitch) ? 0.0f : pitch,
+                    !Float.isFinite(yaw) ? 0.0f : yaw,
+                    ARMOR_STAND,
+                    0,
+                    ZERO,
+                    yHeadRot);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            return null;
         }
     }
 
-    /**
-     * Set the current location of the entity.
-     * You must teleport the entity using teleport(), or teleport(Location) instead of this method.
-     * If this entity isn't spawned yet, you don't need to call any method, just spawn the entity.
-     *
-     * @see PacketStand#updateLocation()
-     * @see PacketStand#teleport(Location)
-     */
-    public void setLocation(Location location) {
+    private static double clampXZ(double value) {
+        return value < -3.0E7 ? -3.0e7 : Math.min(value, 3.0e7);
+    }
+
+    private static float clampPitch(float value) {
+        return value < -90.0f ? -90.0f : Math.min(value, 90.0f);
+    }
+
+    private @Nullable Object before18SpawnPacket(byte yaw, byte pitch) {
         try {
-            this.location = location;
-            if (setLocation != null) {
-                setLocation.invoke(stand, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-            } else {
-                getBukkitEntity().teleport(location);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
+            Object packetDataSerializer = PacketStand.packetDataSerializer.invoke(Unpooled.buffer());
+            writeInt.invoke(packetDataSerializer, entityId);
+            writeUUID.invoke(packetDataSerializer, entityUniqueId);
+            writeInt.invoke(packetDataSerializer, ENTITY_TYPE_ID);
+            writeDouble.invoke(packetDataSerializer, location.getX());
+            writeDouble.invoke(packetDataSerializer, location.getY());
+            writeDouble.invoke(packetDataSerializer, location.getZ());
+            writeByte.invoke(packetDataSerializer, yaw);
+            writeByte.invoke(packetDataSerializer, pitch);
+            writeByte.invoke(packetDataSerializer, yaw);
+            writeShort.invoke(packetDataSerializer, 0);
+            writeShort.invoke(packetDataSerializer, 0);
+            writeShort.invoke(packetDataSerializer, 0);
+            return packetSpawnEntityLiving.invoke(packetDataSerializer);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            return null;
         }
     }
 
-    /**
-     * Teleports the entity to the previously established location.
-     *
-     * @see PacketStand#setLocation(Location)
-     */
-    public void updateLocation() {
-        try {
-            Object packetTeleport = packetEntityTeleport.invoke(stand);
-            sendPacket(packetTeleport, true);
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    /**
-     * Updates the entity rotation.
-     */
-    public void updateRotation() {
-        try {
-            byte yaw = (byte) (location.getYaw() * 256.0f / 360.0f);
-            byte pitch = (byte) (location.getPitch() * 256.0f / 360.0f);
-
-            Object packetRotation = packetEntityHeadRotation.invoke(stand, yaw);
-            sendPacket(packetRotation, true);
-
-            Object packetLook = packetEntityLook.invoke(entityId, yaw, pitch, true);
-            sendPacket(packetLook, true);
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    /**
-     * Set the current location of the entity.
-     */
     public void teleport(Location location) {
         setLocation(location);
         updateLocation();
-        updateRotation();
     }
 
-    public void setInvisible(boolean invisible) {
+    private void updateLocation() {
+        sendTeleport();
+        sendRotation();
+    }
+
+    private void sendTeleport() {
         try {
-            settings.setInvisible(invisible);
-            if (setInvisible != null) {
-                setInvisible.invoke(stand, invisible);
-            } else {
-                getBukkitEntity().setVisible(!invisible);
-            }
+            Object packetDataSerializer = PacketStand.packetDataSerializer.invoke(Unpooled.buffer());
+            writeInt.invoke(packetDataSerializer, entityId);
+            writeDouble.invoke(packetDataSerializer, location.getX());
+            writeDouble.invoke(packetDataSerializer, location.getY());
+            writeDouble.invoke(packetDataSerializer, location.getZ());
+            writeByte.invoke(packetDataSerializer, yaw);
+            writeByte.invoke(packetDataSerializer, pitch);
+            writeBoolean.invoke(packetDataSerializer, false);
+            sendPacket(packetEntityTeleport.invoke(packetDataSerializer));
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
     }
 
-    public void setArms(boolean arms) {
-        try {
-            settings.setArms(arms);
-            if (setArms != null) {
-                setArms.invoke(stand, arms);
-            } else {
-                getBukkitEntity().setArms(arms);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
+    private void sendRotation() {
+        Object headRotation = createEntityHeadRotation();
+        if (headRotation != null) sendPacket(headRotation);
     }
 
-    public void setBasePlate(boolean baseplate) {
+    private @Nullable Object createEntityHeadRotation() {
+        if (previousYaw == yaw) return null;
         try {
-            settings.setBasePlate(baseplate);
-            if (setBasePlate != null) {
-                // For some reason must be negated.
-                setBasePlate.invoke(stand, !baseplate);
-            } else {
-                getBukkitEntity().setBasePlate(baseplate);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setSmall(boolean small) {
-        try {
-            settings.setSmall(small);
-            if (setSmall != null) {
-                setSmall.invoke(stand, small);
-            } else {
-                getBukkitEntity().setSmall(small);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setMarker(boolean marker) {
-        try {
-            settings.setMarker(marker);
-            if (setMarker != null) {
-                setMarker.invoke(stand, marker);
-            } else {
-                getBukkitEntity().setMarker(marker);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setOnFire(boolean fire) {
-        // Only works on 1.9+.
-        if (VERSION < 9) return;
-
-        settings.setFire(fire);
-
-        try {
-            setFlag.invoke(stand, 0, fire);
-            updateMetadata();
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setCustomName(@Nullable String name) {
-        try {
-            if (name != null) {
-                name = PluginUtils.translate(name);
-            } else {
-                name = "";
-                setCustomNameVisible(false);
-            }
-            if (setCustomName != null) {
-                setCustomName.invoke(stand, (CRAFT_CHAT_MESSAGE == null) ? name : fromStringOrNull.invoke(name));
-            } else {
-                getBukkitEntity().setCustomName(name);
-            }
-            settings.setCustomName(name);
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setCustomNameVisible(boolean customNameVisible) {
-        try {
-            settings.setCustomNameVisible(customNameVisible);
-            if (setCustomNameVisible != null) {
-                setCustomNameVisible.invoke(stand, customNameVisible);
-            } else {
-                getBukkitEntity().setCustomNameVisible(customNameVisible);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public @Nullable Object getVector3f(EulerAngle angle) {
-        try {
-            return vector3f.invoke((float) Math.toDegrees(angle.getX()), (float) Math.toDegrees(angle.getY()), (float) Math.toDegrees(angle.getZ()));
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-        return null;
-    }
-
-    public void setHeadPose(EulerAngle headPose) {
-        try {
-            settings.setHeadPose(headPose);
-            if (setHeadPose != null) {
-                setHeadPose.invoke(stand, getVector3f(headPose));
-            } else {
-                getBukkitEntity().setHeadPose(headPose);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setBodyPose(EulerAngle bodyPose) {
-        try {
-            settings.setBodyPose(bodyPose);
-            if (setBodyPose != null) {
-                setBodyPose.invoke(stand, getVector3f(bodyPose));
-            } else {
-                getBukkitEntity().setBodyPose(bodyPose);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setLeftArmPose(EulerAngle leftArmPose) {
-        try {
-            settings.setLeftArmPose(leftArmPose);
-            if (setLeftArmPose != null) {
-                setLeftArmPose.invoke(stand, getVector3f(leftArmPose));
-            } else {
-                getBukkitEntity().setLeftArmPose(leftArmPose);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setRightArmPose(EulerAngle rightArmPose) {
-        try {
-            settings.setRightArmPose(rightArmPose);
-            if (setRightArmPose != null) {
-                setRightArmPose.invoke(stand, getVector3f(rightArmPose));
-            } else {
-                getBukkitEntity().setRightArmPose(rightArmPose);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setLeftLegPose(EulerAngle leftLegPose) {
-        try {
-            settings.setLeftLegPose(leftLegPose);
-            if (setLeftLegPose != null) {
-                setLeftLegPose.invoke(stand, getVector3f(leftLegPose));
-            } else {
-                getBukkitEntity().setLeftLegPose(leftLegPose);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setRightLegPose(EulerAngle rightLegPose) {
-        try {
-            settings.setRightLegPose(rightLegPose);
-            if (setRightLegPose != null) {
-                setRightLegPose.invoke(stand, getVector3f(rightLegPose));
-            } else {
-                getBukkitEntity().setRightLegPose(rightLegPose);
-            }
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public void setGlowing(boolean glow) {
-        try {
-            // In order to glow the equipment of the stand without glowing the entity body, we need to set its marker value to true.
-            if (glow && !settings.isMarker()) setMarker(true);
-
-            settings.setGlow(glow);
-            if (setGlowing != null) {
-                setGlowing.invoke(stand, glow);
-            } else {
-                getBukkitEntity().setGlowing(glow);
-            }
-
-            updateMetadata();
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    public enum ItemSlot {
-        MAINHAND,
-        OFFHAND,
-        FEET,
-        LEGS,
-        CHEST,
-        HEAD;
-
-        private final char[] alphabet = "abcdefghijklmnopqrstuvwxyz".toCharArray();
-
-        public @Nullable Object get() {
-            try {
-                Field field = ENUM_ITEM_SLOT.getField(VERSION > 16 ? String.valueOf(alphabet[ordinal()]) : name());
-                return field.get(null);
-            } catch (Throwable exception) {
-                exception.printStackTrace();
-                return null;
-            }
+            Object packetDataSerializer = PacketStand.packetDataSerializer.invoke(Unpooled.buffer());
+            writeInt.invoke(packetDataSerializer, entityId);
+            writeByte.invoke(packetDataSerializer, yaw);
+            return packetEntityHeadRotation.invoke(packetDataSerializer);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            return null;
         }
     }
 
     public void setEquipment(ItemStack item, ItemSlot slot) {
-        if (slot == ItemSlot.MAINHAND) settings.setMainHand(item);
-        if (slot == ItemSlot.OFFHAND) settings.setOffHand(item);
-        if (slot == ItemSlot.HEAD) settings.setHelmet(item);
-        if (slot == ItemSlot.CHEST) settings.setChestplate(item);
-        if (slot == ItemSlot.LEGS) settings.setLeggings(item);
-        if (slot == ItemSlot.FEET) settings.setBoots(item);
+        settings.getEquipment().put(slot, item);
 
         try {
             Object itemStack = asNMSCopy.invoke(item);
-
             Object packetEquipment;
             if (VERSION > 15) {
-                List<Object> list = new ArrayList<>();
-                list.add(of.invoke(slot.get(), itemStack));
-
-                packetEquipment = packetEntityEquipment.invoke(entityId, list);
+                packetEquipment = packetEntityEquipment.invoke(entityId, List.of(of.invoke(slot.getNmsObject(), itemStack)));
             } else {
-                packetEquipment = packetEntityEquipment.invoke(entityId, slot.get(), itemStack);
+                packetEquipment = packetEntityEquipment.invoke(entityId, slot.getNmsObject(), itemStack);
             }
             sendPacket(packetEquipment);
         } catch (Throwable exception) {
@@ -666,53 +493,94 @@ public final class PacketStand {
     public void updateEquipment() {
         if (!settings.hasEquipment()) return;
 
-        ItemStack helmet = settings.getHelmet();
-        ItemStack chestplate = settings.getChestplate();
-        ItemStack leggings = settings.getLeggings();
-        ItemStack boots = settings.getBoots();
-        ItemStack mainHand = settings.getMainHand();
-        ItemStack offHand = settings.getOffHand();
-
-        if (helmet != null) setEquipment(helmet, ItemSlot.HEAD);
-        if (chestplate != null) setEquipment(chestplate, ItemSlot.CHEST);
-        if (leggings != null) setEquipment(leggings, ItemSlot.LEGS);
-        if (boots != null) setEquipment(boots, ItemSlot.FEET);
-        if (mainHand != null) setEquipment(mainHand, ItemSlot.MAINHAND);
-        if (offHand != null) setEquipment(offHand, ItemSlot.OFFHAND);
+        for (ItemSlot slot : ItemSlot.values()) {
+            ItemStack item = settings.getEquipment().get(slot);
+            if (item != null) setEquipment(item, slot);
+        }
     }
 
     public void updateMetadata() {
-        sendPacket(createMetadataPacket());
-    }
-
-    private @Nullable Object createMetadataPacket() {
         try {
-            Object watcher = getDataWatcher.invoke(stand);
-            Object packetMetadata;
-            if (getNonDefaultValues != null && packetEntityMetadata.type().parameterCount() == 2) {
-                Object values = getNonDefaultValues.invoke(watcher);
-                packetMetadata = packetEntityMetadata.invoke(entityId, values != null ? values : new ArrayList<>());
-            } else {
-                packetMetadata = packetEntityMetadata.invoke(entityId, watcher, true);
-            }
-            return packetMetadata;
-        } catch (Throwable exception) {
-            exception.printStackTrace();
-            return null;
-        }
-    }
-
-    public @Nullable ArmorStand getBukkitEntity() {
-        try {
-            return ((ArmorStand) getBukkitEntity.invoke(stand));
+            sendPacket(createEntityMetadata(getCorrectDataWatcherItems()));
         } catch (Throwable throwable) {
             throwable.printStackTrace();
-            return null;
         }
+    }
+
+    private List<Object> getCorrectDataWatcherItems() {
+        return !cacheMetadata ? getDataWatcherItems() : cachedMetadata != null ? cachedMetadata : (cachedMetadata = Collections.unmodifiableList(getDataWatcherItems()));
+    }
+
+    private @NotNull List<Object> getDataWatcherItems() {
+        try {
+            List<Object> dataWatcherItems = new ArrayList<>();
+
+            dataWatcherItems.add(dataWatcherItem.invoke(DWO_ENTITY_DATA, (byte)
+                    ((settings.isFire() ? 0x01 : 0)
+                            | (settings.isInvisible() ? 0x20 : 0)
+                            | (settings.isGlow() ? 0x40 : 0))));
+
+            dataWatcherItems.add(dataWatcherItem.invoke(DWO_ARMOR_STAND_DATA, (byte)
+                    ((settings.isSmall() ? 0x01 : 0)
+                            | (settings.isArms() ? 0x04 : 0)
+                            | (settings.isBasePlate() ? 0 : 0x08)
+                            | (settings.isMarker() ? 0x10 : 0))));
+
+            addPoses(dataWatcherItems, DWO_HEAD_POSE, settings.getHeadPose());
+            addPoses(dataWatcherItems, DWO_BODY_POSE, settings.getBodyPose());
+            addPoses(dataWatcherItems, DWO_LEFT_ARM_POSE, settings.getLeftArmPose());
+            addPoses(dataWatcherItems, DWO_RIGHT_ARM_POSE, settings.getRightArmPose());
+            addPoses(dataWatcherItems, DWO_LEFT_LEG_POSE, settings.getLeftLegPose());
+            addPoses(dataWatcherItems, DWO_RIGHT_LEG_POSE, settings.getRightLegPose());
+
+            String name = settings.getCustomName();
+            Optional<Object> optionalName = Optional.ofNullable(name != null && !name.isEmpty() ? fromStringOrNull.invoke(name) : null);
+            dataWatcherItems.add(dataWatcherItem.invoke(DWO_CUSTOM_NAME, optionalName));
+
+            if (settings.isCustomNameVisible()) {
+                dataWatcherItems.add(dataWatcherItem.invoke(DWO_CUSTOM_NAME_VISIBLE, true));
+            }
+
+            return dataWatcherItems;
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    private void addPoses(@NotNull List<Object> dataWatcherItems, Object dwoObject, @NotNull EulerAngle angle) throws Throwable {
+        dataWatcherItems.add(dataWatcherItem.invoke(dwoObject, vector3f.invoke(
+                (float) Math.toDegrees(angle.getX()),
+                (float) Math.toDegrees(angle.getY()),
+                (float) Math.toDegrees(angle.getZ()))));
+    }
+
+    private Object createEntityMetadata(List<Object> items) throws Throwable {
+        Objects.requireNonNull(items);
+
+        Object packetDataSerializer = PacketStand.packetDataSerializer.invoke(Unpooled.buffer());
+        writeInt.invoke(packetDataSerializer, entityId);
+
+        for (Object item : items) {
+            if (!item.getClass().isAssignableFrom(DATA_WATCHER_ITEM)) continue;
+
+            Object object = getObject.invoke(item);
+            Object value = getValue.invoke(item);
+            Object serializer = getSerializer.invoke(object);
+            int serializerIndex = (int) getIndex.invoke(object);
+            int serializerTypeId = (int) getTypeId.invoke(serializer);
+
+            writeByte.invoke(packetDataSerializer, (byte) serializerIndex);
+            writeInt.invoke(packetDataSerializer, serializerTypeId);
+            serialize.invoke(serializer, packetDataSerializer, value);
+        }
+
+        writeByte.invoke(packetDataSerializer, 0xff);
+        return packetEntityMetadata.invoke(packetDataSerializer);
     }
 
     public void destroy() {
-        for (Player player : location.getWorld().getPlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             destroy(player);
         }
         ignored.clear();
@@ -738,126 +606,93 @@ public final class PacketStand {
     }
 
     private void sendPacket(Player player, Object packet) {
-        sendPacket(player, packet, false);
-    }
-
-    private void sendPacket(Player player, Object packet, boolean sync) {
-        if (sync || FORCE_SYNC) ReflectionUtils.sendPacketSync(player, packet);
-        else ReflectionUtils.sendPacket(player, packet);
+        ReflectionUtils.sendPacketSync(player, packet);
     }
 
     private void sendPacket(Object packet) {
-        sendPacket(packet, false);
-    }
-
-    private void sendPacket(@NotNull Object packet, boolean sync) {
-        boolean isEntityLook = packet.getClass().isAssignableFrom(PACKET_ENTITY_LOOK);
-        boolean usingVia = plugin.hasDependency("ViaVersion");
-
-        for (Player player : location.getWorld().getPlayers()) {
-            if (isIgnored(player)) continue;
-
-            // 755 = 1.17.
-            if (isEntityLook && (VERSION > 16 || (usingVia && ViaExtension.getPlayerVersion(player) > 754))) {
-                continue;
-            }
-
-            sendPacket(player, packet, sync);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!isIgnored(player)) sendPacket(player, packet);
         }
     }
 
-    private static @Nullable Class<?> getUnversionedClass(String name) {
+    private static @Nullable Object getArmorStandType() {
         try {
-            return Class.forName(name);
-        } catch (ClassNotFoundException exception) {
-            exception.printStackTrace();
+            @SuppressWarnings("deprecation") Optional<?> optional = (Optional<?>) byString.invoke(EntityType.ARMOR_STAND.getName());
+            return optional.orElse(null);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
             return null;
         }
     }
 
-    @SuppressWarnings({"SameParameterValue", "unused"})
-    private static @Nullable MethodHandle getField(@NotNull Class<?> refc, String name, String... extraNames) {
-        try {
-            Field field = refc.getDeclaredField(name);
-            field.setAccessible(true);
-            return LOOKUP.unreflectGetter(field);
-        } catch (ReflectiveOperationException exception) {
-            if (extraNames != null && extraNames.length > 0) {
-                if (extraNames.length == 1) {
-                    return getField(refc, extraNames[0]);
-                }
-                for (String extra : extraNames) {
-                    int index = ArrayUtils.indexOf(extraNames, extra);
-                    String[] rest = ArrayUtils.remove(extraNames, index);
-                    return getField(refc, extra, rest);
-                }
+    private static int getEntityTypeId() {
+        Object ENTITY_TYPE;
+        if (ReflectionUtils.supports(18)) {
+            if (ReflectionUtils.supports(20, 3)) {
+                Class<?> REGISTRIES = ReflectionUtils.getNMSClass("core.registries", "BuiltInRegistries");
+                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRIES, "g"));
+            } else if (ReflectionUtils.supports(19, 3)) {
+                Class<?> REGISTRIES = ReflectionUtils.getNMSClass("core.registries", "BuiltInRegistries");
+                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRIES, "h"));
+            } else if (ReflectionUtils.supports(19)) {
+                Class<?> REGISTRY = ReflectionUtils.getNMSClass("core", "IRegistry");
+                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, "X"));
+            } else if (ReflectionUtils.MINOR_NUMBER == 18 && ReflectionUtils.PATCH_NUMBER == 2) {
+                Class<?> REGISTRY = ReflectionUtils.getNMSClass("core", "IRegistry");
+                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, "W"));
+            } else {
+                Class<?> REGISTRY = ReflectionUtils.getNMSClass("core", "IRegistry");
+                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, "Z"));
             }
-            exception.printStackTrace();
-            return null;
+        } else {
+            Class<?> REGISTRY = ReflectionUtils.getNMSClass("core", "IRegistry");
+            ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, "Y"));
+        }
+
+        MethodHandle getId;
+        Class<?> REGISTRY = ReflectionUtils.getNMSClass("core", "Registry");
+        if (ReflectionUtils.supports(18)) {
+            getId = Reflection.getMethod(REGISTRY, "a", Object.class);
+        } else {
+            getId = Reflection.getMethod(REGISTRY, "getId", Object.class);
+        }
+
+        try {
+            return (int) getId.invoke(ENTITY_TYPE, ARMOR_STAND);
+        } catch (Throwable throwable) {
+            return -1;
         }
     }
 
-    private static MethodHandle getConstructor(Class<?> refc, Class<?>... types) {
-        return getConstructor(refc, true, types);
-    }
+    @Getter
+    public enum ItemSlot {
+        MAINHAND("main-hand", EquipmentSlot.HAND, 1),
+        OFFHAND("off-hand", EquipmentSlot.OFF_HAND, 6),
+        FEET("boots", EquipmentSlot.FEET, 5),
+        LEGS("leggings", EquipmentSlot.LEGS, 4),
+        CHEST("chestplate", EquipmentSlot.CHEST, 3),
+        HEAD("helmet", EquipmentSlot.HEAD, 2);
 
-    private static @Nullable MethodHandle getConstructor(@NotNull Class<?> refc, boolean printStackTrace, Class<?>... types) {
-        try {
-            Constructor<?> constructor = refc.getDeclaredConstructor(types);
-            constructor.setAccessible(true);
-            return LOOKUP.unreflectConstructor(constructor);
-        } catch (ReflectiveOperationException exception) {
-            if (printStackTrace) exception.printStackTrace();
-            return null;
+        private final String configPathName;
+        private final EquipmentSlot bukkitSlot;
+        private final int equipmentGUISlot;
+        private final Object nmsObject;
+
+        ItemSlot(String configPathName, EquipmentSlot bukkitSlot, int equipmentGUISlot) {
+            this.configPathName = configPathName;
+            this.bukkitSlot = bukkitSlot;
+            this.equipmentGUISlot = equipmentGUISlot;
+            this.nmsObject = getNMS(ordinal(), name());
         }
-    }
 
-    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type) {
-        return getMethod(refc, name, type, false, true);
-    }
-
-    private static @Nullable MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, boolean printStackTrace, String... extraNames) {
-        try {
-            if (isStatic) return LOOKUP.findStatic(refc, name, type);
-            if (VERSION > 17) {
-                Method method = refc.getMethod(name, type.parameterArray());
-                if (!method.getReturnType().isAssignableFrom(type.returnType())) {
-                    throw new NoSuchMethodException();
-                }
-                return LOOKUP.unreflect(method);
-            }
-            return LOOKUP.findVirtual(refc, name, type);
-        } catch (ReflectiveOperationException exception) {
-            if (extraNames != null && extraNames.length > 0) {
-                if (extraNames.length == 1) {
-                    return getMethod(refc, extraNames[0], type, isStatic, printStackTrace);
-                }
-                for (String extra : extraNames) {
-                    int index = ArrayUtils.indexOf(extraNames, extra);
-                    String[] rest = ArrayUtils.remove(extraNames, index);
-                    return getMethod(refc, extra, type, isStatic, printStackTrace, rest);
-                }
-            }
-            if (printStackTrace) exception.printStackTrace();
-            return null;
-        }
-    }
-
-    private static @Nullable MethodHandle getSetFlagMethod() {
-        // There are 2 methods with the same parameter types, the first one is what we want.
-        for (Method method : ENTITY_ARMOR_STAND.getMethods()) {
-            Parameter[] parameters = method.getParameters();
-            if (parameters.length != 2) continue;
-            if (!parameters[0].getType().equals(int.class)) continue;
-            if (!parameters[1].getType().equals(boolean.class)) continue;
-
+        private static @Nullable Object getNMS(int ordinal, String name) {
             try {
-                return LOOKUP.unreflect(method);
-            } catch (IllegalAccessException exception) {
+                Field field = ENUM_ITEM_SLOT.getField(VERSION > 16 ? String.valueOf(ALPHABET[ordinal]) : name);
+                return field.get(null);
+            } catch (Throwable exception) {
                 exception.printStackTrace();
                 return null;
             }
         }
-        return null;
     }
 }

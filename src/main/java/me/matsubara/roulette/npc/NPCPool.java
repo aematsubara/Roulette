@@ -11,8 +11,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import me.matsubara.roulette.npc.event.PlayerNPCHideEvent;
 import me.matsubara.roulette.npc.event.PlayerNPCInteractEvent;
-import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.npc.modifier.NPCModifier;
+import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -316,7 +316,7 @@ public class NPCPool implements Listener {
                     && npc.isShownFor(player)
                     && npc.getLocation().distanceSquared(player.getLocation()) <= this.actionDistance) {
                 npc.metadata()
-                        .queue(MetadataModifier.EntityMetadata.SNEAKING, event.isSneaking()).send(player);
+                        .queue(PluginUtils.SNEAKING_METADATA, event.isSneaking()).send(player);
             }
         }
     }

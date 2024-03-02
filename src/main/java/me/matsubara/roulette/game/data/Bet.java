@@ -3,6 +3,7 @@ package me.matsubara.roulette.game.data;
 import com.cryptomorin.xseries.XSound;
 import lombok.Getter;
 import lombok.Setter;
+import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
@@ -15,7 +16,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Axis;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -112,9 +112,10 @@ public final class Bet {
             if (offsetIndex == -1) offsetIndex = 0;
         }
 
-        Map.Entry<Location, StandSettings> entry = game.getModel().getLocations().get(slot.name());
+        PacketStand stand = game.getModel().getByName(slot.name());
+        if (stand == null) return;
 
-        Location where = entry.getKey().clone().add(PluginUtils.offsetVector(
+        Location where = stand.getLocation().clone().add(PluginUtils.offsetVector(
                 new Vector(
                         axis == Axis.X ? offsets[offsetIndex] : 0.0d,
                         0.0d,
@@ -139,12 +140,13 @@ public final class Bet {
                 game.getModel().getLocation().getPitch()));
 
         // Play move chip sound at hologram location.
-        XSound.play(finalWhere, ConfigManager.Config.SOUND_SELECT.asString());
+        RoulettePlugin plugin = game.getPlugin();
+        plugin.getServer().getScheduler().runTask(plugin, () -> XSound.play(finalWhere, ConfigManager.Config.SOUND_SELECT.asString()));
 
         // No need to create another hologram.
         if (!hasHologram()) {
             // Creates a personal hologram at the location of the selected slot.
-            this.hologram = new Hologram(game.getPlugin(), finalWhere);
+            this.hologram = new Hologram(plugin, finalWhere);
             this.hologram.setVisibleByDefault(false);
             this.hologram.showTo(player);
 
@@ -176,11 +178,15 @@ public final class Bet {
         // No need to create another stand.
         if (!hasStand()) {
             // Spawn stand with its settings.
-            StandSettings settings = game.getModel().getLocations().get(slot.name()).getValue();
-            settings.setMarker(true);
-            settings.setMainHand(PluginUtils.createHead(chip.getUrl()));
+            PacketStand stand = game.getModel().getByName(slot.name());
+            if (stand == null) return;
 
-            stand = new PacketStand(where, settings);
+            StandSettings settings = stand.getSettings();
+            settings.setMarker(true);
+            settings.getEquipment().put(PacketStand.ItemSlot.MAINHAND, PluginUtils.createHead(chip.getUrl()));
+
+            this.stand = new PacketStand(where, settings, true, game.getPlugin().getConfigManager().getRenderDistance());
+
         } else {
             // Teleport.
             stand.teleport(where);
@@ -193,15 +199,15 @@ public final class Bet {
         GlowingEntities glowing = game.getPlugin().getGlowingEntities();
         if (glowing == null) return;
 
-        ArmorStand standBukkit;
-        if (!hasStand() || (standBukkit = stand.getBukkitEntity()) == null) return;
+        if (!hasStand()) return;
 
         try {
             glowing.setGlowing(
                     stand.getEntityId(),
-                    standBukkit.getUniqueId().toString(),
+                    stand.getEntityUniqueId().toString(),
                     player,
                     GLOW_COLORS[glowColorIndex]);
+            stand.updateMetadata();
         } catch (ReflectiveOperationException exception) {
             exception.printStackTrace();
         }

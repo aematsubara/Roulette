@@ -88,11 +88,6 @@ public final class InventoryClick implements Listener {
 
             if (hasDisplayName && displayName.equalsIgnoreCase(ConfigManager.Config.CONFIRM_GUI_CONFIRM.asString())) {
                 plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
-
-                // Remove player from chair.
-                game.kickPlayer(player);
-
-                // Remove player from game.
                 game.remove(player, false);
             } else if (hasDisplayName && displayName.equalsIgnoreCase(plugin.getConfigManager().getDisplayName("shop", "exit"))) {
                 // Do nothing.

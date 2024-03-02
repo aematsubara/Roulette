@@ -11,8 +11,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
@@ -25,7 +29,7 @@ public final class Hologram {
     private final List<String> lines;
 
     // Stands of this hologram.
-    private final Map<String, PacketStand> stands;
+    private final List<PacketStand> stands = new ArrayList<>();
 
     // Location of this hologram.
     private Location location;
@@ -54,7 +58,6 @@ public final class Hologram {
     public Hologram(RoulettePlugin plugin, Location location) {
         this.plugin = plugin;
         this.lines = new ArrayList<>();
-        this.stands = new LinkedHashMap<>();
         this.location = location;
         this.visibleByDefault = true;
     }
@@ -82,13 +85,13 @@ public final class Hologram {
     }
 
     private void showPackets(Player player) {
-        for (PacketStand stand : stands.values()) {
+        for (PacketStand stand : stands) {
             stand.spawn(player);
         }
     }
 
     private void destroyPackets(Player player) {
-        for (PacketStand stand : stands.values()) {
+        for (PacketStand stand : stands) {
             stand.destroy(player, PacketStand.IgnoreReason.HOLOGRAM);
         }
     }
@@ -122,8 +125,8 @@ public final class Hologram {
     public void update(List<String> lines) {
         for (int i = 0; i < stands.size(); i++) {
             String name = "line-" + (i + 1);
-            PacketStand stand = stands.get(name);
-            if (i > lines.size() - 1) stand.destroy();
+            PacketStand stand = getByName(name);
+            if (stand != null && i > lines.size() - 1) stand.destroy();
         }
 
         Location current = location.clone().add(0.0d, (LINE_DISTANCE * lines.size()) - 1.97d, 0.0d);
@@ -133,31 +136,42 @@ public final class Hologram {
             String text = PluginUtils.translate(lines.get(i));
 
             if (i >= stands.size()) {
-                // Create new one.
+                // Create a new one.
                 StandSettings settings = new StandSettings();
+                settings.setPartName(name);
                 settings.setCustomName(text);
                 settings.setCustomNameVisible(true);
                 settings.setInvisible(true);
 
                 // Create packet stand, but don't show to all players.
-                PacketStand stand = new PacketStand(current, settings, false);
+                PacketStand stand = new PacketStand(current, settings, false, plugin.getConfigManager().getRenderDistance());
 
                 // Spawn packet stand to players who can see this hologram.
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (isVisibleTo(player)) stand.spawn(player);
                 }
 
-                stands.put(name, stand);
+                stands.add(stand);
             } else {
                 // Update.
-                PacketStand stand = stands.get(name);
+                PacketStand stand = getByName(name);
+                if (stand == null) continue;
+
                 stand.teleport(current);
-                stand.setCustomName(text);
+                stand.getSettings().setCustomName(text);
                 stand.updateMetadata();
             }
 
             current.subtract(0.0d, LINE_DISTANCE, 0.0d);
         }
+    }
+
+    public @Nullable PacketStand getByName(String name) {
+        for (PacketStand stand : stands) {
+            String partName = stand.getSettings().getPartName();
+            if (partName != null && partName.equals(name)) return stand;
+        }
+        return null;
     }
 
     public void addLines(String... texts) {
@@ -189,7 +203,7 @@ public final class Hologram {
 
     public void destroy() {
         cancelTask();
-        stands.values().forEach(PacketStand::destroy);
+        stands.forEach(PacketStand::destroy);
         stands.clear();
         lines.clear();
 

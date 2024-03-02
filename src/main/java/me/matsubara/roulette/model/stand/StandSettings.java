@@ -4,12 +4,24 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.EulerAngle;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
 
 @Getter
 @Setter
 public final class StandSettings implements Cloneable {
+
+    // Model data.
+    private String partName;
+    private double xOffset;
+    private double yOffset;
+    private double zOffset;
+    private float extraYaw;
+    private final List<String> tags = new ArrayList<>();
+
+    private double externalX;
+    private double externalZ;
 
     // Entity settings.
     private boolean invisible;
@@ -30,13 +42,8 @@ public final class StandSettings implements Cloneable {
     private EulerAngle leftLegPose;
     private EulerAngle rightLegPose;
 
-    // Entity inventory.
-    private ItemStack helmet;
-    private ItemStack chestplate;
-    private ItemStack leggings;
-    private ItemStack boots;
-    private ItemStack mainHand;
-    private ItemStack offHand;
+    // Entity equipment.
+    private final Map<PacketStand.ItemSlot, ItemStack> equipment = new HashMap<>();
 
     public StandSettings() {
         // Default settings.
@@ -47,6 +54,7 @@ public final class StandSettings implements Cloneable {
         this.fire = false;
         this.marker = false;
         this.glow = false;
+        this.partName = null;
         this.customName = null;
         this.customNameVisible = false;
 
@@ -57,26 +65,10 @@ public final class StandSettings implements Cloneable {
         this.rightArmPose = EulerAngle.ZERO;
         this.leftLegPose = EulerAngle.ZERO;
         this.rightLegPose = EulerAngle.ZERO;
-
-        // Default equipment.
-        this.helmet = null;
-        this.chestplate = null;
-        this.leggings = null;
-        this.boots = null;
-        this.mainHand = null;
-        this.offHand = null;
     }
 
     public boolean hasEquipment() {
-        return !isArrayNull(helmet, chestplate, leggings, boots, mainHand, offHand);
-    }
-
-    @Contract(pure = true)
-    private boolean isArrayNull(Object @NotNull ... objects) {
-        for (Object object : objects) {
-            if (object != null) return false;
-        }
-        return true;
+        return equipment.values().stream().anyMatch(Objects::nonNull);
     }
 
     @NotNull

@@ -193,25 +193,25 @@ public final class Game {
 
         // This hologram is only visible for players playing this game.
         this.spinHologram.setVisibleByDefault(false);
+
+        // Spawn chairs.
+        for (int chair : CHAIRS) {
+            String key = "CHAIR_" + chair;
+            chairs.put(key, spawnChairStand(key));
+        }
     }
 
     public @Nullable ArmorStand getChair(int chair) {
         String key = "CHAIR_" + chair;
 
-        ArmorStand stand;
-        if ((stand = chairs.get(key)) == null || !stand.isValid()) {
-            ArmorStand newValue;
-            if ((newValue = spawnChairStand(key)) != null) {
-                chairs.put(key, newValue);
-                return newValue;
-            }
-        }
+        ArmorStand stand = chairs.get(key);
+        if (stand == null || !stand.isValid()) return null;
 
-        return stand != null && stand.isValid() ? stand : null;
+        return stand;
     }
 
     private @Nullable ArmorStand spawnChairStand(String name) {
-        PacketStand stand = model.getStands().get(name);
+        PacketStand stand = model.getByName(name);
         if (stand == null) return null;
 
         World world = getLocation().getWorld();
@@ -337,9 +337,9 @@ public final class Game {
             if (sitAt != -1) {
                 // At this point, this won't be null.
                 ArmorStand stand = getChair(sitAt);
-                if (stand != null) fixChairCamera(player, stand);
+                if (stand != null) fixChairCameraAndSit(player, stand);
             } else {
-                sitPlayer(player, true);
+                sitPlayer(player, true, true);
             }
         }
 
@@ -372,8 +372,12 @@ public final class Game {
             restart();
         }
 
-        // Remove player from chair (if sitting).
-        if (isSittingOn(player)) kickPlayer(player);
+        // Remove the player from the chair (if sitting).
+        if (isSittingOn(player)
+                && player.getVehicle() instanceof ArmorStand chair
+                && chairs.containsValue(chair)) {
+            player.leaveVehicle();
+        }
 
         if (state.isIdle() || state.isStarting()) {
             joinHologram.showTo(player);
@@ -412,14 +416,6 @@ public final class Game {
                 .replace("%type%", type.getName());
     }
 
-    public void kickPlayer(Player player) {
-        int sittingOn = getSittingOn(player);
-
-        // Remove player from chair.
-        ArmorStand sitting = getChair(sittingOn);
-        if (sitting != null) sitting.removePassenger(player);
-    }
-
     private void cancelTasks(BukkitTask @NotNull ... tasks) {
         for (BukkitTask task : tasks) {
             if (task != null && !task.isCancelled()) task.cancel();
@@ -447,10 +443,7 @@ public final class Game {
     }
 
     public boolean isSittingOn(Player player) {
-        for (int chair : CHAIRS) {
-            if (isSittingOn(player, chair)) return true;
-        }
-        return false;
+        return getSittingOn(player) != -1;
     }
 
     private boolean isSittingOn(Player player, int chair) {
@@ -465,15 +458,21 @@ public final class Game {
         return -1;
     }
 
+    private final Set<UUID> transfers = new HashSet<>();
+
     public void sitPlayer(Player player, boolean toTheRight) {
-        // If not chair available.
+        sitPlayer(player, toTheRight, false);
+    }
+
+    public void sitPlayer(Player player, boolean toTheRight, boolean isAdd) {
+        // If not a chair available.
         if (!isChairAvailable()) return;
 
         if (toTheRight && !isSittingOn(player)) {
             for (int chair : CHAIRS) {
                 ArmorStand stand = getChair(chair);
                 if (stand == null || !stand.getPassengers().isEmpty()) continue;
-                fixChairCamera(player, stand);
+                fixChairCameraAndSit(player, stand);
                 break;
             }
             return;
@@ -484,8 +483,13 @@ public final class Game {
 
         int sittingOn = getSittingOn(player);
 
+        // Add to transfer BEFORE dismounting.
+        if (!isAdd) transfers.add(player.getUniqueId());
+
         ArmorStand sitting = getChair(sittingOn);
-        if (sitting != null) sitting.removePassenger(player);
+        if (sitting != null) {
+            sitting.removePassenger(player);
+        }
 
         int ordinal = ArrayUtils.indexOf(CHAIRS, sittingOn);
 
@@ -503,10 +507,10 @@ public final class Game {
             stand = getChair(CHAIRS[ordinal]);
         } while (stand == null || !stand.getPassengers().isEmpty());
 
-        fixChairCamera(player, stand);
+        fixChairCameraAndSit(player, stand);
     }
 
-    private void fixChairCamera(Player player, ArmorStand stand) {
+    private void fixChairCameraAndSit(Player player, ArmorStand stand) {
         if (ConfigManager.Config.FIX_CHAIR_CAMERA.asBool()) {
             // Add a bit of offset.
             player.teleport(stand.getLocation().clone().add(0.0d, 0.25d, 0.0d));
@@ -756,11 +760,11 @@ public final class Game {
         StandSettings oneSettings = new StandSettings();
         oneSettings.setSmall(true);
         oneSettings.setInvisible(true);
-        oneSettings.setMainHand(XMaterial.EXPERIENCE_BOTTLE.parseItem());
+        oneSettings.getEquipment().put(PacketStand.ItemSlot.MAINHAND, XMaterial.EXPERIENCE_BOTTLE.parseItem());
         oneSettings.setRightArmPose(new EulerAngle(angle, 0.0d, 0.0d));
 
         // First part.
-        selectedOne = new PacketStand(baseLocation, oneSettings);
+        selectedOne = new PacketStand(baseLocation, oneSettings, true, plugin.getConfigManager().getRenderDistance());
 
         Location modelLocation = getLocation();
         float yaw = modelLocation.getYaw(), pitch = modelLocation.getPitch();
@@ -772,12 +776,15 @@ public final class Game {
         twoSettings.setRightArmPose(new EulerAngle(angle, angle, 0.0d));
 
         // Second part.
-        selectedTwo = new PacketStand(baseLocation.clone().add(offset), twoSettings);
+        selectedTwo = new PacketStand(baseLocation.clone().add(offset), twoSettings, true, plugin.getConfigManager().getRenderDistance());
 
         // Where to teleport the bottle.
-        Location bottleLocation = model.getLocations().get(winner.name()).getKey().clone();
+        PacketStand temp = model.getByName(winner.name());
+        if (temp == null) return;
 
-        // Offset depending on the amount of bets in the winner slot.
+        Location bottleLocation = temp.getLocation().clone();
+
+        // Offset depending on the number of bets in the winner slot.
         Vector slotOffset = getWinnerSlotOffset();
         if (slotOffset != null) bottleLocation.add(PluginUtils.offsetVector(slotOffset, yaw, pitch));
 

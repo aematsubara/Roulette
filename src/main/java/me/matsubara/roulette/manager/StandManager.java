@@ -57,12 +57,12 @@ public final class StandManager implements Listener {
 
             boolean shouldShow = true;
 
-            for (PacketStand stand : game.getModel().getStands().values()) {
+            for (PacketStand stand : game.getModel().getStands()) {
                 if (!stand.isInRange(location)) shouldShow = false;
             }
 
             // Show/hide model stands.
-            handleStandRender(player, game.getModel().getStands().values(), shouldShow, isSpawn);
+            handleStandRender(player, game.getModel().getStands(), shouldShow, isSpawn);
 
             // Show/hide holograms stands.
             for (Bet bet : game.getPlayers().values()) {
@@ -74,18 +74,18 @@ public final class StandManager implements Listener {
 
                 // Show/hide hologram.
                 if (bet.hasHologram() && bet.getHologram().isVisibleTo(player)) {
-                    handleStandRender(player, bet.getHologram().getStands().values(), shouldShow, isSpawn);
+                    handleStandRender(player, bet.getHologram().getStands(), shouldShow, isSpawn);
                 }
             }
 
             // Show/hide join hologram stands.
             if (game.getJoinHologram().isVisibleTo(player)) {
-                handleStandRender(player, game.getJoinHologram().getStands().values(), shouldShow, isSpawn);
+                handleStandRender(player, game.getJoinHologram().getStands(), shouldShow, isSpawn);
             }
 
             // Show/hide spin hologram stands (only if the player is playing this game).
             if (game.isPlaying(player)) {
-                handleStandRender(player, game.getSpinHologram().getStands().values(), shouldShow, isSpawn);
+                handleStandRender(player, game.getSpinHologram().getStands(), shouldShow, isSpawn);
             }
         }
     }

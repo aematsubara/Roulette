@@ -273,4 +273,12 @@ public final class PluginUtils {
         boolean hasDecimal = truncated < 100 && (truncated / 10.0d) != (truncated / 10);
         return "$" + (hasDecimal ? (truncated / 10.0d) + suffix : (truncated / 10) + suffix);
     }
+
+    public static <T extends Enum<T>> T getOrDefault(Class<T> clazz, String name, T defaultValue) {
+        try {
+            return Enum.valueOf(clazz, name);
+        } catch (IllegalArgumentException exception) {
+            return defaultValue;
+        }
+    }
 }

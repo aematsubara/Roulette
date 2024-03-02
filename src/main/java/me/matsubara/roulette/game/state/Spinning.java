@@ -74,7 +74,7 @@ public final class Spinning extends BukkitRunnable {
                 game.remove(player, true);
                 messages.send(player, MessageManager.Message.OUT_OF_TIME);
 
-                // If the player still have the chip inventory open, close it.
+                // If the player still has the chip inventory open, close it.
                 InventoryHolder holder = player.getOpenInventory().getTopInventory().getHolder();
                 if (holder instanceof ChipGUI || holder instanceof ConfirmGUI) {
                     player.closeInventory();

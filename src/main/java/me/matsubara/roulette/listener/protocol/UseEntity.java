@@ -25,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 
 public final class UseEntity extends PacketAdapter {
 
@@ -57,130 +57,137 @@ public final class UseEntity extends PacketAdapter {
         }
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @SafeVarargs
-    private void handleInteract(Game game, Player player, int entityId, Map<String, PacketStand> @NotNull ... collections) {
-        MessageManager messages = plugin.getMessageManager();
-        for (Map<String, PacketStand> collection : collections) {
-            for (Map.Entry<String, PacketStand> entry : collection.entrySet()) {
-                PacketStand stand = entry.getValue();
-                if (stand == null || stand.getEntityId() != entityId) continue;
-
-                Model model = game.getModel();
-
-                // Can happen when the game is created.
-                if (!model.isModelSpawned()) {
-                    messages.send(player, MessageManager.Message.MODEL_NOT_LOADED);
-                    return;
-                }
-
-                // Change table texture.
-                if (canChangeTexture(player)) {
-                    XMaterial material = getMaterialInHand(player);
-
-                    boolean isPlanks = material.name().contains("PLANKS");
-
-                    // No need to change planks type if is the same.
-                    if (isPlanks && material == model.getPlanksType()) return;
-
-                    String toUse = material.name().substring(0, material.name().lastIndexOf("_"));
-
-                    if (isPlanks) {
-                        XMaterial slab = XMaterial.matchXMaterial(toUse + "_SLAB").get(); // Can't be null.
-                        model.setPlanksType(material);
-                        model.setSlabsType(slab);
-                    } else {
-                        XMaterial carpet = XMaterial.matchXMaterial(toUse + "_CARPET").get(); // Again, can't be null.
-                        model.setCarpetsType(carpet);
-                    }
-
-                    ItemStack carpets = model.getCarpetsType().parseItem();
-                    ItemStack planks = model.getPlanksType().parseItem();
-                    ItemStack slabs = model.getSlabsType().parseItem();
-
-                    model.getStands().forEach((name, part) -> {
-                        if (isPlanks) {
-                            if (name.startsWith("SIDE")) {
-                                part.setEquipment(slabs, PacketStand.ItemSlot.HEAD);
-                            }
-
-                            if (name.startsWith("FEET")) {
-                                part.setEquipment(planks, PacketStand.ItemSlot.HEAD);
-                            }
-                        }
-
-                        if (name.startsWith("CHAIR")) {
-                            int current = Integer.parseInt(name.split("_")[1]);
-                            if (ArrayUtils.contains(Model.CHAIR_FIRST_LAYER, current)) {
-                                part.setEquipment(planks, PacketStand.ItemSlot.HEAD);
-                            } else if (ArrayUtils.contains(Model.CHAIR_SECOND_LAYER, current)) {
-                                part.setEquipment(slabs, PacketStand.ItemSlot.HEAD);
-                            } else {
-                                part.setEquipment(carpets, PacketStand.ItemSlot.HEAD);
-                            }
-                        }
-                    });
-
-                    plugin.getGameManager().save(game);
-                    return;
-                }
-
-                // Joining while shifting will remove the player from the chair.
-                if (player.isSneaking()) return;
-
-                // Can happen when the player is already in the game.
-                if (game.isPlaying(player) && game.isSittingOn(player)) {
-                    messages.send(player, MessageManager.Message.ALREADY_INGAME);
-                    return;
-                }
-
-                // Can happen whe the game is already started.
-                if (!game.canJoin()) {
-                    if (game.getState().isEnding()) {
-                        messages.send(player, MessageManager.Message.RESTARTING);
-                    } else {
-                        messages.send(player, MessageManager.Message.ALREADY_STARTED);
-                    }
-                    return;
-                }
-
-                // Can happen when the game is full.
-                if (game.isFull()) {
-                    messages.send(player, MessageManager.Message.FULL);
-                    return;
-                }
-
-                // Check if player is vanished using EssentialsX, SuperVanish, PremiumVanish, VanishNoPacket, etc.
-                if (isPluginVanished(player)) {
-                    messages.send(player, MessageManager.Message.VANISH);
-                    return;
-                }
-
-                // Can happen if the player doens't have money.
-                double minAmount = plugin.getChipManager().getMinAmount();
-                if (!plugin.getEconomy().has(player, minAmount)) {
-                    messages.send(player, MessageManager.Message.MIN_REQUIRED, message -> message.replace("%money%", String.valueOf(minAmount)));
-                    return;
-                }
-
-                // We need to do this part sync to prevent issues.
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    PlayerRouletteEnterEvent enterEvent = new PlayerRouletteEnterEvent(game, player);
-                    plugin.getServer().getPluginManager().callEvent(enterEvent);
-                    if (enterEvent.isCancelled()) return;
-
-                    Integer sitAt = handleChairInteract(game, player, entry.getKey());
-                    if (sitAt == null) return;
-
-                    game.add(player, sitAt);
-                    game.broadcast(MessageManager.Message.JOIN.asString()
-                            .replace("%player%", player.getName())
-                            .replace("%playing%", String.valueOf(game.size()))
-                            .replace("%max%", String.valueOf(game.getMaxPlayers())));
-                });
-                return;
+    private void handleInteract(Game game, Player player, int entityId, List<PacketStand> @NotNull ... collections) {
+        stands:
+        for (List<PacketStand> collection : collections) {
+            for (PacketStand stand : collection) {
+                if (handle(game, player, entityId, stand)) break stands;
             }
         }
+    }
+
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    private boolean handle(Game game, Player player, int entityId, PacketStand stand) {
+        MessageManager messages = plugin.getMessageManager();
+
+        if (stand.getEntityId() != entityId) return false;
+
+        Model model = game.getModel();
+
+        // Can happen when the game is created.
+        if (!model.isModelSpawned()) {
+            messages.send(player, MessageManager.Message.MODEL_NOT_LOADED);
+            return true;
+        }
+
+        // Change table texture.
+        if (canChangeTexture(player)) {
+            XMaterial material = getMaterialInHand(player);
+
+            boolean isPlanks = material.name().contains("PLANKS");
+
+            // No need to change a plank type if is the same.
+            if (isPlanks && material == model.getPlanksType()) return true;
+
+            String toUse = material.name().substring(0, material.name().lastIndexOf("_"));
+
+            if (isPlanks) {
+                XMaterial slab = XMaterial.matchXMaterial(toUse + "_SLAB").get(); // Can't be null.
+                model.setPlanksType(material);
+                model.setSlabsType(slab);
+            } else {
+                XMaterial carpet = XMaterial.matchXMaterial(toUse + "_CARPET").get(); // Again, can't be null.
+                model.setCarpetsType(carpet);
+            }
+
+            ItemStack carpets = model.getCarpetsType().parseItem();
+            ItemStack planks = model.getPlanksType().parseItem();
+            ItemStack slabs = model.getSlabsType().parseItem();
+
+            model.getStands().forEach(part -> {
+                String name = part.getSettings().getPartName();
+                if (isPlanks) {
+                    if (name.startsWith("SIDE")) {
+                        part.setEquipment(slabs, PacketStand.ItemSlot.HEAD);
+                    }
+
+                    if (name.startsWith("FEET")) {
+                        part.setEquipment(planks, PacketStand.ItemSlot.HEAD);
+                    }
+                }
+
+                if (name.startsWith("CHAIR")) {
+                    int current = Integer.parseInt(name.split("_")[1]);
+                    if (ArrayUtils.contains(Model.CHAIR_FIRST_LAYER, current)) {
+                        part.setEquipment(planks, PacketStand.ItemSlot.HEAD);
+                    } else if (ArrayUtils.contains(Model.CHAIR_SECOND_LAYER, current)) {
+                        part.setEquipment(slabs, PacketStand.ItemSlot.HEAD);
+                    } else {
+                        part.setEquipment(carpets, PacketStand.ItemSlot.HEAD);
+                    }
+                }
+            });
+
+            plugin.getGameManager().save(game);
+            return true;
+        }
+
+        // Joining while shifting will remove the player from the chair.
+        if (player.isSneaking()) return true;
+
+        // Can happen when the player is already in the game.
+        if (game.isPlaying(player) && game.isSittingOn(player)) {
+            messages.send(player, MessageManager.Message.ALREADY_INGAME);
+            return true;
+        }
+
+        // Can happen whe the game is already started.
+        if (!game.canJoin()) {
+            if (game.getState().isEnding()) {
+                messages.send(player, MessageManager.Message.RESTARTING);
+            } else {
+                messages.send(player, MessageManager.Message.ALREADY_STARTED);
+            }
+            return true;
+        }
+
+        // Can happen when the game is full.
+        if (game.isFull()) {
+            messages.send(player, MessageManager.Message.FULL);
+            return true;
+        }
+
+        // Check if player is vanished using EssentialsX, SuperVanish, PremiumVanish, VanishNoPacket, etc.
+        if (isPluginVanished(player)) {
+            messages.send(player, MessageManager.Message.VANISH);
+            return true;
+        }
+
+        // Can happen if the player doens't has money.
+        double minAmount = plugin.getChipManager().getMinAmount();
+        if (!plugin.getEconomy().has(player, minAmount)) {
+            messages.send(player, MessageManager.Message.MIN_REQUIRED, message -> message.replace("%money%", String.valueOf(minAmount)));
+            return true;
+        }
+
+        // We need to do this part sync to prevent issues.
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            PlayerRouletteEnterEvent enterEvent = new PlayerRouletteEnterEvent(game, player);
+            plugin.getServer().getPluginManager().callEvent(enterEvent);
+            if (enterEvent.isCancelled()) return;
+
+            Integer sitAt = handleChairInteract(game, player, stand.getSettings().getPartName());
+            if (sitAt == null) return;
+
+            game.add(player, sitAt);
+            game.broadcast(MessageManager.Message.JOIN.asString()
+                    .replace("%player%", player.getName())
+                    .replace("%playing%", String.valueOf(game.size()))
+                    .replace("%max%", String.valueOf(game.getMaxPlayers())));
+        });
+
+        return true;
     }
 
     private @Nullable Integer handleChairInteract(Game game, Player player, @NotNull String name) {

@@ -76,6 +76,8 @@ public final class ItemBuilder {
     }
 
     public ItemBuilder setDisplayName(String displayName) {
+        if (displayName == null) return this;
+
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return this;
 
