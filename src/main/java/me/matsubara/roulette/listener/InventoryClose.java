@@ -47,7 +47,7 @@ public final class InventoryClose implements Listener {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (player.getOpenInventory().getTopInventory().getHolder() instanceof ConfirmGUI) return;
 
-                int page = ((ChipGUI) inventory.getHolder()).getCurrent();
+                int page = ((ChipGUI) inventory.getHolder()).getCurrentPage();
                 runTask(() -> new ChipGUI(game, player, page));
             }, 2L);
             return;

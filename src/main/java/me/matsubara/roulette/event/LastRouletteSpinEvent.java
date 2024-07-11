@@ -7,11 +7,11 @@ import me.matsubara.roulette.game.data.Slot;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
-@SuppressWarnings("unused")
+@Setter
+@Getter
 public class LastRouletteSpinEvent extends RouletteEvent {
 
-    @Getter
-    private @Setter Slot winnerSlot;
+    private Slot winnerSlot;
 
     private static final HandlerList handlers = new HandlerList();
 
@@ -25,6 +25,7 @@ public class LastRouletteSpinEvent extends RouletteEvent {
         return handlers;
     }
 
+    @SuppressWarnings("unused")
     public static HandlerList getHandlerList() {
         return handlers;
     }

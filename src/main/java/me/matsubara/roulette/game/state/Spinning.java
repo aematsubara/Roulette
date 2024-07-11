@@ -1,7 +1,8 @@
 package me.matsubara.roulette.game.state;
 
-import com.comphenix.protocol.wrappers.EnumWrappers;
-import com.cryptomorin.xseries.XSound;
+import com.github.retrooper.packetevents.protocol.entity.pose.EntityPose;
+import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityAnimation;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.LastRouletteSpinEvent;
 import me.matsubara.roulette.game.Game;
@@ -15,10 +16,12 @@ import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.npc.NPC;
-import me.matsubara.roulette.npc.modifier.AnimationModifier;
+import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -110,9 +113,9 @@ public final class Spinning extends BukkitRunnable {
         players.forEach((player, bet) -> bet.getHologram().hideTo(player));
 
         // Play NPC spin animation.
-        npc.metadata().queue(PluginUtils.SNEAKING_METADATA, true).send();
-        npc.animation().queue(AnimationModifier.EntityAnimation.SWING_MAIN_ARM).send();
-        npc.equipment().queue(EnumWrappers.ItemSlot.MAINHAND, new ItemStack(Material.AIR)).send();
+        npc.metadata().queue(MetadataModifier.EntityMetadata.POSE, EntityPose.CROUCHING).send();
+        npc.animation().queue(WrapperPlayServerEntityAnimation.EntityAnimationType.SWING_MAIN_ARM).send();
+        npc.equipment().queue(EquipmentSlot.MAIN_HAND, new ItemStack(Material.AIR)).send();
 
         // Show ball, shouldn't be null.
         if (ball != null) ball.setEquipment(new ItemStack(Material.END_ROD), PacketStand.ItemSlot.HEAD);
@@ -131,7 +134,7 @@ public final class Spinning extends BukkitRunnable {
             spinHologram.setLine(0, ConfigManager.Config.WINNING_NUMBER.asString());
 
             // Stop NPC animation, check if there are winners and stop.
-            game.getNpc().metadata().queue(PluginUtils.SNEAKING_METADATA, false).send();
+            game.getNpc().metadata().queue(MetadataModifier.EntityMetadata.POSE, EntityPose.STANDING).send();
             game.setState(GameState.ENDING);
             game.checkWinner();
 
@@ -170,11 +173,20 @@ public final class Spinning extends BukkitRunnable {
             spinHologram.addLines(slotName);
         } else {
             spinHologram.setLine(1, slotName);
-
-            // Play spinning sound at spin hologram location, this sound can be heard by every player (even those outside the game).
-            XSound.play(spinHologram.getLocation(), ConfigManager.Config.SOUND_SPINNING.asString());
+            playSpinningSound();
         }
 
         time--;
+    }
+
+    private void playSpinningSound() {
+        Location soundAt = game.getSpinHologram().getLocation();
+        World world = soundAt.getWorld();
+
+        // Play spinning sound at spin hologram location, this sound can be heard by every player (even those outside the game).
+        Sound spinningSound;
+        if (world != null && (spinningSound = PluginUtils.getOrNull(Sound.class, ConfigManager.Config.SOUND_SPINNING.asString())) != null) {
+            world.playSound(soundAt, spinningSound, 1.0f, 1.0f);
+        }
     }
 }

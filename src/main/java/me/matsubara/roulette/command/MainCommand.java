@@ -48,7 +48,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        // If player doesn't have permission to use roulette commands, send @no-permission message.
+        // If the player doesn't have permission to use roulette commands, send (@no-permission) message.
         if (!hasPermission(sender, "roulette.help")) return true;
 
         MessageManager messages = plugin.getMessageManager();
@@ -56,7 +56,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         // No arguments provided.
         boolean noArgs = args.length == 0;
         if (noArgs || args.length > 3 || !COMMAND_ARGS.contains(args[0].toLowerCase())) {
-            // Otherwise, send help message.
+            // Otherwise, send a help message.
             if (noArgs) HELP.forEach(sender::sendMessage);
             else messages.send(sender, MessageManager.Message.SINTAX);
             return true;
@@ -65,7 +65,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             switch (args[0].toLowerCase()) {
                 case "reload" -> {
-                    // If player doesn't have permission to reload, send @no-permission message.
+                    // If the player doesn't have permission to reload, send (@no-permission) message.
                     if (!hasPermission(sender, "roulette.reload")) return true;
 
                     // Log reloading message.
@@ -94,7 +94,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                     Player player = getPlayerFromSender(sender);
                     if (player == null) return true;
 
-                    // If player doesn't have permission to get a map, send @no-permission message.
+                    // If the player doesn't have permission to get a map, send (@no-permission) message.
                     if (!hasPermission(player, "roulette.map")) return true;
                     ThreadLocalRandom random = ThreadLocalRandom.current();
                     double randomPrice = random.nextDouble(100000d);
@@ -122,12 +122,13 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("delete")) {
-                // If player doesn't have permission to delete games, send @no-permission message.
+                // If the player doesn't have permission to delete games, send (@no-permission) message.
                 if (!hasPermission(sender, "roulette.delete")) return true;
 
                 Game game = plugin.getGameManager().getGame(args[1]);
                 if (game != null) {
-                    // If the sender is a player and doesn't have permission to delete games from other players, send @no-permission message.
+                    // If the sender is a player and doesn't have permission to delete games from other players,
+                    // send (@no-permission) message.
                     if (sender instanceof Player player
                             && !game.getOwner().equals(player.getUniqueId())
                             && !hasPermission(player, "roulette.delete.others")) {
@@ -153,7 +154,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         Player player = getPlayerFromSender(sender);
         if (player == null) return true;
 
-        // If player doesn't have permission to create games, send @no-permission message.
+        // If the player doesn't have permission to create games, send (@no-permission) message.
         if (!hasPermission(player, "roulette.create")) return true;
 
         if (plugin.getGameManager().exist(args[1])) {
@@ -176,7 +177,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             type = GameType.AMERICAN;
         }
 
-        plugin.getGameManager().add(
+        plugin.getGameManager().addFreshGame(
                 args[1],
                 1,
                 10,

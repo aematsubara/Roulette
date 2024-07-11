@@ -36,6 +36,7 @@ public final class StandManager implements Listener {
         Location to = event.getTo();
         if (to == null) return;
 
+        // Only handle renders if the player moved at least 1 block.
         Location from = event.getFrom();
         if (to.getBlockX() == from.getBlockX()
                 && to.getBlockY() == from.getBlockY()

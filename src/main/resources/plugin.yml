@@ -1,16 +1,21 @@
 name: Roulette
 version: '${project.version}'
 main: me.matsubara.roulette.RoulettePlugin
-api-version: 1.13
+api-version: 1.17
 author: Matsubara
 description: '${project.description}'
 depend:
-  - ProtocolLib
+  - packetevents
   - Vault
 softdepend:
+  - ProtocolLib
+  - ProtocolSupport
+  - ViaVersion
+  - ViaBackwards
+  - ViaRewind
+  - Geyser-Spigot
   - Essentials
   - PlaceholderAPI
-  - ViaVersion
   - Multiverse-Core
 
 commands:

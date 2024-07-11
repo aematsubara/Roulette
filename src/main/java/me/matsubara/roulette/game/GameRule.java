@@ -4,12 +4,12 @@ package me.matsubara.roulette.game;
 public enum GameRule {
     /**
      * Once a single zero is spun, the even-money bet will immediately be divided by two.
-     * This way 50% of the bet will be recovered to the player, while the other 50% will be surrendered to the house.
+     * This way, 50% of the bet will be recovered to the player, while the other 50% will be surrendered to the house.
      */
     LA_PARTAGE(14),
     /**
      * Gives players an opportunity to recover their even-money stakes after the zero is spun.
-     * The stake remains on the losing even-money bet for the next spin and if the player wins the second time around,
+     * The stake remains on the losing even-money bet for the next spin, and if the player wins the second time around,
      * they get their original stake back.
      */
     EN_PRISON(15),

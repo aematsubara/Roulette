@@ -178,10 +178,10 @@ public final class Hologram {
         // Cancel task before updating.
         cancelTask();
 
-        // Add lines to list.
+        // Add lines to the list.
         lines.addAll(Arrays.asList(texts));
 
-        // Check if task should start, otherwise, update normally.
+        // Check if the task should start, otherwise, update normally.
         checkForTask();
     }
 
@@ -189,10 +189,10 @@ public final class Hologram {
         // Cancel task before updating.
         cancelTask();
 
-        // Update line in list.
+        // Update line in the list.
         lines.set(index, text);
 
-        // Check if task should start, otherwise, update normally.
+        // Check if the task should start, otherwise, update normally.
         checkForTask();
     }
 

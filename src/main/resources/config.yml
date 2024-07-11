@@ -7,15 +7,63 @@
 #
 # Developed by Matsuneitor.
 # :)
+#
+# ITEM FORMAT:
+# @url: the URL of the texture to be used (@material should be PLAYER_HEAD).
+# @material: the material of the item.
+# @model-data: the custom model data id, used for custom resource packs.
+# @display_name & lore: self-explanatory.
+# @crafting.shaped: whether the item recipe is shaped (like WORKBENCH) or not (like FLINT_AND_STEEL).
+# @crafting.ingredients: the ingredients that'll be used for the recipe. Format: MATERIAL_NAME, KEY (used for shape, see below).
+# @crafting.shape: the shape that'll be used on the crafting table, using the KEY specified (only 3 lines required, spaces are used as AIR).
+# @flags: which attributes to hide.
+# @enchantments: the enchantments to be applied.
+# @leather-color: the color of the leather armor.
+# * Use a color from: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Color.html (e.g. AQUA, BLACK, etc.)
+# * Use a random color with: $RANDOM
+# * Use a color using RGB format: &#RRGGBB
+# @damage: the amount of damage to apply to the item (maximum durability - given damage, can be $RANDOM or X-Y).
+# @tipped: the potion effect the arrow will have (must be a TIPPED_ARROW).
+# @amount: the number of items.
+#
+# $RANDOM:
+# Color: a random color. (@leather-color)
+# PotionType: a random potion effect. (@tipped)
+# For @damage, a random value between 1 and max item durability is used.
+#
+# RANGED AMOUNT (X-Y): A random value between x and y. (@amount / @enchantments (level))
+#
+# PERCENTAGE (only valid for @damage, NOT DECIMAL): X% / %X (% must be included); for example, 50% (same as %50) would be half-damage.
+# NOTE: The percentage is taken from the maximum durability; this means:
+# * WOODEN_SWORD max durability = 60; if @damage is 50% (60 * 0.50) -> 30. if @damage is 25% (60 * 0.25) -> 15.
+# That value will be the damage added to the item; so, if @damage is %25, the new durability of the WOODEN_SWORD will be 60 - 15 = 45.
+#
+# In this example, the required ingredients are 7 of GOLD_INGOT and 1 of DIAMOND.
+# You can use spaces to represent AIR (nothing).
+# Ingredients:
+#   - DIAMOND, D
+#   - GOLD_INGOT, G
+# shape:
+#   - "GDG"
+#   - "G G"
+#   - "GGG"
+#
+# USEFUL LINKS:
+#
+# Materials: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+# Flags: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/inventory/ItemFlag.html
+# Enchantments: https://www.digminecraft.com/lists/enchantment_list_pc.php
+# Colors: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Color.html
+# Sounds: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
 
 # Don't touch this!
-config-version: 2
+config-version: 3
 
 # The render distance for the models. Default: 96.
 render-distance: 96
 
 # Whether to allow players to swap chairs before the game starts. If false, you can bypass this with 'roulette.swapchair' permission.
-# if false, players will be seated in the first empty chair.
+# If false, players will be seated in the first empty chair.
 swap-chair: true
 
 # Whether to instantly explode the fireworks.
@@ -24,7 +72,7 @@ instant-explode: true
 # Whether to fix the camera when changing chairs so the player looks forward.
 fix-chair-camera: false
 
-# The delay before you can move your chip / from chair (in millis, minimum value allowed = 200).
+# The delay before you can move your chip / from a chair (in millis, minimum value allowed = 200).
 move-interval: 200
 
 # Whether to allow players to hit other players within a game.
@@ -33,7 +81,8 @@ hit-on-game: false
 # If true, players will remain seated at the table after a game ends; ready for the next game.
 keep-seat: true
 
-# If you want to use abbreviation format when naming money. Useful for prison type servers where money values are much higher.
+# If you want to use an abbreviation format when naming money.
+# Useful for prison type servers where money values are much higher.
 # You can add your own translations per value, using the abbreviation as the key.
 # For more info on scales, take a look here: https://en.wikipedia.org/wiki/Long_and_short_scales
 money-abbreviation-format:
@@ -53,7 +102,7 @@ croupier-ball:
 
 # Here you can define custom win multiplier per slot.
 # NOTE: The given value is multiplied to the price.
-# For example: If you bet $100 in red and win, if the multiplier is 1.2 then the final winning money is 100 * 1.2 = 120 (money recovered + 20).
+# For example, If you bet $100 in red and win, if the multiplier is 1.2 then the final winning money is 100 * 1.2 = 120 (money recovered + 20).
 # If this option is enabled but a slot is not defined, the default (real-world) multiplier is applied (SINGLE = 36, RED/BLACK = 3, OTHERS = 2).
 # Example: SLOT_RED: 1.5
 # https://github.com/aematsubara/Roulette/blob/master/src/main/java/me/matsubara/roulette/game/data/Slot.java
@@ -61,9 +110,9 @@ custom-win-multiplier:
   enabled: false
   slots: []
 
-# The countdown of each part of the game (in seconds), must be a multiple of 5.
+# The countdown of each part of the game (in seconds) must be a multiple of 5.
 countdown:
-  # Starts after reaching the minimum amount of players.
+  # Starts after reaching the minimum number of players.
   # This time is set by default, you can change it for each game with the game editor GUI, by right-clicking an NPC.
   waiting: 30
   # Starts at the end of the previous countdown, time for players to choose their bet.
@@ -71,14 +120,14 @@ countdown:
   # Starts at the end of the previous countdown, where the roulette begins to spin.
   sorting: 10
 
-# Here you can modify the restart time and the amount of fireworks.
+# Here you can modify the restart time and the number of fireworks.
 # Be CAREFUL with this, as the fireworks'll be launched based on the restart time.
 # If you want to restart the game in 5s and launch 10 fireworks, then: 5 / 10 = 0.5, this means that every 0.5s a firework'll be launched.
-# NOTE: Both values must be a multiple of 5, if you don't want fireworks to be launched, set @fireworks to 0.
+# NOTE: Both values must be a multiple of 5 if you don't want fireworks to be launched, set @fireworks to 0.
 restart:
   # In how many seconds the game must be restarted.
   time: 5
-  # How many fireworks'll be launched (only if there are winners).
+  # How many fireworks'll be launched (only if there are winners)?
   fireworks: 10
 
 sounds:
@@ -104,7 +153,7 @@ disabled-slots: [ ]
 # Available placeholders:
 # %player% - the player who won.
 # %money% - the amount of money earned.
-# %original-money% -the original amount of money bet.
+# %original-money% - the original amount of money bet.
 # %date% - which date the game was won.
 # %selected-slot% - the slot in which the bet was placed.
 # %winner-slot% - the winning number of the roulette wheel.
@@ -115,9 +164,9 @@ map-image:
     - 105, %money%
   date-format: "dd-MM-yyyy"
   item:
-    display-name: "&aCongratulations!"
+    display-name: "&a&lCongratulations!"
     lore:
-      - "&7You have won &a%money% &7playing roulette!"
+      - "&7You have won &e%money% &7playing roulette!"
 
 # The word that must be typed to cancel an input request (account name / NPC name / NPC texture).
 cancel-word: cancel
@@ -153,16 +202,18 @@ types:
 confirmation-gui:
   # The title of the confirmation GUI.
   title: "Are you sure?"
-  # The display name of the confirmation item.
-  confirm: "&aConfirm"
-  # The display name of the cancel item.
-  cancel: "&cCancel"
+  confirm:
+    material: LIME_STAINED_GLASS_PANE
+    display-name: "&aConfirm"
+  cancel:
+    material: RED_STAINED_GLASS_PANE
+    display-name: "&cCancel"
 
 # The hologram of the game.
 # %name% - the name of the game.
-# %playing% - amount of players in the game.
-# %max% - the maximum amount of players allowed.
-# %type% - the type of the table, can be european or american (see @join-hologram.european and @join-hologram.american).
+# %playing% - number of players in the game.
+# %max% - the maximum number of players allowed.
+# %type% - the type of the table can be european or american (see @join-hologram.european and @join-hologram.american).
 join-hologram:
   - "%type%"
   - "&e%name% (%playing%/%max%)"
@@ -215,6 +266,7 @@ game-menu:
       - "&7will be sent to the account of the selected player."
       - "&7"
       - "&6Click to change."
+      - "&6Right click to delete."
   min-amount:
     material: MINECART
     display-name: "&aMinimum amount"
@@ -295,7 +347,7 @@ game-menu:
       - "&6Right click to change texture."
       - "&7"
       - "&cShift left click to reset name."
-      - "&cShifft right click to reset texture."
+      - "&cShift right click to reset texture."
   bet-all:
     url: "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852"
     material: PLAYER_HEAD

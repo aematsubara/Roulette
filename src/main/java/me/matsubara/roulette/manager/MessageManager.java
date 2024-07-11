@@ -37,7 +37,7 @@ public final class MessageManager {
         send(sender, message.getPath(), operator);
     }
 
-    public void send(CommandSender sender, Message @NotNull ... messages) {
+    public void send(CommandSender sender, Message... messages) {
         for (Message message : messages) {
             send(sender, message.getPath(), null);
         }
@@ -128,6 +128,7 @@ public final class MessageManager {
         CONTROL("other.control"),
         ACCOUNT("other.account"),
         NO_ACCOUNT("other.no-account"),
+        ACCOUNT_ALREADY_DELETED("other.account-already-deleted"),
         UNKNOWN_ACCOUNT("other.unknown-account"),
         RECEIVED("other.received"),
         VANISH("other.vanish"),
@@ -143,10 +144,12 @@ public final class MessageManager {
         REQUEST_CANCELLED("other.request-cancelled"),
         REQUEST_INVALID("other.request-invalid"),
         NPC_RENAMED("other.npc-renamed"),
-        NPC_TEXTURIZED("other.npc-texturized");
+        NPC_ALREADY_RENAMED("other.npc-already-renamed"),
+        NPC_TEXTURIZED("other.npc-texturized"),
+        NPC_ALREADY_TEXTURIZED("other.npc-already-texturized");
 
         private final RoulettePlugin plugin = JavaPlugin.getPlugin(RoulettePlugin.class);
-        private final String path;
+        private final @Getter String path;
 
         Message(String path) {
             this.path = path;
@@ -158,10 +161,6 @@ public final class MessageManager {
 
         public @NotNull List<String> asList() {
             return PluginUtils.translate(plugin.getMessageManager().getConfiguration().getStringList(path));
-        }
-
-        public String getPath() {
-            return path;
         }
     }
 }

@@ -1,9 +1,7 @@
 package me.matsubara.roulette.game.data;
 
-import com.cryptomorin.xseries.XSound;
 import lombok.Getter;
 import lombok.Setter;
-import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
@@ -16,6 +14,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Axis;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -139,14 +138,16 @@ public final class Bet {
                 game.getModel().getLocation().getYaw(),
                 game.getModel().getLocation().getPitch()));
 
-        // Play move chip sound at hologram location.
-        RoulettePlugin plugin = game.getPlugin();
-        plugin.getServer().getScheduler().runTask(plugin, () -> XSound.play(finalWhere, ConfigManager.Config.SOUND_SELECT.asString()));
+        // Play move chip sound at hologram location (sync to prevent issues).
+        game.getPlugin().getServer().getScheduler().runTask(game.getPlugin(), () -> {
+            Sound selectSound = PluginUtils.getOrNull(Sound.class, ConfigManager.Config.SOUND_SELECT.asString());
+            if (selectSound != null) player.getWorld().playSound(finalWhere, selectSound, 1.0f, 1.0f);
+        });
 
         // No need to create another hologram.
         if (!hasHologram()) {
             // Creates a personal hologram at the location of the selected slot.
-            this.hologram = new Hologram(plugin, finalWhere);
+            this.hologram = new Hologram(game.getPlugin(), finalWhere);
             this.hologram.setVisibleByDefault(false);
             this.hologram.showTo(player);
 

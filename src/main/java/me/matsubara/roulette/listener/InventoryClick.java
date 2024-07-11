@@ -1,8 +1,5 @@
 package me.matsubara.roulette.listener;
 
-import com.cryptomorin.xseries.XMaterial;
-import com.cryptomorin.xseries.XSound;
-import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
@@ -16,26 +13,20 @@ import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.runnable.MoneyAnimation;
 import me.matsubara.roulette.util.PluginUtils;
 import net.milkbowl.vault.economy.EconomyResponse;
-import org.bukkit.ChatColor;
-import org.bukkit.DyeColor;
-import org.bukkit.block.banner.Pattern;
-import org.bukkit.block.banner.PatternType;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.EntityType;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
 
 public final class InventoryClick implements Listener {
 
@@ -45,15 +36,47 @@ public final class InventoryClick implements Listener {
         this.plugin = plugin;
     }
 
+    @EventHandler
+    public void onInventoryDrag(@NotNull InventoryDragEvent event) {
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (!(holder instanceof ChipGUI) && !(holder instanceof ConfirmGUI) && !(holder instanceof GameGUI)) return;
+
+        if (event.getRawSlots().stream().noneMatch(integer -> integer < holder.getInventory().getSize())) return;
+
+        if (event.getRawSlots().size() == 1) {
+            plugin.getLogger().info("CANCELLED DRAG EVENT BUT CALLED INVENTORYCLICKEVENT DUE TO ONLY 1 ITEM CLICKED!");
+            InventoryClickEvent clickEvent = new InventoryClickEvent(
+                    event.getView(),
+                    InventoryType.SlotType.CONTAINER,
+                    event.getRawSlots().iterator().next(),
+                    ClickType.LEFT,
+                    InventoryAction.PICKUP_ONE);
+            plugin.getServer().getPluginManager().callEvent(clickEvent);
+        } else {
+            plugin.getLogger().info("CANCELLED DRAG BECAUSE IT CONTAINS SLOTS FROM CUSTOM GUI!!!");
+        }
+
+        event.setCancelled(true);
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
-        if (event.getWhoClicked().getType() != EntityType.PLAYER) return;
+        if (!(event.getWhoClicked() instanceof Player player)) return;
 
-        Player player = (Player) event.getWhoClicked();
+        Inventory inventory = event.getClickedInventory();
+        if (inventory == null) return;
 
-        if (event.getClickedInventory() == null) return;
+        // Prevent moving items from player inventory to custom inventories by shift-clicking.
+        InventoryHolder tempHolder = event.getView().getTopInventory().getHolder();
+        if (inventory.getType() == InventoryType.PLAYER
+                && event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY
+                && (tempHolder instanceof ChipGUI || tempHolder instanceof ConfirmGUI || tempHolder instanceof GameGUI)) {
+            plugin.getLogger().info("CANCELLED SHIFT CLICK FROM PLAYER INVENTORY TO CUSTOM GUI!");
+            event.setCancelled(true);
+            return;
+        }
 
-        InventoryHolder holder = event.getClickedInventory().getHolder();
+        InventoryHolder holder = inventory.getHolder();
         if (!(holder instanceof ConfirmGUI) && !(holder instanceof ChipGUI) && !(holder instanceof GameGUI)) return;
 
         event.setCancelled(true);
@@ -65,7 +88,8 @@ public final class InventoryClick implements Listener {
         if (item == null || !item.hasItemMeta()) return;
 
         // Play click sound.
-        XSound.matchXSound(ConfigManager.Config.SOUND_CLICK.asString()).ifPresent(temp -> temp.play(player));
+        Sound clickSound = PluginUtils.getOrNull(Sound.class, ConfigManager.Config.SOUND_CLICK.asString());
+        if (clickSound != null) player.playSound(player, clickSound, 1.0f, 1.0f);
 
         if (holder instanceof ConfirmGUI) {
             handleConfirmGUI(event, game);
@@ -79,35 +103,27 @@ public final class InventoryClick implements Listener {
     @SuppressWarnings("ConstantConditions")
     private void handleConfirmGUI(@NotNull InventoryClickEvent event, Game game) {
         Player player = (Player) event.getWhoClicked();
-        ItemStack item = event.getCurrentItem();
-
-        boolean hasDisplayName = item.getItemMeta().hasDisplayName();
-        String displayName = item.getItemMeta().getDisplayName();
+        ItemStack current = event.getCurrentItem();
 
         if (((ConfirmGUI) event.getClickedInventory().getHolder()).getType().isLeave()) {
 
-            if (hasDisplayName && displayName.equalsIgnoreCase(ConfigManager.Config.CONFIRM_GUI_CONFIRM.asString())) {
+            if (isCustomItem(current, "confirm")) {
                 plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
                 game.remove(player, false);
-            } else if (hasDisplayName && displayName.equalsIgnoreCase(plugin.getConfigManager().getDisplayName("shop", "exit"))) {
+            } else if (isCustomItem(current, "exit")) {
                 // Do nothing.
                 return;
             }
 
         } else {
-            if (hasDisplayName && displayName.equalsIgnoreCase(ConfigManager.Config.CONFIRM_GUI_CONFIRM.asString())) {
+            if (isCustomItem(current, "confirm")) {
                 double money = plugin.getEconomy().getBalance(player);
 
                 // If the @bet-all item has URL, use it. Otherwise, use a default one.
-                String skin;
-                if (plugin.getConfigManager().hasUrl("shop", "bet-all")) {
-                    skin = plugin.getConfigManager().getUrl("shop", "bet-all");
-                } else {
-                    skin = "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852";
-                }
+                String skin = plugin.getConfig().getString("shop.bet-all.url", "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852");
 
                 takeMoney(game, player, money, getBetAllChip(skin, money));
-            } else if (hasDisplayName && displayName.equalsIgnoreCase(plugin.getConfigManager().getDisplayName("shop", "bet-all"))) {
+            } else if (isCustomItem(current, "bet-all")) {
                 // Do nothing.
                 return;
             }
@@ -127,35 +143,40 @@ public final class InventoryClick implements Listener {
         return betAll;
     }
 
+    public boolean isCustomItem(@NotNull ItemStack item, String name) {
+        ItemMeta meta = item.getItemMeta();
+        return meta != null && Objects.equals(meta.getPersistentDataContainer().get(plugin.getItemIdKey(), PersistentDataType.STRING), name);
+    }
+
     @SuppressWarnings("ConstantConditions")
     private void handleChipGUI(@NotNull InventoryClickEvent event, Game game) {
         Player player = (Player) event.getWhoClicked();
-        ItemStack item = event.getCurrentItem();
+        ItemStack current = event.getCurrentItem();
         ChipGUI holder = (ChipGUI) event.getClickedInventory().getHolder();
 
-        boolean hasDisplayName = item.getItemMeta().hasDisplayName();
-        String displayName = item.getItemMeta().getDisplayName();
-
-        if (hasDisplayName && displayName.equalsIgnoreCase(plugin.getConfigManager().getDisplayName("shop", "previous"))) {
+        if (isCustomItem(current, "previous")) {
             holder.previousPage(event.getClick().isShiftClick());
             return;
-        } else if (hasDisplayName && displayName.equalsIgnoreCase(plugin.getConfigManager().getDisplayName("shop", "next"))) {
+        } else if (isCustomItem(current, "next")) {
             holder.nextPage(event.getClick().isShiftClick());
             return;
-        } else if (hasDisplayName && displayName.equalsIgnoreCase(plugin.getConfigManager().getDisplayName("shop", "bet-all"))) {
+        } else if (isCustomItem(current, "bet-all")) {
             // Open confirm gui.
-            int current = holder.getCurrent();
+            int currentPage = holder.getCurrentPage();
             runTask(() -> {
                 ConfirmGUI gui = new ConfirmGUI(game, player, ConfirmGUI.ConfirmType.BET_ALL);
-                gui.setPreviousPage(current);
+                gui.setPreviousPage(currentPage);
             });
             return;
-        } else if (hasDisplayName && displayName.equalsIgnoreCase(plugin.getConfigManager().getDisplayName("shop", "exit"))) {
+        } else if (isCustomItem(current, "exit")) {
             // Remove player from game.
             plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
             game.remove(player, false);
-        } else if (NBTEditor.contains(item, "chipName")) {
-            String chipName = NBTEditor.getString(item, "chipName");
+        } else {
+            ItemMeta meta = current.getItemMeta();
+            if (meta == null) return;
+
+            String chipName = meta.getPersistentDataContainer().get(plugin.getChipNameKey(), PersistentDataType.STRING);
             if (chipName == null) return;
 
             Chip chip = plugin.getChipManager().getByName(chipName);
@@ -165,23 +186,13 @@ public final class InventoryClick implements Listener {
 
             // Check if the player has the required money for this chip.
             if (!plugin.getEconomy().has(player, money)) {
-                // Set not enough money item.
-                item.setType(XMaterial
-                        .matchXMaterial(ConfigManager.Config.NOT_ENOUGH_MONEY_MATERIAL.asString())
-                        .orElse(XMaterial.BARRIER)
-                        .parseMaterial());
-
-                ItemMeta meta = item.getItemMeta();
-                if (meta == null) return;
-
-                meta.setDisplayName(ConfigManager.Config.NOT_ENOUGH_MONEY_DISPLAY_NAME.asString());
-                meta.setLore(ConfigManager.Config.NOT_ENOUGH_MONEY_LORE.asList());
-                item.setItemMeta(meta);
+                // Not enough money.
+                event.setCurrentItem(plugin.getItem("not-enough-money").build());
                 return;
             }
 
             takeMoney(game, player, money, chip);
-        } else return;
+        }
 
         closeInventory(player);
     }
@@ -206,86 +217,41 @@ public final class InventoryClick implements Listener {
 
     @SuppressWarnings("ConstantConditions")
     private void handleGameGUI(@NotNull InventoryClickEvent event) {
-        GameGUI holder = (GameGUI) event.getClickedInventory().getHolder();
-        Game game = holder.getGame();
-
-        int min = holder.getGame().getMinPlayers(), max = holder.getGame().getMaxPlayers();
+        GameGUI gui = (GameGUI) event.getClickedInventory().getHolder();
+        Game game = gui.getGame();
 
         Player player = (Player) event.getWhoClicked();
         ItemStack current = event.getCurrentItem();
         Inventory inventory = event.getClickedInventory();
 
-        boolean hasDisplayName = current.getItemMeta().hasDisplayName();
-        String displayName = current.getItemMeta().getDisplayName();
-
-        ConfigManager configManager = plugin.getConfigManager();
-
-        String noAccount = configManager.getDisplayName("game-menu", "no-account");
-        String minAmount = configManager.getDisplayName("game-menu", "min-amount");
-        String maxAmount = configManager.getDisplayName("game-menu", "max-amount");
-        String startTime = configManager.getStartTimeDisplayName(game.getStartTime());
-        String laPartage = configManager.getDisplayName("game-menu", "la-partage");
-        String enPrison = configManager.getDisplayName("game-menu", "en-prison");
-        String surrender = configManager.getDisplayName("game-menu", "surrender");
-
-        String state = holder.getGame().isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
-        String betAll = configManager.getDisplayName("game-menu", "bet-all").replace("%state%", state);
-
-        String close = configManager.getDisplayName("game-menu", "close");
-
-        String npcName = game.getNPCName();
-        if (npcName == null) npcName = ConfigManager.Config.UNNAMED_CROUPIER.asString();
-        String croupier = configManager.getDisplayName("game-menu", "croupier").replace("%croupier-name%", npcName);
-
         MessageManager messages = plugin.getMessageManager();
 
-        if (hasDisplayName && (displayName.equalsIgnoreCase(minAmount) || displayName.equalsIgnoreCase(maxAmount))) {
-            setLimitPlayers(event, game, min, max, displayName.equalsIgnoreCase(maxAmount));
-        } else if (isAccountItem(current) || (hasDisplayName && displayName.equalsIgnoreCase(noAccount))) {
-            if (current.getType() == XMaterial.PLAYER_HEAD.parseMaterial() && event.getClick() == ClickType.RIGHT) {
-                game.setAccountGiveTo(null);
-                messages.send(player, MessageManager.Message.NO_ACCOUNT);
-                event.setCurrentItem(configManager.getItem("game-menu", "no-account", null));
+        boolean isMinAccount;
+        if ((isMinAccount = isCustomItem(current, "min-amount")) || isCustomItem(current, "max-amount")) {
+            setLimitPlayers(event, gui, !isMinAccount);
+        } else if (isCustomItem(current, "account") || isCustomItem(current, "no-account")) {
+            if (event.getClick() == ClickType.RIGHT) {
+                // Remove the account only if there's one.
+                if (game.getAccountGiveTo() != null) {
+                    game.setAccountGiveTo(null);
+                    messages.send(player, MessageManager.Message.NO_ACCOUNT);
+                    event.setCurrentItem(plugin.getItem("game-menu.no-account").build());
+                } else {
+                    messages.send(player, MessageManager.Message.ACCOUNT_ALREADY_DELETED);
+                }
             } else {
+                // Add account.
                 plugin.getInputManager().newInput(player, InputManager.InputType.ACCOUNT_NAME, game);
-                messages.send(player, MessageManager.Message.NPC_NAME);
+                messages.send(player, MessageManager.Message.ACCOUNT_NAME);
             }
             closeInventory(player);
-        } else if (hasDisplayName && displayName.equalsIgnoreCase(startTime)) {
-            setStartTime(event, game);
-        } else if (hasDisplayName && (displayName.equalsIgnoreCase(laPartage) || displayName.equalsIgnoreCase(enPrison) || displayName.equalsIgnoreCase(surrender))) {
-
-            // Can't be null since the names are equals to the rules ones.
-            GameRule rule = GameRule.valueOf(NBTEditor.getString(current, "rouletteRule"));
-            if (rule.isSurrender() && !game.getType().isAmerican()) {
-                messages.send(player, MessageManager.Message.ONLY_AMERICAN);
-                closeInventory(player);
-                return;
-            }
-
-            // Prison rule can only be applied in a game with 1 min player required.
-            if (rule.isEnPrison() && game.getMinPlayers() > 1) {
-                messages.send(player, MessageManager.Message.PRISON_ERROR);
-                closeInventory(player);
-                return;
-            }
-
-            boolean ruleState = !game.isRuleEnabled(rule);
-            game.getRules().put(rule, ruleState);
-
-            // If enabled, disable other rules.
-            if (ruleState) disableRules(game, inventory, rule);
-
-            setBannerColor(current, ruleState);
-
-            // Save data.
-            plugin.getGameManager().save(game);
-
-        } else if (hasDisplayName && displayName.equalsIgnoreCase(betAll)) {
-            setBetAll(event, game);
-        } else if (hasDisplayName && displayName.equalsIgnoreCase(close)) {
+        } else if (isCustomItem(current, "start-time")) {
+            setStartTime(event, game, gui);
+        } else if (isCustomItem(current, "bet-all")) {
+            setBetAll(event, game, gui);
+        } else if (isCustomItem(current, "close")) {
             closeInventory(player);
-        } else if (hasDisplayName && ChatColor.stripColor(displayName).equalsIgnoreCase(ChatColor.stripColor(croupier))) {
+        } else if (isCustomItem(current, "croupier")) {
             if (event.getClick() == ClickType.LEFT) {
                 plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_NAME, game);
                 messages.send(player, MessageManager.Message.NPC_NAME);
@@ -293,71 +259,108 @@ public final class InventoryClick implements Listener {
                 plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_TEXTURE, game);
                 messages.send(player, MessageManager.Message.NPC_TEXTURE);
             } else if (event.getClick() == ClickType.SHIFT_LEFT) {
-                String texture = game.getNPCTexture();
-                String signature = game.getNPCSignature();
-
-                messages.send(player, MessageManager.Message.NPC_RENAMED);
-                game.setNPC(null, texture, signature);
-                plugin.getGameManager().save(game);
+                String npcName = game.getNPCName();
+                if (npcName != null && !npcName.isEmpty() && !npcName.equals(ConfigManager.Config.UNNAMED_CROUPIER.asString())) {
+                    messages.send(player, MessageManager.Message.NPC_RENAMED);
+                    game.setNPC(null, game.getNPCTexture(), game.getNPCSignature());
+                    plugin.getGameManager().save(game);
+                } else {
+                    messages.send(player, MessageManager.Message.NPC_ALREADY_RENAMED);
+                }
             } else if (event.getClick() == ClickType.SHIFT_RIGHT) {
-                String name = game.getNPCName() == null ? "" : game.getNPCName();
-
-                messages.send(player, MessageManager.Message.NPC_TEXTURIZED);
-                game.setNPC(name, null, null);
-                plugin.getGameManager().save(game);
+                if (game.hasNPCTexture()) {
+                    messages.send(player, MessageManager.Message.NPC_TEXTURIZED);
+                    game.setNPC(game.getNPCName(), null, null);
+                    plugin.getGameManager().save(game);
+                } else {
+                    messages.send(player, MessageManager.Message.NPC_ALREADY_TEXTURIZED);
+                }
             }
             closeInventory(player);
         }
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        String ruleName = meta.getPersistentDataContainer().get(plugin.getRouletteRuleKey(), PersistentDataType.STRING);
+        if (ruleName == null) return;
+
+        // Can't be null since the names are equals to the rule ones.
+        GameRule rule = PluginUtils.getOrNull(GameRule.class, ruleName);
+        if (rule == null) return;
+
+        if (rule.isSurrender() && !game.getType().isAmerican()) {
+            messages.send(player, MessageManager.Message.ONLY_AMERICAN);
+            closeInventory(player);
+            return;
+        }
+
+        // Prison rule can only be applied in a game with 1 min player required.
+        if (rule.isEnPrison() && game.getMinPlayers() > 1) {
+            messages.send(player, MessageManager.Message.PRISON_ERROR);
+            closeInventory(player);
+            return;
+        }
+
+        boolean ruleState = !game.isRuleEnabled(rule);
+        game.getRules().put(rule, ruleState);
+
+        // If enabled, disable other rules.
+        if (ruleState) disableRules(gui, inventory, rule);
+
+        // Update selected rule.
+        inventory.setItem(rule.getGUIIndex(), gui.createRuleItem(rule));
+
+        // Save data.
+        plugin.getGameManager().save(game);
     }
 
-    private void disableRules(Game game, Inventory inventory, GameRule enabled) {
+    private void disableRules(GameGUI gui, Inventory inventory, GameRule enabled) {
         for (GameRule rule : GameRule.values()) {
-            if (rule == enabled) continue;
-            disableRule(game, inventory, rule);
+            if (rule != enabled) disableRule(gui, inventory, rule);
         }
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void disableRule(Game game, Inventory inventory, GameRule @NotNull ... rules) {
+    private void disableRule(GameGUI gui, Inventory inventory, GameRule @NotNull ... rules) {
         for (GameRule rule : rules) {
+            Game game = gui.getGame();
             if (!game.isRuleEnabled(rule)) continue;
 
             game.getRules().put(rule, false);
-            setBannerColor(inventory.getItem(rule.getGUIIndex()), false);
+            inventory.setItem(rule.getGUIIndex(), gui.createRuleItem(rule));
         }
     }
 
-    private void setBannerColor(@NotNull ItemStack item, boolean enabled) {
-        BannerMeta meta = (BannerMeta) item.getItemMeta();
-        if (meta == null) return;
-
-        meta.addPattern(new Pattern(enabled ? DyeColor.LIME : DyeColor.RED, PatternType.BASE));
-        item.setItemMeta(meta);
-    }
-
-
-    private boolean isAccountItem(@NotNull ItemStack item) {
-        //noinspection ConstantConditions, already checked in the event.
-        return item.getType() == XMaterial.PLAYER_HEAD.parseMaterial() && ((SkullMeta) item.getItemMeta()).hasOwner();
-    }
-
     @SuppressWarnings("ConstantConditions")
-    private void setLimitPlayers(@NotNull InventoryClickEvent event, Game game, int min, int max, boolean isMax) {
+    private void setLimitPlayers(@NotNull InventoryClickEvent event, @NotNull GameGUI gui, boolean isMax) {
+        Game game = gui.getGame();
+
+        int min = game.getMinPlayers();
+        int max = game.getMaxPlayers();
+
         if (event.getClick() == ClickType.LEFT) {
             game.setLimitPlayers(!isMax ? min - 1 : min, !isMax ? max : max - 1);
         } else if (event.getClick() == ClickType.RIGHT) {
             game.setLimitPlayers(!isMax ? min + 1 : min, !isMax ? max : max + 1);
         }
 
-        int current = !isMax ? game.getMinPlayers() : game.getMaxPlayers();
-        if (event.getCurrentItem().getAmount() != current) {
-            if (!isMax && game.isRuleEnabled(GameRule.EN_PRISON)) {
-                game.getRules().put(GameRule.EN_PRISON, false);
-                setBannerColor(event.getClickedInventory().getItem(15), false);
-            }
-            event.getCurrentItem().setAmount(current);
-            event.getClickedInventory().getItem(!isMax ? 12 : 11).setAmount(!isMax ? game.getMaxPlayers() : game.getMinPlayers());
+        int current = isMax ? game.getMaxPlayers() : game.getMinPlayers();
+        if (event.getCurrentItem().getAmount() == current) return;
+
+        Inventory inventory = event.getClickedInventory();
+
+        // Prison rule can only be applied in a game with 1 min player required.
+        GameRule prison = GameRule.EN_PRISON;
+        if (!isMax && game.getMinPlayers() != 1 && game.isRuleEnabled(prison)) {
+            disableRule(gui, inventory, prison);
         }
+
+        // Update the current changed.
+        event.getCurrentItem().setAmount(current);
+
+        // Update the other, it may have been changed.
+        inventory.getItem(!isMax ? 12 : 11).setAmount(!isMax ? game.getMaxPlayers() : game.getMinPlayers());
 
         // Save data.
         game.updateJoinHologram(false);
@@ -365,28 +368,16 @@ public final class InventoryClick implements Listener {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void setStartTime(@NotNull InventoryClickEvent event, @NotNull Game game) {
-        int time = game.getStartTime();
-        if (event.getClick() == ClickType.LEFT) {
-            time -= 5;
-            if (time < 5) time = 5;
-        } else if (event.getClick() == ClickType.RIGHT) {
-            time += 5;
-            if (time > 60) time = 60;
-        }
+    private void setStartTime(@NotNull InventoryClickEvent event, @NotNull Game game, GameGUI gui) {
+        ClickType click = event.getClick();
+        if (click != ClickType.LEFT && click != ClickType.RIGHT) return;
 
-        game.setStartTime(time);
+        // Minimum time = 5s | Maximum time = 60s
+        int adjustment = (event.getClick() == ClickType.LEFT) ? -5 : 5;
+        game.setStartTime(Math.max(5, Math.min(60, game.getStartTime() + adjustment)));
 
-        ItemStack item = event.getCurrentItem();
-
-        if (item.getAmount() != time) {
-            item.setAmount(time);
-
-            ItemMeta meta = item.getItemMeta();
-            if (meta == null) return;
-
-            meta.setDisplayName(plugin.getConfigManager().getStartTimeDisplayName(time));
-            item.setItemMeta(meta);
+        if (event.getCurrentItem().getAmount() != game.getStartTime()) {
+            event.setCurrentItem(gui.createStartTimeItem());
         }
 
         // Save data.
@@ -408,42 +399,20 @@ public final class InventoryClick implements Listener {
         // First automated move.
         game.moveChip(player, true);
 
-        // Send glow advice message.
+        // Send a glow advice message.
         plugin.getMessageManager().send(player, MessageManager.Message.CHANGE_GLOW_COLOR);
 
+        if (game.getMoneyAnimation() != null) return;
+
         // If the money animation isn't running, run now.
-        if (game.getMoneyAnimation() == null) {
-            MoneyAnimation anim = new MoneyAnimation(game);
-            anim.runTaskTimer(plugin, 1L, 1L);
-            game.setMoneyAnimation(anim);
-        }
+        MoneyAnimation anim = new MoneyAnimation(game);
+        anim.runTaskTimer(plugin, 1L, 1L);
+        game.setMoneyAnimation(anim);
     }
 
-    @SuppressWarnings("ConstantConditions")
-    private void setBetAll(@NotNull InventoryClickEvent event, @NotNull Game game) {
-        boolean betAll = !game.isBetAll();
-
-        game.setBetAll(betAll);
-
-        String state = game.isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
-
-        ItemStack item = event.getCurrentItem();
-        ItemMeta meta = item.getItemMeta();
-
-        meta.setDisplayName(plugin.getConfigManager().getDisplayName("game-menu", "bet-all").replace("%state%", state));
-        if (!meta.hasItemFlag(ItemFlag.HIDE_ATTRIBUTES)) meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-
-        if (betAll) {
-            item.addUnsafeEnchantment(Enchantment.ARROW_DAMAGE, 1);
-        } else {
-            if (item.containsEnchantment(Enchantment.ARROW_DAMAGE)) {
-                item.removeEnchantment(Enchantment.ARROW_DAMAGE);
-            }
-        }
-
-        item.setItemMeta(meta);
-
-        // Save data.
+    private void setBetAll(@NotNull InventoryClickEvent event, @NotNull Game game, @NotNull GameGUI gui) {
+        game.setBetAll(!game.isBetAll());
+        event.setCurrentItem(gui.createBetAllItem());
         plugin.getGameManager().save(game);
     }
 }

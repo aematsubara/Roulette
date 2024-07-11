@@ -18,7 +18,6 @@ public class RouletteStartEvent extends RouletteEvent {
     }
 
     @SuppressWarnings("unused")
-    @NotNull
     public static HandlerList getHandlerList() {
         return handlers;
     }

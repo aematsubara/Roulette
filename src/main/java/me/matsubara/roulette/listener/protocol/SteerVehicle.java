@@ -1,10 +1,10 @@
 package me.matsubara.roulette.listener.protocol;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketEvent;
-import com.comphenix.protocol.reflect.StructureModifier;
+import com.github.retrooper.packetevents.event.PacketListenerPriority;
+import com.github.retrooper.packetevents.event.SimplePacketListenerAbstract;
+import com.github.retrooper.packetevents.event.simple.PacketPlayReceiveEvent;
+import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSteerVehicle;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
@@ -20,26 +20,26 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public final class SteerVehicle extends PacketAdapter {
+public final class SteerVehicle extends SimplePacketListenerAbstract {
 
     private final RoulettePlugin plugin;
     private final Map<UUID, Long> steerCooldown = new HashMap<>();
 
     public SteerVehicle(RoulettePlugin plugin) {
-        super(plugin, ListenerPriority.HIGHEST, PacketType.Play.Client.STEER_VEHICLE);
+        super(PacketListenerPriority.HIGHEST);
         this.plugin = plugin;
     }
 
     @Override
-    public void onPacketReceiving(@NotNull PacketEvent event) {
-        Player player = event.getPlayer();
+    public void onPacketPlayReceive(@NotNull PacketPlayReceiveEvent event) {
+        if (event.getPacketType() != PacketType.Play.Client.STEER_VEHICLE) return;
+        if (!(event.getPlayer() instanceof Player player)) return;
+
+        WrapperPlayClientSteerVehicle wrapper = new WrapperPlayClientSteerVehicle(event);
 
         // Get required values from the packet.
-        StructureModifier<Float> floats = event.getPacket().getFloat();
-        float sideways = floats.readSafely(0);
-
-        StructureModifier<Boolean> booleans = event.getPacket().getBooleans();
-        boolean jump = booleans.readSafely(0), dismount = booleans.readSafely(1);
+        float sideways = wrapper.getSideways();
+        boolean jump = wrapper.isJump(), dismount = wrapper.isUnmount();
 
         // At the moment, we only care about left/right, space and shift keys.
         if (sideways == 0.0f && !jump && !dismount) return;
@@ -53,7 +53,7 @@ public final class SteerVehicle extends PacketAdapter {
         }
     }
 
-    private boolean handle(Player player, @NotNull ArmorStand stand, @NotNull Game game, float sideways, boolean jump, boolean dismount, PacketEvent event) {
+    private boolean handle(Player player, @NotNull ArmorStand stand, @NotNull Game game, float sideways, boolean jump, boolean dismount, PacketPlayReceiveEvent event) {
         if (!stand.getPassengers().contains(player)) return false;
 
         // Prevent player dismounting.
@@ -109,7 +109,7 @@ public final class SteerVehicle extends PacketAdapter {
         }
 
         // Jump.
-        if (jump && (state.isSelecting() || state.isSpinning())) {
+        if (jump && state.isSelecting()) {
             bet.nextGlowColor();
             bet.updateStandGlow(player);
         }

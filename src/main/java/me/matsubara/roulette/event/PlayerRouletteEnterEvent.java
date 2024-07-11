@@ -35,7 +35,6 @@ public class PlayerRouletteEnterEvent extends RouletteEvent implements Cancellab
     }
 
     @SuppressWarnings("unused")
-    @NotNull
     public static HandlerList getHandlerList() {
         return handlers;
     }

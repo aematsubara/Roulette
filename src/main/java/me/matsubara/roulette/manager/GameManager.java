@@ -1,6 +1,5 @@
 package me.matsubara.roulette.manager;
 
-import com.cryptomorin.xseries.XMaterial;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
@@ -9,14 +8,18 @@ import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.npc.NPC;
+import me.matsubara.roulette.util.ParrotUtils;
+import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -44,6 +47,8 @@ public final class GameManager implements Listener {
         load();
     }
 
+    // This is deprecated and removed in 1.20.6,
+    // but as we are compiling with 1.20.1, the class will be changed on runtime.
     @EventHandler(ignoreCancelled = true)
     public void onPlayerDismount(@NotNull EntityDismountEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
@@ -73,8 +78,8 @@ public final class GameManager implements Listener {
         }
     }
 
-    public void add(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, null, null, null, null);
+    public void addFreshGame(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, null, null, null, null, null, null);
     }
 
     public void add(
@@ -92,9 +97,11 @@ public final class GameManager implements Listener {
             boolean betAll,
             @Nullable UUID accountTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
-            @Nullable XMaterial carpetsType,
-            @Nullable XMaterial planksType,
-            @Nullable XMaterial slabsType,
+            @Nullable Parrot.Variant parrotVariant,
+            @Nullable ParrotUtils.ParrotShoulder parrotShoulder,
+            @Nullable Material carpetsType,
+            @Nullable Material planksType,
+            @Nullable Material slabsType,
             @Nullable String[] decoPattern) {
         Game game = new Game(
                 plugin,
@@ -110,7 +117,9 @@ public final class GameManager implements Listener {
                 startTime,
                 betAll,
                 accountTo,
-                rules);
+                rules,
+                parrotVariant,
+                parrotShoulder);
 
         games.add(game);
 
@@ -119,51 +128,55 @@ public final class GameManager implements Listener {
     }
 
     public void save(@NotNull Game game) {
+        String name = game.getName();
+
         // Save model related data.
-        configuration.set("games." + game.getName() + ".model.id", game.getModelId().toString());
-        configuration.set("games." + game.getName() + ".model.type", game.getType().name());
+        configuration.set("games." + name + ".model.id", game.getModelId().toString());
+        configuration.set("games." + name + ".model.type", game.getType().name());
 
         // Save wool material for chairs.
         String woolMaterial = game.getModel().getCarpetsType().name();
-        configuration.set("games." + game.getName() + ".model.wool-type", woolMaterial.substring(0, woolMaterial.lastIndexOf("_")));
+        configuration.set("games." + name + ".model.wool-type", woolMaterial.substring(0, woolMaterial.lastIndexOf("_")));
 
         // Save wood material for chairs.
         String woodMaterial = game.getModel().getPlanksType().name();
-        configuration.set("games." + game.getName() + ".model.wood-type", woodMaterial.substring(0, woodMaterial.lastIndexOf("_")));
+        configuration.set("games." + name + ".model.wood-type", woodMaterial.substring(0, woodMaterial.lastIndexOf("_")));
 
         // Save decoration pattern.
-        configuration.set("games." + game.getName() + ".model.deco-pattern", Arrays.asList(game.getModel().getDecoPattern()));
+        configuration.set("games." + name + ".model.deco-pattern", Arrays.asList(game.getModel().getDecoPattern()));
 
         // Save location.
-        saveLocation(game.getName(), game.getLocation());
+        saveLocation(name, game.getLocation());
 
         // Save rules.
         for (GameRule rule : GameRule.values()) {
-            String name = rule.name().replace("_", "-").toLowerCase();
-            configuration.set("games." + game.getName() + ".rules." + name, game.isRuleEnabled(rule));
+            String ruleName = rule.name().replace("_", "-").toLowerCase();
+            configuration.set("games." + name + ".rules." + ruleName, game.isRuleEnabled(rule));
         }
 
         // Save settings.
-        configuration.set("games." + game.getName() + ".settings.bet-all", game.isBetAll());
-        configuration.set("games." + game.getName() + ".settings.start-time", game.getStartTime());
-        configuration.set("games." + game.getName() + ".settings.min-players", game.getMinPlayers());
-        configuration.set("games." + game.getName() + ".settings.max-players", game.getMaxPlayers());
+        configuration.set("games." + name + ".settings.bet-all", game.isBetAll());
+        configuration.set("games." + name + ".settings.start-time", game.getStartTime());
+        configuration.set("games." + name + ".settings.min-players", game.getMinPlayers());
+        configuration.set("games." + name + ".settings.max-players", game.getMaxPlayers());
 
         // Save NPC related data.
-        configuration.set("games." + game.getName() + ".npc.name", game.getNPCName());
+        configuration.set("games." + name + ".npc.name", game.getNPCName());
+        configuration.set("games." + name + ".npc.parrot.variant", game.getParrotVariant().name());
+        configuration.set("games." + name + ".npc.parrot.shoulder", game.getParrotShoulder().name());
         if (game.hasNPCTexture()) {
             // Save skin data.
-            configuration.set("games." + game.getName() + ".npc.skin.texture", game.getNPCTexture());
-            configuration.set("games." + game.getName() + ".npc.skin.signature", game.getNPCSignature());
+            configuration.set("games." + name + ".npc.skin.texture", game.getNPCTexture());
+            configuration.set("games." + name + ".npc.skin.signature", game.getNPCSignature());
         } else {
             // Remove skin section.
-            configuration.set("games." + game.getName() + ".npc.skin", null);
+            configuration.set("games." + name + ".npc.skin", null);
         }
 
         // Save other data.
-        configuration.set("games." + game.getName() + ".other.owner-id", game.getOwner().toString());
+        configuration.set("games." + name + ".other.owner-id", game.getOwner().toString());
         if (game.getAccountGiveTo() != null) {
-            configuration.set("games." + game.getName() + ".other.account-to-id", game.getAccountGiveTo().toString());
+            configuration.set("games." + name + ".other.account-to-id", game.getAccountGiveTo().toString());
         }
 
         saveConfig();
@@ -192,9 +205,11 @@ public final class GameManager implements Listener {
 
             String woolType = configuration.getString("games." + path + ".model.wool-type", "");
             String woodType = configuration.getString("games." + path + ".model.wood-type", "");
-            XMaterial carpets = XMaterial.matchXMaterial(woolType + "_CARPET").orElse(null);
-            XMaterial planks = XMaterial.matchXMaterial(woodType + "_PLANKS").orElse(null);
-            XMaterial slabs = XMaterial.matchXMaterial(woodType + "_SLAB").orElse(null);
+
+            Material carpets = PluginUtils.getOrNull(Material.class, woolType + "_CARPET");
+            Material planks = PluginUtils.getOrNull(Material.class, woodType + "_PLANKS");
+            Material slabs = PluginUtils.getOrNull(Material.class, woodType + "_SLAB");
+
             String[] pattern = configuration.getStringList("games." + path + ".model.deco-pattern").toArray(new String[0]);
 
             // Load location.
@@ -222,7 +237,30 @@ public final class GameManager implements Listener {
             String accountToString = configuration.getString("games." + path + ".other.account-to-id");
             UUID accountTo = accountToString != null ? UUID.fromString(accountToString) : null;
 
-            add(path, npcName, texture, signature, minPlayers, maxPlayers, type, modelId, location, owner, startTime, betAll, accountTo, rules, carpets, planks, slabs, pattern);
+            Parrot.Variant parrotVariant = PluginUtils.getOrNull(Parrot.Variant.class, configuration.getString("games." + path + ".npc.parrot.variant", ""));
+            ParrotUtils.ParrotShoulder parrotShoulder = PluginUtils.getOrNull(ParrotUtils.ParrotShoulder.class, configuration.getString("games." + path + ".npc.parrot.shoulder", ""));
+
+            add(path,
+                    npcName,
+                    texture,
+                    signature,
+                    minPlayers,
+                    maxPlayers,
+                    type,
+                    modelId,
+                    location,
+                    owner,
+                    startTime,
+                    betAll,
+                    accountTo,
+                    rules,
+                    parrotVariant,
+                    parrotShoulder,
+                    carpets,
+                    planks,
+                    slabs,
+                    pattern);
+
             loaded++;
         }
 

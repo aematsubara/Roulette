@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
-@SuppressWarnings("unused")
 @Getter
 public class RouletteEndEvent extends RouletteEvent {
 
@@ -30,7 +29,7 @@ public class RouletteEndEvent extends RouletteEvent {
         return handlers;
     }
 
-    @NotNull
+    @SuppressWarnings("unused")
     public static HandlerList getHandlerList() {
         return handlers;
     }

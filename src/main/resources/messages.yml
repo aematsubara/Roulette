@@ -43,12 +43,12 @@ command:
 # Available placeholders:
 # %seconds% - the countdown time involved. (@starting and @spinning)
 # %bet% - the selected bet of the player. (@your-bet)
-# %numbers% - the numbers that belongs to the slot. (@your-bet)
+# %numbers% - the numbers that belong to the slot. (@your-bet)
 # %chance% - chance of winning. (@your-bet)
 # %player% - the player involved. (@join and @leave)
-# %playing% - amount of players in the game. (@join and @leave)
-# %max% - the maximum amount of players allowed. (@join and @leave)
-# %amount% - the amount of winners in the game. (@winners and @price)
+# %playing% - number of players in the game. (@join and @leave)
+# %max% - the maximum number of players allowed. (@join and @leave)
+# %amount% - the number of winners in the game. (@winners and @price)
 # %winners% - a list with the names of the winners, separated by commas. (@winners)
 # %multiplier% - the prize multiplier, depending on the slot. (@price)
 # %winner% - the winning slot. (@no-winner & @winner)
@@ -104,6 +104,7 @@ other:
   control: "&7Use the WASD keys to choose a bet."
   account: "&6The account has been changed!"
   no-account: "&cThe game account has been deleted!"
+  account-already-deleted: "&cThe account is already deleted!"
   unknown-account: "&cThe player couldn't be found!"
   received: "&6You've received &a%money% &6from the game &7%name%&6."
   vanish: "&cYou can't join the game in vanish mode."
@@ -119,4 +120,6 @@ other:
   request-cancelled: "&cThe request has been cancelled!"
   request-invalid: "&cThe given input is invalid!"
   npc-renamed: "&6The name of the NPC has been changed!"
+  npc-already-renamed: "&cThe name of the NPC has already been changed!"
   npc-texturized: "&6The texture of the NPC has been changed!"
+  npc-already-texturized: "&cThe texture of the NPC has already been changed!"

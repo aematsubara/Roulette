@@ -1,19 +1,18 @@
 package me.matsubara.roulette.util;
 
-import com.comphenix.protocol.wrappers.EnumWrappers;
-import com.cryptomorin.xseries.ReflectionUtils;
-import com.cryptomorin.xseries.XMaterial;
+import com.cryptomorin.xseries.reflection.XReflection;
 import com.google.common.base.Preconditions;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.npc.modifier.MetadataModifier;
-import me.matsubara.roulette.npc.modifier.NPCModifier;
 import net.md_5.bungee.api.ChatColor;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Color;
+import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -25,7 +24,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,80 +50,30 @@ public final class PluginUtils {
             BlockFace.WEST,
             BlockFace.NORTH_WEST};
 
-    // Pose enum objects.
-    private static Object SNEAKING;
-    private static Object STANDING;
-
-    public static final Color[] COLORS = getColors();
+    public static final Color[] COLORS;
+    private static final Map<String, org.bukkit.Color> COLORS_BY_NAME = new HashMap<>();
 
     private static final MethodHandle SET_PROFILE;
     private static final MethodHandle PROFILE;
 
-    private static Color @NotNull [] getColors() {
-        Field[] fields = Color.class.getDeclaredFields();
-
-        List<Color> results = new ArrayList<>();
-        for (Field field : fields) {
-            if (!field.getType().equals(Color.class)) continue;
-
-            try {
-                results.add((Color) field.get(null));
-            } catch (IllegalAccessException exception) {
-                exception.printStackTrace();
-            }
-        }
-        return results.toArray(new Color[0]);
-    }
-
     static {
-        if (ReflectionUtils.MINOR_NUMBER > 13) {
-            Class<?> ENTITY_POSE = ReflectionUtils.getNMSClass("world.entity", "EntityPose");
-
-            Method valueOf = null;
+        for (Field field : org.bukkit.Color.class.getDeclaredFields()) {
+            if (!field.getType().equals(org.bukkit.Color.class)) continue;
 
             try {
-                //noinspection ConstantConditions
-                valueOf = ENTITY_POSE.getMethod("valueOf", String.class);
-
-                int ver = ReflectionUtils.MINOR_NUMBER;
-                SNEAKING = valueOf.invoke(null, ver == 14 ? "SNEAKING" : "CROUCHING");
-                STANDING = valueOf.invoke(null, "STANDING");
-            } catch (IllegalArgumentException exception) {
-                // The only way this exception can occur is if the server is using obfuscated code (in 1.17).
-                assert valueOf != null;
-
-                try {
-                    SNEAKING = valueOf.invoke(null, "f");
-                    STANDING = valueOf.invoke(null, "a");
-                } catch (ReflectiveOperationException ignore) {
-                }
-            } catch (ReflectiveOperationException exception) {
-                exception.printStackTrace();
+                COLORS_BY_NAME.put(field.getName(), (org.bukkit.Color) field.get(null));
+            } catch (IllegalAccessException ignored) {
             }
         }
 
-        Class<?> craftMetaSkull = ReflectionUtils.getCraftClass("inventory.CraftMetaSkull");
+        COLORS = COLORS_BY_NAME.values().toArray(new org.bukkit.Color[0]);
+
+        Class<?> craftMetaSkull = XReflection.getCraftClass("inventory.CraftMetaSkull");
         Preconditions.checkNotNull(craftMetaSkull);
 
         SET_PROFILE = Reflection.getMethod(craftMetaSkull, "setProfile", GameProfile.class);
         PROFILE = Reflection.getFieldSetter(craftMetaSkull, "profile");
     }
-
-    /**
-     * Fixed sneaking metadata that works on 1.14 too.
-     */
-    @SuppressWarnings("unchecked")
-    public static final MetadataModifier.EntityMetadata<Boolean, Byte> SNEAKING_METADATA = new MetadataModifier.EntityMetadata<>(
-            0,
-            Byte.class,
-            Collections.emptyList(),
-            input -> (byte) (input ? 0x02 : 0),
-            new MetadataModifier.EntityMetadata<>(
-                    6,
-                    (Class<Object>) EnumWrappers.getEntityPoseClass(),
-                    Collections.emptyList(),
-                    input -> (input ? SNEAKING : STANDING),
-                    () -> NPCModifier.MINECRAFT_VERSION >= 14));
 
     public static @NotNull BlockFace getFace(float yaw, boolean subCardinal) {
         return (subCardinal ? RADIAL[Math.round(yaw / 45f) & 0x7] : AXIS[Math.round(yaw / 90f) & 0x3]).getOppositeFace();
@@ -165,8 +113,7 @@ public final class PluginUtils {
     }
 
     public static @Nullable ItemStack createHead(String url, boolean isMCUrl) {
-        ItemStack item = XMaterial.PLAYER_HEAD.parseItem();
-        if (item == null) return null;
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
 
         SkullMeta meta = (SkullMeta) item.getItemMeta();
         if (meta == null) return null;
@@ -204,7 +151,7 @@ public final class PluginUtils {
     public static String translate(String message) {
         Validate.notNull(message, "Message can't be null.");
 
-        if (ReflectionUtils.MINOR_NUMBER < 16) return oldTranslate(message);
+        if (XReflection.MINOR_NUMBER < 16) return oldTranslate(message);
 
         Matcher matcher = PATTERN.matcher(oldTranslate(message));
         StringBuilder builder = new StringBuilder();
@@ -274,11 +221,64 @@ public final class PluginUtils {
         return "$" + (hasDecimal ? (truncated / 10.0d) + suffix : (truncated / 10) + suffix);
     }
 
+    public static String[] splitData(String string) {
+        String[] split = StringUtils.split(StringUtils.deleteWhitespace(string), ',');
+        if (split.length == 0) split = StringUtils.split(string, ' ');
+        return split;
+    }
+
+    public static <T extends Enum<T>> T getRandomFromEnum(@NotNull Class<T> clazz) {
+        T[] constants = clazz.getEnumConstants();
+        return constants[RandomUtils.nextInt(0, constants.length)];
+    }
+
+    public static <T extends Enum<T>> T getOrEitherRandomOrNull(Class<T> clazz, @NotNull String name) {
+        if (name.equalsIgnoreCase("$RANDOM")) return getRandomFromEnum(clazz);
+        return getOrNull(clazz, name);
+    }
+
+    public static <T extends Enum<T>> T getOrNull(Class<T> clazz, String name) {
+        return getOrDefault(clazz, name, null);
+    }
+
     public static <T extends Enum<T>> T getOrDefault(Class<T> clazz, String name, T defaultValue) {
         try {
-            return Enum.valueOf(clazz, name);
+            return Enum.valueOf(clazz, name.toUpperCase());
         } catch (IllegalArgumentException exception) {
             return defaultValue;
         }
+    }
+
+    public static int getRangedAmount(@NotNull String string) {
+        String[] data = string.split("-");
+        if (data.length == 1) {
+            try {
+                return Integer.parseInt(data[0]);
+            } catch (IllegalArgumentException ignored) {
+            }
+        } else if (data.length == 2) {
+            try {
+                int min = Integer.parseInt(data[0]);
+                int max = Integer.parseInt(data[1]);
+                return RandomUtils.nextInt(min, max + 1);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return 1;
+    }
+
+    public static org.bukkit.Color getRandomColor() {
+        return COLORS[RandomUtils.nextInt(0, COLORS.length)];
+    }
+
+    public static org.bukkit.Color getColor(@NotNull String string) {
+        if (string.equalsIgnoreCase("$RANDOM")) return getRandomColor();
+
+        if (string.matches(PATTERN.pattern())) {
+            java.awt.Color temp = ChatColor.of(string.substring(1)).getColor();
+            return org.bukkit.Color.fromRGB(temp.getRed(), temp.getGreen(), temp.getBlue());
+        }
+
+        return COLORS_BY_NAME.get(string);
     }
 }

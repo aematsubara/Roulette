@@ -109,24 +109,24 @@ public enum Slot {
     public SlotColor getColor() {
         return switch (this) {
             case SLOT_RED,
-                    SLOT_1,
-                    SLOT_3,
-                    SLOT_5,
-                    SLOT_7,
-                    SLOT_9,
-                    SLOT_12,
-                    SLOT_14,
-                    SLOT_16,
-                    SLOT_18,
-                    SLOT_19,
-                    SLOT_21,
-                    SLOT_23,
-                    SLOT_25,
-                    SLOT_27,
-                    SLOT_30,
-                    SLOT_32,
-                    SLOT_34,
-                    SLOT_36 -> SlotColor.RED;
+                 SLOT_1,
+                 SLOT_3,
+                 SLOT_5,
+                 SLOT_7,
+                 SLOT_9,
+                 SLOT_12,
+                 SLOT_14,
+                 SLOT_16,
+                 SLOT_18,
+                 SLOT_19,
+                 SLOT_21,
+                 SLOT_23,
+                 SLOT_25,
+                 SLOT_27,
+                 SLOT_30,
+                 SLOT_32,
+                 SLOT_34,
+                 SLOT_36 -> SlotColor.RED;
             case SLOT_BLACK -> SlotColor.BLACK;
             case SLOT_0, SLOT_00 -> SlotColor.GREEN;
             default -> ints.length > 1 ? SlotColor.MIXED : SlotColor.BLACK;
@@ -183,7 +183,12 @@ public enum Slot {
     }
 
     public boolean applyForRules() {
-        return this == SLOT_LOW || this == SLOT_EVEN || this == SLOT_RED || this == SLOT_BLACK || this == SLOT_ODD || this == SLOT_HIGH;
+        return this == SLOT_LOW
+                || this == SLOT_EVEN
+                || this == SLOT_RED
+                || this == SLOT_BLACK
+                || this == SLOT_ODD
+                || this == SLOT_HIGH;
     }
 
     public boolean isColumn() {

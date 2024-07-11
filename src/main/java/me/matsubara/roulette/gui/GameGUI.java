@@ -1,7 +1,5 @@
 package me.matsubara.roulette.gui;
 
-import com.comphenix.protocol.wrappers.WrappedSignedProperty;
-import com.cryptomorin.xseries.XMaterial;
 import com.google.gson.JsonParser;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
@@ -11,13 +9,14 @@ import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.bukkit.Bukkit;
-import org.bukkit.DyeColor;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
@@ -58,21 +57,16 @@ public final class GameGUI implements InventoryHolder, RouletteGUI {
 
     @SuppressWarnings("deprecation")
     private void fillInventory() {
-        ItemStack background = new ItemBuilder(XMaterial.GRAY_STAINED_GLASS_PANE.parseItem()).setDisplayName("&7").build();
+        ItemStack background = new ItemBuilder(Material.GRAY_STAINED_GLASS_PANE)
+                .setDisplayName("&7")
+                .build();
+
         for (int i = 0; i < 27; i++) {
             inventory.setItem(i, background);
         }
 
-        String npcName = game.getNPCName();
-        if (npcName == null) npcName = ConfigManager.Config.UNNAMED_CROUPIER.asString();
-
-        String url = null;
-        if (!game.getNpc().getProfile().getProperties().get("textures").isEmpty()) {
-            for (WrappedSignedProperty property : game.getNpc().getProfile().getProperties().get("textures")) {
-                url = property.getValue();
-                break;
-            }
-
+        String url = game.getNPCTexture();
+        if (url != null) {
             // Decode base64.
             String base64 = new String(Base64.getDecoder().decode(url));
 
@@ -84,49 +78,39 @@ public final class GameGUI implements InventoryHolder, RouletteGUI {
                     .getAsString();
         }
 
-        ConfigManager configManager = plugin.getConfigManager();
+        ItemBuilder croupier = plugin.getItem("game-menu.croupier").setType(Material.PLAYER_HEAD);
+        if (url != null) croupier.setHead(url, true);
 
-        ItemBuilder croupierBuilder = ((url == null) ?
-                new ItemBuilder(XMaterial.PLAYER_HEAD.parseItem()) :
-                new ItemBuilder(url, true))
-                .setDisplayName(configManager.getDisplayName("game-menu", "croupier").replace("%croupier-name%", npcName))
-                .setLore(configManager.getLore("game-menu", "croupier"));
-
-        inventory.setItem(0, croupierBuilder.build());
-
-        ItemStack account = new ItemBuilder(XMaterial.PLAYER_HEAD.parseItem()).setLore(configManager.getAccountLore()).build();
-        ItemStack noAccount = configManager.getItem("game-menu", "no-account", null);
+        String npcName = game.getNPCName();
+        inventory.setItem(0, croupier.replace("%croupier-name%", npcName != null ? npcName : ConfigManager.Config.UNNAMED_CROUPIER.asString()).build());
 
         OfflinePlayer accountTo = game.getAccountGiveTo() != null ? Bukkit.getOfflinePlayer(game.getAccountGiveTo()) : null;
 
-        inventory.setItem(10, (accountTo != null) ? new ItemBuilder(account)
-                .setOwningPlayer(accountTo)
-                .setDisplayName(configManager.getAccountDisplayName(accountTo.getName()))
-                .build() : noAccount);
+        ItemBuilder account;
+        if (accountTo != null) {
+            String accountName = accountTo.getName();
+            account = plugin.getItem("game-menu.account")
+                    .setOwningPlayer(accountTo)
+                    .replace("%player%", accountName != null ? accountName : "???");
+        } else {
+            account = plugin.getItem("game-menu.no-account");
+        }
+
+        inventory.setItem(10, account.build());
 
         int minAmount = game.getMinPlayers(), maxAmount = game.getMaxPlayers();
 
-        ItemStack min = configManager.getItem("game-menu", "min-amount", null);
-        inventory.setItem(11, new ItemBuilder(min).setAmount(minAmount).build());
+        inventory.setItem(11, plugin.getItem("game-menu.min-amount").setAmount(minAmount).build());
+        inventory.setItem(12, plugin.getItem("game-menu.max-amount").setAmount(maxAmount).build());
 
-        ItemStack max = configManager.getItem("game-menu", "max-amount", null);
-        inventory.setItem(12, new ItemBuilder(max).setAmount(maxAmount).build());
-
-        int timeSeconds = game.getStartTime();
-        ItemStack time = configManager.getItem("game-menu", "start-time", null);
-        inventory.setItem(13, new ItemBuilder(time)
-                .setDisplayName(configManager.getStartTimeDisplayName(timeSeconds))
-                .setAmount(timeSeconds).build());
+        inventory.setItem(13, createStartTimeItem());
 
         // Rules.
-        inventory.setItem(14, getRuleItem(GameRule.LA_PARTAGE));
-        inventory.setItem(15, getRuleItem(GameRule.EN_PRISON));
-        inventory.setItem(16, getRuleItem(GameRule.SURRENDER));
+        inventory.setItem(14, createRuleItem(GameRule.LA_PARTAGE));
+        inventory.setItem(15, createRuleItem(GameRule.EN_PRISON));
+        inventory.setItem(16, createRuleItem(GameRule.SURRENDER));
 
-        String state = game.isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
-        inventory.setItem(8, new ItemBuilder(configManager.getItem("game-menu", "bet-all", null))
-                .setDisplayName(configManager.getDisplayName("game-menu", "bet-all").replace("%state%", state))
-                .build());
+        inventory.setItem(8, createBetAllItem());
 
         List<Winner.WinnerData> winners = new ArrayList<>();
 
@@ -141,9 +125,8 @@ public final class GameGUI implements InventoryHolder, RouletteGUI {
         winners.sort(Comparator.comparingLong(Winner.WinnerData::getDate).reversed());
 
         if (winners.isEmpty()) {
-            inventory.setItem(18, new ItemBuilder("badc048a7ce78f7dad72a07da27d85c0916881e5522eeed1e3daf217a38c1a", true)
-                    .setDisplayName(configManager.getDisplayName("game-menu", "last-winning-numbers"))
-                    .setLore(configManager.getLore("game-menu", "last-winning-numbers"))
+            inventory.setItem(18, plugin.getItem("game-menu.last-winning-numbers")
+                    .setHead("badc048a7ce78f7dad72a07da27d85c0916881e5522eeed1e3daf217a38c1a", true)
                     .build());
         }
 
@@ -160,39 +143,48 @@ public final class GameGUI implements InventoryHolder, RouletteGUI {
                 // Go back to the first.
                 if (index == winners.size()) index = 0;
 
-                inventory.setItem(18, new ItemBuilder(winners.get(index).getWinner().getUrl(), true)
-                        .setDisplayName(configManager.getDisplayName("game-menu", "last-winning-numbers"))
-                        .setLore(configManager.getLore("game-menu", "last-winning-numbers"))
+                inventory.setItem(18, plugin.getItem("game-menu.last-winning-numbers")
+                        .setHead(winners.get(index).getWinner().getUrl(), true)
                         .build());
 
                 index++;
             }
         }.runTaskTimer(plugin, 0, 40L).getTaskId();
 
-        inventory.setItem(26, configManager.getItem("game-menu", "close", null));
+        inventory.setItem(26, plugin.getItem("game-menu.close").build());
     }
 
-    private ItemStack getRuleItem(@NotNull GameRule rule) {
-        String path = rule.name().toLowerCase().replace("_", "-");
+    public ItemStack createBetAllItem() {
+        String state = game.isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
+        return plugin.getItem("game-menu.bet-all")
+                .replace("%state%", state)
+                .build();
+    }
 
-        List<String> lore = plugin.getConfigManager().getLore("game-menu", path);
+    public ItemStack createStartTimeItem() {
+        int time = game.getStartTime();
+        return plugin.getItem("game-menu.start-time")
+                .replace("%seconds%", time)
+                .setAmount(time)
+                .build();
+    }
+
+    public ItemStack createRuleItem(@NotNull GameRule rule) {
+        Material bannerColor;
+        if (rule.isSurrender() && !game.getType().isAmerican()) bannerColor = Material.GRAY_BANNER;
+        else bannerColor = game.getRules().getOrDefault(rule, false) ? Material.LIME_BANNER : Material.RED_BANNER;
+
+        ItemBuilder builder = plugin.getItem("game-menu." + rule.name().toLowerCase().replace("_", "-"))
+                .setType(bannerColor)
+                .addItemFlags(ItemFlag.HIDE_POTION_EFFECTS)
+                .setData(plugin.getRouletteRuleKey(), PersistentDataType.STRING, rule.name());
 
         // Surrender rule only applies to american tables.
-        if (!lore.isEmpty() && !game.getType().isAmerican() && rule.isSurrender()) {
-            lore.add(ConfigManager.Config.ONLY_AMERICAN.asString());
+        if (!game.getType().isAmerican() && rule.isSurrender()) {
+            builder.addLore(ConfigManager.Config.ONLY_AMERICAN.asString());
         }
 
-        DyeColor color;
-        if (rule.isSurrender() && !game.getType().isAmerican()) color = DyeColor.GRAY;
-        else color = game.getRules().getOrDefault(rule, false) ? DyeColor.LIME : DyeColor.RED;
-
-        return new ItemBuilder("BANNER")
-                .setBannerColor(color)
-                .setDisplayName(plugin.getConfigManager().getDisplayName("game-menu", path))
-                .setLore(lore)
-                .addItemFlags(ItemFlag.HIDE_POTION_EFFECTS)
-                .modifyNBT("rouletteRule", rule.name())
-                .build();
+        return builder.build();
     }
 
     @Override

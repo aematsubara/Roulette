@@ -5,7 +5,7 @@ public enum GameState {
     STARTING, // Start cooldown initialized while waiting for more players.
     SELECTING, // Game started, players must place their bets.
     SPINNING, // No more bets, the wheel starts spinning.
-    ENDING; // Game is over, the winners (if any) are announced.
+    ENDING; // The game is over, the winners (if any) are announced.
 
     public boolean isIdle() {
         return this == IDLE;

@@ -1,22 +1,19 @@
 package me.matsubara.roulette.listener.protocol;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketContainer;
-import com.comphenix.protocol.events.PacketEvent;
-import com.comphenix.protocol.wrappers.EnumWrappers;
-import com.cryptomorin.xseries.ReflectionUtils;
-import com.cryptomorin.xseries.XMaterial;
-import com.earth2me.essentials.Essentials;
-import com.earth2me.essentials.User;
+import com.github.retrooper.packetevents.event.PacketListenerPriority;
+import com.github.retrooper.packetevents.event.SimplePacketListenerAbstract;
+import com.github.retrooper.packetevents.event.simple.PacketPlayReceiveEvent;
+import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.PlayerRouletteEnterEvent;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.bukkit.Material;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -27,30 +24,27 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Iterator;
 import java.util.List;
 
-public final class UseEntity extends PacketAdapter {
+public final class UseEntity extends SimplePacketListenerAbstract {
 
     private final RoulettePlugin plugin;
 
     public UseEntity(RoulettePlugin plugin) {
-        super(plugin, ListenerPriority.HIGHEST, PacketType.Play.Client.USE_ENTITY);
+        super(PacketListenerPriority.HIGHEST);
         this.plugin = plugin;
     }
 
     @Override
-    public void onPacketReceiving(@NotNull PacketEvent event) {
-        PacketContainer packet = event.getPacket();
-        int entityId = packet.getIntegers().readSafely(0);
+    public void onPacketPlayReceive(@NotNull PacketPlayReceiveEvent event) {
+        if (event.getPacketType() != PacketType.Play.Client.INTERACT_ENTITY) return;
+        if (!(event.getPlayer() instanceof Player player)) return;
 
-        EnumWrappers.EntityUseAction action;
-        if (ReflectionUtils.MINOR_NUMBER > 16) {
-            action = packet.getEnumEntityUseActions().readSafely(0).getAction();
-        } else {
-            action = packet.getEntityUseActions().readSafely(0);
-        }
+        WrapperPlayClientInteractEntity wrapper = new WrapperPlayClientInteractEntity(event);
 
-        if (action == EnumWrappers.EntityUseAction.ATTACK) return;
+        // We only want to handle interactions IF the player right-clicks any armor stand.
+        WrapperPlayClientInteractEntity.InteractAction action = wrapper.getAction();
+        if (action != WrapperPlayClientInteractEntity.InteractAction.INTERACT_AT) return;
 
-        Player player = event.getPlayer();
+        int entityId = wrapper.getEntityId();
 
         for (Game game : plugin.getGameManager().getGames()) {
             handleInteract(game, player, entityId, game.getModel().getStands(), game.getJoinHologram().getStands());
@@ -58,7 +52,7 @@ public final class UseEntity extends PacketAdapter {
     }
 
     @SafeVarargs
-    private void handleInteract(Game game, Player player, int entityId, List<PacketStand> @NotNull ... collections) {
+    private void handleInteract(Game game, Player player, int entityId, List<PacketStand>... collections) {
         stands:
         for (List<PacketStand> collection : collections) {
             for (PacketStand stand : collection) {
@@ -67,13 +61,11 @@ public final class UseEntity extends PacketAdapter {
         }
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
-    private boolean handle(Game game, Player player, int entityId, PacketStand stand) {
-        MessageManager messages = plugin.getMessageManager();
-
+    private boolean handle(Game game, Player player, int entityId, @NotNull PacketStand stand) {
         if (stand.getEntityId() != entityId) return false;
 
         Model model = game.getModel();
+        MessageManager messages = plugin.getMessageManager();
 
         // Can happen when the game is created.
         if (!model.isModelSpawned()) {
@@ -83,7 +75,7 @@ public final class UseEntity extends PacketAdapter {
 
         // Change table texture.
         if (canChangeTexture(player)) {
-            XMaterial material = getMaterialInHand(player);
+            Material material = player.getInventory().getItemInMainHand().getType();
 
             boolean isPlanks = material.name().contains("PLANKS");
 
@@ -93,17 +85,17 @@ public final class UseEntity extends PacketAdapter {
             String toUse = material.name().substring(0, material.name().lastIndexOf("_"));
 
             if (isPlanks) {
-                XMaterial slab = XMaterial.matchXMaterial(toUse + "_SLAB").get(); // Can't be null.
+                Material slab = PluginUtils.getOrNull(Material.class, toUse + "_SLAB"); // Can't be null.
                 model.setPlanksType(material);
                 model.setSlabsType(slab);
             } else {
-                XMaterial carpet = XMaterial.matchXMaterial(toUse + "_CARPET").get(); // Again, can't be null.
+                Material carpet = PluginUtils.getOrNull(Material.class, toUse + "_CARPET"); // Again, can't be null.
                 model.setCarpetsType(carpet);
             }
 
-            ItemStack carpets = model.getCarpetsType().parseItem();
-            ItemStack planks = model.getPlanksType().parseItem();
-            ItemStack slabs = model.getSlabsType().parseItem();
+            ItemStack carpets = new ItemStack(model.getCarpetsType());
+            ItemStack planks = new ItemStack(model.getPlanksType());
+            ItemStack slabs = new ItemStack(model.getSlabsType());
 
             model.getStands().forEach(part -> {
                 String name = part.getSettings().getPartName();
@@ -177,6 +169,9 @@ public final class UseEntity extends PacketAdapter {
             plugin.getServer().getPluginManager().callEvent(enterEvent);
             if (enterEvent.isCancelled()) return;
 
+            // If the entities are unloaded, then the chairs won't be valid after a while.
+            game.validateChairs();
+
             Integer sitAt = handleChairInteract(game, player, stand.getSettings().getPartName());
             if (sitAt == null) return;
 
@@ -207,18 +202,8 @@ public final class UseEntity extends PacketAdapter {
         return which;
     }
 
-    private XMaterial getMaterialInHand(@NotNull Player player) {
-        XMaterial material;
-        try {
-            material = XMaterial.matchXMaterial(player.getInventory().getItemInMainHand());
-        } catch (IllegalArgumentException exception) {
-            material = XMaterial.AIR;
-        }
-        return material;
-    }
-
-    private boolean canChangeTexture(Player player) {
-        String inHand = getMaterialInHand(player).name();
+    private boolean canChangeTexture(@NotNull Player player) {
+        String inHand = player.getInventory().getItemInMainHand().getType().name();
         boolean validMaterial = inHand.contains("PLANKS") || inHand.contains("WOOL");
         return player.isSneaking() && validMaterial && player.hasPermission("roulette.texturetable");
     }
@@ -241,10 +226,10 @@ public final class UseEntity extends PacketAdapter {
         // Check if player is vanished using EssentialsX.
         if (!plugin.hasDependency("Essentials")) return false;
 
-        Essentials essentials = (Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
+        com.earth2me.essentials.Essentials essentials = (com.earth2me.essentials.Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
         if (essentials == null) return false;
 
-        User user = essentials.getUser(player);
+        com.earth2me.essentials.User user = essentials.getUser(player);
         if (user != null && user.isVanished()) {
             plugin.getMessageManager().send(player, MessageManager.Message.VANISH);
             return true;

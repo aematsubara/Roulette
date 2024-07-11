@@ -1,7 +1,6 @@
 package me.matsubara.roulette.npc.modifier;
 
-import com.comphenix.protocol.PacketType.Play.Server;
-import com.comphenix.protocol.events.PacketContainer;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityAnimation;
 import me.matsubara.roulette.npc.NPC;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -25,68 +24,12 @@ public class AnimationModifier extends NPCModifier {
     /**
      * Queues the animation to be played.
      *
-     * @param entityAnimation The animation to play.
+     * @param animation The animation to play.
      * @return The same instance of this class, for chaining.
      */
     @NotNull
-    public AnimationModifier queue(@NotNull EntityAnimation entityAnimation) {
-        return this.queue(entityAnimation.id);
-    }
-
-    /**
-     * Queues the animation to be played.
-     *
-     * @param animationId The id of the animation to play.
-     * @return The same instance of this class, for chaining.
-     */
-    @NotNull
-    public AnimationModifier queue(int animationId) {
-        super.queueInstantly((targetNpc, target) -> {
-            PacketContainer container = new PacketContainer(Server.ANIMATION);
-            container.getIntegers()
-                    .write(0, targetNpc.getEntityId())
-                    .write(1, animationId);
-            return container;
-        });
+    public AnimationModifier queue(WrapperPlayServerEntityAnimation.EntityAnimationType animation) {
+        super.queueInstantly((targetNpc, target) -> new WrapperPlayServerEntityAnimation(targetNpc.getEntityId(), animation));
         return this;
-    }
-
-    /**
-     * All official supported entity animations.
-     */
-    public enum EntityAnimation {
-        /**
-         * Swings the main hand (hitting).
-         */
-        SWING_MAIN_ARM(0),
-        /**
-         * The damage effect.
-         */
-        TAKE_DAMAGE(1),
-        /**
-         * When a player enters a bed.
-         */
-        LEAVE_BED(2),
-        /**
-         * Swings the off hand (1.13+).
-         */
-        SWING_OFF_HAND(3),
-        /**
-         * When a player takes a critical effect.
-         */
-        CRITICAL_EFFECT(4),
-        /**
-         * When a player takes a critical effect caused by magic.
-         */
-        MAGIC_CRITICAL_EFFECT(5);
-
-        /**
-         * The id of the effect.
-         */
-        private final int id;
-
-        EntityAnimation(int id) {
-            this.id = id;
-        }
     }
 }

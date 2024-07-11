@@ -1,15 +1,11 @@
 package me.matsubara.roulette.manager;
 
-import com.cryptomorin.xseries.XMaterial;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Material;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -25,8 +21,8 @@ public final class ConfigManager {
         return plugin.getConfig().getInt("render-distance", 64);
     }
 
-    public ItemStack getBall() {
-        return XMaterial.matchXMaterial(Config.CROUPIER_BALL.asString()).map(XMaterial::parseItem).orElse(null);
+    public @NotNull ItemStack getBall() {
+        return new ItemStack(PluginUtils.getOrDefault(Material.class, Config.CROUPIER_BALL.asString(), Material.AIR));
     }
 
     public long getPeriod() {
@@ -35,83 +31,6 @@ public final class ConfigManager {
 
     public String getColumnOrDozen(String type, int index) {
         return PluginUtils.translate(plugin.getConfig().getString("slots." + type + "." + index));
-    }
-
-    public @NotNull String getAccountDisplayName(String name) {
-        return getDisplayName("game-menu", "account").replace("%player%", name);
-    }
-
-    public @NotNull List<String> getAccountLore() {
-        return getLore("game-menu", "account");
-    }
-
-    public @NotNull String getStartTimeDisplayName(int time) {
-        return getDisplayName("game-menu", "start-time").replace("%seconds%", String.valueOf(time));
-    }
-
-    public @NotNull String getChipDisplayName(double price) {
-        return getDisplayName("shop", "chip").replace("%money%", PluginUtils.format(price));
-    }
-
-    public @NotNull List<String> getChipLore() {
-        return getLore("shop", "chip");
-    }
-
-    public @Nullable ItemStack getItem(String gui, String type, @Nullable String money) {
-        Material material = XMaterial.matchXMaterial(getMaterial(gui, type)).map(XMaterial::parseMaterial).orElse(null);
-        if (material == null) return null;
-
-        String displayName = (money != null) ? getDisplayName(gui, type).replace("%money%", money) : getDisplayName(gui, type);
-
-        ItemBuilder builder;
-        if (isSkull(gui, type, material)) {
-            builder = new ItemBuilder(getUrl(gui, type), true).setDisplayName(displayName).setLore(getLore(gui, type));
-        } else {
-            builder = new ItemBuilder(material).setDisplayName(displayName).setLore(getLore(gui, type));
-        }
-        if (hasAttributes(gui, type)) builder.addItemFlags(getAttributes(gui, type));
-        return builder.build();
-    }
-
-    private boolean isSkull(String gui, String type, Material material) {
-        return plugin.getConfig().get(gui + "." + type + ".url") != null && material == XMaterial.PLAYER_HEAD.parseMaterial();
-    }
-
-    private boolean hasAttributes(String gui, String path) {
-        return plugin.getConfig().contains(gui + "." + path + ".attributes", false);
-    }
-
-    private ItemFlag @NotNull [] getAttributes(String gui, String path) {
-        return plugin.getConfig().getStringList(gui + "." + path + ".attributes").stream().map(this::getAttribute).toArray(ItemFlag[]::new);
-    }
-
-    private @Nullable ItemFlag getAttribute(String attribute) {
-        try {
-            return ItemFlag.valueOf(attribute);
-        } catch (IllegalArgumentException exception) {
-            exception.printStackTrace();
-            return null;
-        }
-    }
-
-    public boolean hasUrl(String gui, String path) {
-        return plugin.getConfig().contains(gui + "." + path + ".url", false);
-    }
-
-    public String getUrl(String gui, String path) {
-        return plugin.getConfig().getString(gui + "." + path + ".url");
-    }
-
-    private String getMaterial(String gui, String path) {
-        return plugin.getConfig().getString(gui + "." + path + ".material");
-    }
-
-    public String getDisplayName(String gui, String path) {
-        return PluginUtils.translate(plugin.getConfig().getString(gui + "." + path + ".display-name"));
-    }
-
-    public @NotNull List<String> getLore(String gui, String path) {
-        return PluginUtils.translate(plugin.getConfig().getStringList(gui + "." + path + ".lore"));
     }
 
     public enum Config {
