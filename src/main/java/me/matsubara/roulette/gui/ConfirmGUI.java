@@ -7,11 +7,10 @@ import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.manager.ConfigManager;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
 
 @Getter
-public final class ConfirmGUI implements InventoryHolder, RouletteGUI {
+public final class ConfirmGUI implements RouletteGUI {
 
     // The game related to this GUI.
     private final Game game;
@@ -46,11 +45,6 @@ public final class ConfirmGUI implements InventoryHolder, RouletteGUI {
 
         // Open inventory.
         player.openInventory(inventory);
-    }
-
-    @Override
-    public @NotNull Inventory getInventory() {
-        return inventory;
     }
 
     public enum ConfirmType {

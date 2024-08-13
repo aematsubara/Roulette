@@ -1,15 +1,19 @@
 package me.matsubara.roulette.npc;
 
+import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.npc.modifier.*;
+import me.matsubara.roulette.util.ParrotUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -23,12 +27,14 @@ public class NPC {
     private final UserProfile profile;
     private final SpawnCustomizer spawnCustomizer;
     private final Location location;
+    private final Game game;
 
-    public NPC(UserProfile profile, SpawnCustomizer spawnCustomizer, Location location, int entityId) {
+    public NPC(UserProfile profile, SpawnCustomizer spawnCustomizer, Location location, int entityId, Game game) {
         this.entityId = entityId;
         this.spawnCustomizer = spawnCustomizer;
         this.location = location;
         this.profile = profile;
+        this.game = game;
     }
 
     @Contract(" -> new")
@@ -94,8 +100,33 @@ public class NPC {
         return new VisibilityModifier(this);
     }
 
+    @SuppressWarnings("unused")
     public TeleportModifier teleport() {
         return new TeleportModifier(this);
+    }
+
+    public void toggleParrotVisibility(Player player, @NotNull MetadataModifier metadata) {
+        MetadataModifier.EntityMetadata<Object, NBTCompound> modifier = game.getParrotShoulder().isLeft() ?
+                MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT :
+                MetadataModifier.EntityMetadata.SHOULDER_ENTITY_RIGHT;
+
+        Object parrot = getOrCreateParrot(player);
+        metadata.queue(modifier, parrot);
+    }
+
+    private @Nullable Object getOrCreateParrot(Player player) {
+        if (!game.isParrotEnabled()) return ParrotUtils.EMPTY_NBT;
+
+        Object nmsParrot = game.getNmsParrot();
+        if (nmsParrot != null) return nmsParrot;
+
+        Object temp = ParrotUtils.createParrot(player.getWorld(), game.getParrotVariant());
+        if (temp != null) {
+            game.setNmsParrot(temp);
+            return temp;
+        }
+
+        return ParrotUtils.EMPTY_NBT;
     }
 
     public static class Builder {
@@ -103,6 +134,7 @@ public class NPC {
         private UserProfile profile;
         private int entityId = -1;
         private Location location;
+        private Game game;
 
         private SpawnCustomizer spawnCustomizer = (npc, player) -> {
         };
@@ -130,6 +162,11 @@ public class NPC {
             return this;
         }
 
+        public Builder game(Game game) {
+            this.game = game;
+            return this;
+        }
+
         @NotNull
         public NPC build(NPCPool pool) {
             if (entityId == -1) {
@@ -144,7 +181,7 @@ public class NPC {
                 throw new IllegalArgumentException("No location given!");
             }
 
-            NPC npc = new NPC(profile, spawnCustomizer, location, entityId);
+            NPC npc = new NPC(profile, spawnCustomizer, location, entityId, game);
             pool.takeCareOf(npc);
             return npc;
         }

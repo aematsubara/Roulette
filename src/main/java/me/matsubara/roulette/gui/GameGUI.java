@@ -1,6 +1,5 @@
 package me.matsubara.roulette.gui;
 
-import com.google.gson.JsonParser;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
@@ -13,7 +12,6 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -21,12 +19,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 
 @Getter
-public final class GameGUI implements InventoryHolder, RouletteGUI {
+public final class GameGUI implements RouletteGUI {
 
     // Instance of the plugin.
     private final RoulettePlugin plugin;
@@ -55,7 +52,6 @@ public final class GameGUI implements InventoryHolder, RouletteGUI {
         player.openInventory(inventory);
     }
 
-    @SuppressWarnings("deprecation")
     private void fillInventory() {
         ItemStack background = new ItemBuilder(Material.GRAY_STAINED_GLASS_PANE)
                 .setDisplayName("&7")
@@ -65,24 +61,16 @@ public final class GameGUI implements InventoryHolder, RouletteGUI {
             inventory.setItem(i, background);
         }
 
-        String url = game.getNPCTexture();
-        if (url != null) {
-            // Decode base64.
-            String base64 = new String(Base64.getDecoder().decode(url));
+        ItemBuilder croupier = plugin.getItem("game-menu.croupier-settings")
+                .setType(Material.PLAYER_HEAD);
 
-            // Get url from json.
-            url = new JsonParser().parse(base64).getAsJsonObject()
-                    .getAsJsonObject("textures")
-                    .getAsJsonObject("SKIN")
-                    .get("url")
-                    .getAsString();
-        }
-
-        ItemBuilder croupier = plugin.getItem("game-menu.croupier").setType(Material.PLAYER_HEAD);
+        String url = game.getNpcTextureAsURL();
         if (url != null) croupier.setHead(url, true);
 
         String npcName = game.getNPCName();
-        inventory.setItem(0, croupier.replace("%croupier-name%", npcName != null ? npcName : ConfigManager.Config.UNNAMED_CROUPIER.asString()).build());
+        inventory.setItem(0, croupier
+                .replace("%croupier-name%", npcName != null ? npcName : ConfigManager.Config.UNNAMED_CROUPIER.asString())
+                .build());
 
         OfflinePlayer accountTo = game.getAccountGiveTo() != null ? Bukkit.getOfflinePlayer(game.getAccountGiveTo()) : null;
 
@@ -155,7 +143,7 @@ public final class GameGUI implements InventoryHolder, RouletteGUI {
     }
 
     public ItemStack createBetAllItem() {
-        String state = game.isBetAll() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
+        String state = game.isBetAllEnabled() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
         return plugin.getItem("game-menu.bet-all")
                 .replace("%state%", state)
                 .build();
@@ -185,10 +173,5 @@ public final class GameGUI implements InventoryHolder, RouletteGUI {
         }
 
         return builder.build();
-    }
-
-    @Override
-    public @NotNull Inventory getInventory() {
-        return inventory;
     }
 }

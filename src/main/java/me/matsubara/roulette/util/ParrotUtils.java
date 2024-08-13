@@ -30,6 +30,7 @@ public class ParrotUtils {
     private static final Class<?> PARROT_CLAZZ = Reflection.getNMSClass("world.entity.animal", "Parrot", "EntityParrot");
     private static final Class<?> ENTITY_TYPE_CLAZZ = Reflection.getNMSClass("world.entity", "EntityType", "EntityTypes");
     private static final Class<?> LEVEL_CLAZZ = Reflection.getNMSClass("world.level", "Level", "World");
+    private static final Class<?> COMPOUND_TAG_CLAZZ = Reflection.getNMSClass("nbt", "CompoundTag", "NBTTagCompound");
     private static final @SuppressWarnings("deprecation") Class<?> ENTITY_CLAZZ = XReflection.getNMSClass("world.entity", "Entity");
     private static final @SuppressWarnings("deprecation") Class<?> CRAFT_WORLD_CLAZZ = XReflection.getCraftClass("CraftWorld");
     private static final @SuppressWarnings("deprecation") Class<?> CRAFT_ENTITY_CLAZZ = XReflection.getCraftClass("entity.CraftEntity");
@@ -41,9 +42,11 @@ public class ParrotUtils {
 
     // Constructor.
     private static final MethodHandle PARROT_CONSTRUCTOR = Reflection.getConstructor(PARROT_CLAZZ, ENTITY_TYPE_CLAZZ, LEVEL_CLAZZ);
+    private static final MethodHandle COMPOUND_TAG_CONSTRUCTOR = Reflection.getConstructor(COMPOUND_TAG_CLAZZ);
 
     // Field.
     private static final Object PARROT_TYPE;
+    public static final Object EMPTY_NBT;
 
     static {
         Map<XEntityType, XSound> tempMap = new HashMap<>();
@@ -106,6 +109,14 @@ public class ParrotUtils {
         } else parrotType = null;
 
         PARROT_TYPE = parrotType != null ? Reflection.getFieldValue(Reflection.getField(ENTITY_TYPE_CLAZZ, ENTITY_TYPE_CLAZZ, parrotType, true, "PARROT")) : null;
+
+        Object temp;
+        try {
+            temp = COMPOUND_TAG_CONSTRUCTOR != null ? COMPOUND_TAG_CONSTRUCTOR.invoke() : null;
+        } catch (Throwable throwable) {
+            temp = null;
+        }
+        EMPTY_NBT = temp;
     }
 
     public static @Nullable Object createParrot(World world, Parrot.Variant variant) {

@@ -74,7 +74,9 @@ public final class Spinning extends BukkitRunnable {
             // If the player didn't select a chip, close inventory and remove from the game.
             Bet bet = entry.getValue();
             if (!bet.hasChip()) {
+                iterator.remove();
                 game.remove(player, true);
+
                 messages.send(player, MessageManager.Message.OUT_OF_TIME);
 
                 // If the player still has the chip inventory open, close it.
@@ -83,7 +85,6 @@ public final class Spinning extends BukkitRunnable {
                     player.closeInventory();
                 }
 
-                iterator.remove();
                 continue;
             }
 
@@ -98,8 +99,7 @@ public final class Spinning extends BukkitRunnable {
         }
 
         if (players.isEmpty()) {
-            game.setState(GameState.ENDING);
-            game.restartRunnable();
+            game.restart();
             shouldStart = false;
             return;
         }

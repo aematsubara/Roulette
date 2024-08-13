@@ -183,12 +183,20 @@ public final class ItemBuilder {
     }
 
     public ItemBuilder addEnchantment(Enchantment enchantment, int level) {
-        item.addUnsafeEnchantment(enchantment, level);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return this;
+
+        meta.addEnchant(enchantment, level, true);
+        item.setItemMeta(meta);
         return this;
     }
 
     public ItemBuilder removeEnchantment(Enchantment enchantment) {
-        item.removeEnchantment(enchantment);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return this;
+
+        meta.removeEnchant(enchantment);
+        item.setItemMeta(meta);
         return this;
     }
 
@@ -316,13 +324,6 @@ public final class ItemBuilder {
 
         item.setItemMeta(meta);
         return this;
-    }
-
-    public ItemBuilder glow() {
-        item.addUnsafeEnchantment(item.getType() == Material.BOW ?
-                Enchantment.DURABILITY :
-                Enchantment.ARROW_DAMAGE, 1);
-        return addItemFlags(ItemFlag.HIDE_ENCHANTS);
     }
 
     public ItemBuilder setMapView(MapView view) {

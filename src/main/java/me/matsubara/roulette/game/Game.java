@@ -5,6 +5,7 @@ import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
 import com.github.retrooper.packetevents.protocol.player.TextureProperty;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonParser;
 import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,6 +41,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.metadata.Metadatable;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.EulerAngle;
@@ -50,6 +53,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("deprecation")
@@ -76,15 +80,16 @@ public final class Game {
     private int maxPlayers;
 
     // Players in this game.
-    private final Map<Player, Bet> players;
+    private final Map<Player, Bet> players = new ConcurrentHashMap<>();
 
     // The slots disabled in this game.
     private final List<Slot> disabledSlots;
 
     // Rules applied in this game.
-    private final Map<GameRule, Boolean> rules;
+    private final Map<GameRule, Boolean> rules = new EnumMap<>(GameRule.class);
 
-    private final Map<String, ArmorStand> chairs;
+    // Chairs of the game.
+    private final Map<String, ArmorStand> chairs = new ConcurrentHashMap<>();
 
     // The main hologram of this game, used to join.
     private final Hologram joinHologram;
@@ -108,11 +113,13 @@ public final class Game {
     private int startTime;
 
     // If bet-all is allowed in this game.
-    private boolean betAll;
+    private boolean betAllEnabled;
 
     // Parrot data.
+    private boolean parrotEnabled;
     private Parrot.Variant parrotVariant;
     private ParrotUtils.ParrotShoulder parrotShoulder;
+    private Object nmsParrot;
 
     // Tasks.
     private BukkitTask startingTask;
@@ -137,6 +144,9 @@ public final class Game {
             "eyJ0aW1lc3RhbXAiOjE1ODgwNjg2NjE4NDIsInByb2ZpbGVJZCI6IjMzZWJkMzJiYjMzOTRhZDlhYzY3MGM5NmM1NDliYTdlIiwicHJvZmlsZU5hbWUiOiJEYW5ub0JhbmFubm9YRCIsInNpZ25hdHVyZVJlcXVpcmVkIjp0cnVlLCJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzEzNzA5NzI0OWM0ZGNiOGU2YzY1ZjBlN2U3NTc3YmI3NzRjNWZjMjc0MTFhMjkwYWM4MGVkZmRmODFlNjk3YiJ9fX0=",
             "ShX80ZOUh6r67Qq+r8dvFkN7kqEUaUIB0JMdWTYFc0HZk/tqGvkRtExLgak5AWDA1Y2ruleJdCIE6eB851jhmKJG7zi9Zvzcfysb513MY14p2RdL8ZqX5NcC+0Qds2h/0ePlHD/uE3He+Kx43vs4GPl/SfciwlNjlURCeVpJ3MzRhUastaVwFFOFECNacY6HsT9Q6vEr7hLv9wLPvo5DpDU6FvS4v8KLlSGlgTpnayX61cQSeQyHbqabgBglTocp2NFs9YFjVbvq5WtLbsra5GLK+s+43/fN5NP4yBFAr08ZFu22YMeL6w51fDAPwZ2Gk4HunoPQMrhrRQkDN3RBSjALZyASHqVa49BKcJ+RNw08fLcSBYfUUZXDQabWHcqOVOlvE/5kusshcvbR86BWgYQfh5ObjGCt3P5fJ/1Dx3xNb6UKWOjl86ufkPfAhhPeUqYj/l6IAhm849oNl8q+r6nR2A641ibZySk7ZOX+Rr4lh67SgDIy1dPy2VQyHoHDIT4Joq3RNQZR+TwGRWd33EbakM6apDMMcuTxVm8lXMgYP89rBWNeEDsYbJ6L+NsypRfRfCgzap14bQ5vLZisXP1txcMUoUPv7KWJZ1CGmAI0VeODSTEZN73J0icWoniGZE74Eqvf+JGrHMF5keELN6IgQ1CIkMZO7OhxBqgi0o0=");
 
+    // We want ListenMode to ignore our entities.
+    private static final BiConsumer<JavaPlugin, Metadatable> LISTEN_MODE_IGNORE = (plugin, living) -> living.setMetadata("RemoveGlow", new FixedMetadataValue(plugin, true));
+
     public Game(
             RoulettePlugin plugin,
             String name,
@@ -149,18 +159,19 @@ public final class Game {
             GameType type,
             UUID owner,
             int startTime,
-            boolean betAll,
+            boolean betAllEnabled,
             @Nullable UUID accountGiveTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
+            boolean parrotEnabled,
             @Nullable Parrot.Variant parrotVariant,
             @Nullable ParrotUtils.ParrotShoulder parrotShoulder) {
         this.plugin = plugin;
         this.name = name;
         this.model = model;
-        this.players = new HashMap<>();
         this.owner = owner;
 
         // Initialize parrot data before spawning NPC.
+        this.parrotEnabled = parrotEnabled;
         this.parrotVariant = parrotVariant != null ? parrotVariant : PluginUtils.getRandomFromEnum(Parrot.Variant.class);
         this.parrotShoulder = parrotShoulder != null ? parrotShoulder : PluginUtils.getRandomFromEnum(ParrotUtils.ParrotShoulder.class);
 
@@ -178,14 +189,12 @@ public final class Game {
             }
         }
 
-        this.rules = new EnumMap<>(GameRule.class);
         if (rules != null && !rules.isEmpty()) this.rules.putAll(rules);
 
-        this.chairs = new ConcurrentHashMap<>();
         this.type = type;
         this.state = GameState.IDLE;
         this.startTime = startTime;
-        this.betAll = betAll;
+        this.betAllEnabled = betAllEnabled;
         this.accountGiveTo = accountGiveTo;
 
         // Spawn join hologram.
@@ -255,6 +264,8 @@ public final class Game {
             // Hide hearts.
             AttributeInstance attribute = bukkit.getAttribute(Attribute.GENERIC_MAX_HEALTH);
             if (attribute != null) attribute.setBaseValue(1);
+
+            LISTEN_MODE_IGNORE.accept(plugin, bukkit);
         });
     }
 
@@ -281,6 +292,22 @@ public final class Game {
                 .findFirst()
                 .map(TextureProperty::getValue)
                 .orElse(ADAM_TEXTURES.getValue());
+    }
+
+    public @Nullable String getNpcTextureAsURL() {
+        String url = getNPCTexture();
+        if (url == null) return null;
+
+        // Decode base64.
+        String base64 = new String(Base64.getDecoder().decode(url));
+
+        // Get url from json.
+        return new JsonParser().parse(base64)
+                .getAsJsonObject()
+                .getAsJsonObject("textures")
+                .getAsJsonObject("SKIN")
+                .get("url")
+                .getAsString();
     }
 
     public @Nullable String getNPCSignature() {
@@ -317,6 +344,7 @@ public final class Game {
                 .location(npcLocation)
                 .spawnCustomizer(new NPCSpawn(this, npcLocation))
                 .entityId(SpigotReflectionUtil.generateEntityId())
+                .game(this)
                 .build(plugin.getNpcPool());
 
         npc.rotation().queueHeadRotation(npcLocation.getYaw()).send();
@@ -380,9 +408,34 @@ public final class Game {
         spinHologram.showTo(player);
     }
 
-    public void remove(Player player, boolean isRestart) {
+    private void tryToReturnMoney(Player player) {
+        if (!state.isSelecting()) return;
+
+        Bet bet = players.get(player);
+        if (bet == null) return;
+
+        Chip chip = bet.getChip();
+        if (chip == null) return;
+
+        double price = chip.getPrice();
+
+        EconomyResponse response = plugin.getEconomy().depositPlayer(player, price);
+        if (!response.transactionSuccess()) {
+            plugin.getLogger().warning(String.format("It wasn't possible to deposit $%s to %s.", price, player.getName()));
+            return;
+        }
+
+        plugin.getMessageManager().send(player, MessageManager.Message.RECEIVED, message -> message
+                .replace("%money%", PluginUtils.format(price))
+                .replace("%name%", name.replace("_", " ")));
+    }
+
+    public void remove(Player player, boolean iteratorSource) {
+        // If the player quits with a bet placed but the wheel didn't start spinning, then we want to return the money.
+        tryToReturnMoney(player);
+
         // If the game is being restarted, the players are cleared in restart() iterator.
-        if (!isRestart) {
+        if (!iteratorSource) {
             players.remove(player).remove();
 
             // Players are removed with an iterator in @restart, we don't need to send a message to every player about it if restarting.
@@ -393,7 +446,7 @@ public final class Game {
         }
 
         // No need to call restart() again if the game is being restarted.
-        if (players.isEmpty() && !isRestart) {
+        if (players.isEmpty() && !iteratorSource) {
             restart();
         }
 
@@ -653,7 +706,7 @@ public final class Game {
             }
 
             if (giveTo.isOnline() && total > 0) {
-                String totalMoney = String.valueOf(total);
+                String totalMoney = PluginUtils.format(total);
                 messages.send(giveTo.getPlayer(), MessageManager.Message.RECEIVED, message -> message
                         .replace("%money%", totalMoney)
                         .replace("%name%", name.replace("_", " ")));
@@ -861,7 +914,10 @@ public final class Game {
         Preconditions.checkNotNull(location.getWorld());
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
-        Firework firework = location.getWorld().spawn(location.clone().subtract(0.0d, 0.5d, 0.0d), Firework.class);
+        Firework firework = location.getWorld().spawn(
+                location.clone().subtract(0.0d, 0.5d, 0.0d),
+                Firework.class,
+                temp -> LISTEN_MODE_IGNORE.accept(plugin, temp));
         FireworkMeta meta = firework.getFireworkMeta();
 
         firework.setMetadata("isRoulette", new FixedMetadataValue(plugin, true));
@@ -955,7 +1011,6 @@ public final class Game {
 
         // Show holograms for the players that are left in the table.
         for (Player player : players.keySet()) {
-            // joinHologram.hideTo(player);
             spinHologram.showTo(player);
         }
     }

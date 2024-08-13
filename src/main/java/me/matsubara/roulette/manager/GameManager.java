@@ -79,7 +79,7 @@ public final class GameManager implements Listener {
     }
 
     public void addFreshGame(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, null, null, null, null, null, null);
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, false, null, null, null, null, null, null);
     }
 
     public void add(
@@ -97,6 +97,7 @@ public final class GameManager implements Listener {
             boolean betAll,
             @Nullable UUID accountTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
+            boolean parrotEnabled,
             @Nullable Parrot.Variant parrotVariant,
             @Nullable ParrotUtils.ParrotShoulder parrotShoulder,
             @Nullable Material carpetsType,
@@ -118,6 +119,7 @@ public final class GameManager implements Listener {
                 betAll,
                 accountTo,
                 rules,
+                parrotEnabled,
                 parrotVariant,
                 parrotShoulder);
 
@@ -155,13 +157,14 @@ public final class GameManager implements Listener {
         }
 
         // Save settings.
-        configuration.set("games." + name + ".settings.bet-all", game.isBetAll());
+        configuration.set("games." + name + ".settings.bet-all", game.isBetAllEnabled());
         configuration.set("games." + name + ".settings.start-time", game.getStartTime());
         configuration.set("games." + name + ".settings.min-players", game.getMinPlayers());
         configuration.set("games." + name + ".settings.max-players", game.getMaxPlayers());
 
         // Save NPC related data.
         configuration.set("games." + name + ".npc.name", game.getNPCName());
+        configuration.set("games." + name + ".npc.parrot.enabled", game.isParrotEnabled());
         configuration.set("games." + name + ".npc.parrot.variant", game.getParrotVariant().name());
         configuration.set("games." + name + ".npc.parrot.shoulder", game.getParrotShoulder().name());
         if (game.hasNPCTexture()) {
@@ -237,6 +240,7 @@ public final class GameManager implements Listener {
             String accountToString = configuration.getString("games." + path + ".other.account-to-id");
             UUID accountTo = accountToString != null ? UUID.fromString(accountToString) : null;
 
+            boolean parrotEnabled = configuration.getBoolean("games." + path + ".npc.parrot.enabled", false);
             Parrot.Variant parrotVariant = PluginUtils.getOrNull(Parrot.Variant.class, configuration.getString("games." + path + ".npc.parrot.variant", ""));
             ParrotUtils.ParrotShoulder parrotShoulder = PluginUtils.getOrNull(ParrotUtils.ParrotShoulder.class, configuration.getString("games." + path + ".npc.parrot.shoulder", ""));
 
@@ -254,6 +258,7 @@ public final class GameManager implements Listener {
                     betAll,
                     accountTo,
                     rules,
+                    parrotEnabled,
                     parrotVariant,
                     parrotShoulder,
                     carpets,

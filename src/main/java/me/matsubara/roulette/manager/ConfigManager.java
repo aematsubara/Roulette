@@ -85,6 +85,7 @@ public final class ConfigManager {
         STATE_DISABLED("state.disabled"),
         SHOP_TITLE("shop.title"),
         GAME_MENU_TITLE("game-menu.title"),
+        CROUPIER_MENU_TITLE("croupier-menu.title"),
         ONLY_AMERICAN("only-american"),
         UNNAMED_CROUPIER("unnamed-croupier"),
         CUSTOM_WIN_MULTIPLIER_ENABLED("custom-win-multiplier.enabled"),

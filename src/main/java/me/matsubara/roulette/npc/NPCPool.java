@@ -38,7 +38,7 @@ public class NPCPool implements Listener {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (NPC npc : npcMap.values()) {
                 ThreadLocalRandom random = ThreadLocalRandom.current();
-                boolean playParrotSound = random.nextInt(5) == 0;
+                boolean playParrotSound = npc.getGame().isParrotEnabled() && random.nextInt(5) == 0;
 
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     Location npcLocation = npc.getLocation();

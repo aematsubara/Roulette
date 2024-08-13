@@ -337,17 +337,10 @@ game-menu:
     lore:
       - "&7Here you can see the last winning"
       - "&7numbers in this game."
-  croupier:
-    display-name: "&aCroupier: &e%croupier-name%"
+  croupier-settings:
+    display-name: "&cCroupier"
     lore:
-      - "&7Here you can change some options"
-      - "&7of the npc."
-      - "&7"
-      - "&6Left click to change name."
-      - "&6Right click to change texture."
-      - "&7"
-      - "&cShift left click to reset name."
-      - "&cShift right click to reset texture."
+      - "&7Here you can customize the NPC."
   bet-all:
     url: "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852"
     material: PLAYER_HEAD
@@ -361,13 +354,42 @@ game-menu:
     lore:
       - "&7Click to close."
 
+# Here you can modify each item within the inventory of the croupier editor.
+# %croupier-name% - the name of the croupier. (@title & @croupier-name.display-name)
+# %state% - the state of the parrot option. (@parrot.display-name)
+croupier-menu:
+  title: "Croupier: %croupier-name%"
+  croupier-name:
+    material: NAME_TAG
+    display-name: "&aCroupier: &e%croupier-name%"
+    lore:
+      - "&7Here you can change the name."
+      - "&7"
+      - "&6Left click to change the name."
+      - "&6Right click to reset the name."
+  croupier-texture:
+    material: PLAYER_HEAD
+    display-name: "&aSkin"
+    lore:
+      - "&7Here you can change the texture."
+      - "&7"
+      - "&6Left click to change the texture."
+      - "&6Right click to reset the texture."
+  parrot:
+    material: FEATHER
+    display-name: "&eParrot: %state%"
+    lore:
+      - "&7Toggle parrot visibility."
+      - "&7"
+      - "&6Click to enable/disable."
+
 # Text added to the surrender rule item if the table being edited isn't american.
 only-american: "&c(Only for american)"
 
 # Text added to the croupier settings item when has no name.
 unnamed-croupier: "&cUnnamed"
 
-# Here you can modify each item within the inventory of purchase of chips.
+# Here you can modify each item within the inventory of chips.
 # You can't change the material of @chip, as this will use a head with the chip skin, defined in @chips.yml.
 # %page% - the current page. (@title)
 # %max% - the amount of pages. (@title)

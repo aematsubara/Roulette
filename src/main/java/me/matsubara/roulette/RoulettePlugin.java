@@ -88,9 +88,9 @@ public final class RoulettePlugin extends JavaPlugin {
     @Override
     public void onLoad() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
-        PacketEvents.getAPI().getSettings().reEncodeByDefault(true)
-                .checkForUpdates(false)
-                .bStats(false);
+        PacketEvents.getAPI().getSettings()
+                .reEncodeByDefault(true)
+                .checkForUpdates(false);
         PacketEvents.getAPI().load();
     }
 
@@ -356,10 +356,6 @@ public final class RoulettePlugin extends JavaPlugin {
             builder.setHead(itemUUID, url, true);
         }
 
-        for (String flag : config.getStringList(path + ".flags")) {
-            builder.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
-        }
-
         int modelData = config.getInt(path + ".model-data", Integer.MIN_VALUE);
         if (modelData != Integer.MIN_VALUE) builder.setCustomModelData(modelData);
 
@@ -377,6 +373,10 @@ public final class RoulettePlugin extends JavaPlugin {
             }
 
             if (enchantment != null) builder.addEnchantment(enchantment, level);
+        }
+
+        for (String flag : config.getStringList(path + ".flags")) {
+            builder.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
         }
 
         String tippedArrow = config.getString(path + ".tipped");

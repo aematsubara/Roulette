@@ -8,7 +8,6 @@ import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.npc.SpawnCustomizer;
 import me.matsubara.roulette.npc.modifier.MetadataModifier;
-import me.matsubara.roulette.util.ParrotUtils;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -42,14 +41,8 @@ public class NPCSpawn implements SpawnCustomizer {
         // Show skin layers.
         metadata.queue(MetadataModifier.EntityMetadata.SKIN_LAYERS, true);
 
-        // Show parrot.
-        Object parrot = ParrotUtils.createParrot(player.getWorld(), game.getParrotVariant());
-        if (parrot != null) {
-            metadata.queue(game.getParrotShoulder().isLeft() ?
-                            MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT :
-                            MetadataModifier.EntityMetadata.SHOULDER_ENTITY_RIGHT,
-                    parrot);
-        }
+        // Toggle parrot visibility.
+        npc.toggleParrotVisibility(player, metadata);
 
         // Send metadata after creating the data.
         metadata.send(player);

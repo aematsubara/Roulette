@@ -12,7 +12,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -22,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 @Getter
-public final class ChipGUI implements InventoryHolder, RouletteGUI {
+public final class ChipGUI implements RouletteGUI {
 
     // The instance of the plugin.
     private final RoulettePlugin plugin;
@@ -90,7 +89,7 @@ public final class ChipGUI implements InventoryHolder, RouletteGUI {
         inventory.setItem(22, plugin.getItem("shop.money").replace("%money%", PluginUtils.format(plugin.getEconomy().getBalance(player))).build());
 
         // Set bet all item.
-        if (game.isBetAll()) inventory.setItem(23, plugin.getItem("shop.bet-all").build());
+        if (game.isBetAllEnabled()) inventory.setItem(23, plugin.getItem("shop.bet-all").build());
 
         // If the current page isn't the last one, show the next page item.
         if (currentPage < pages - 1) inventory.setItem(25, plugin.getItem("shop.next").build());
