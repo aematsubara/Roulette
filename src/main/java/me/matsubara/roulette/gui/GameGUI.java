@@ -91,14 +91,14 @@ public final class GameGUI implements RouletteGUI {
         inventory.setItem(11, plugin.getItem("game-menu.min-amount").setAmount(minAmount).build());
         inventory.setItem(12, plugin.getItem("game-menu.max-amount").setAmount(maxAmount).build());
 
-        inventory.setItem(13, createStartTimeItem());
+        setStartTimeItem();
 
         // Rules.
         inventory.setItem(14, createRuleItem(GameRule.LA_PARTAGE));
         inventory.setItem(15, createRuleItem(GameRule.EN_PRISON));
         inventory.setItem(16, createRuleItem(GameRule.SURRENDER));
 
-        inventory.setItem(8, createBetAllItem());
+        setBetAllItem();
 
         List<Winner.WinnerData> winners = new ArrayList<>();
 
@@ -142,19 +142,19 @@ public final class GameGUI implements RouletteGUI {
         inventory.setItem(26, plugin.getItem("game-menu.close").build());
     }
 
-    public ItemStack createBetAllItem() {
+    public void setBetAllItem() {
         String state = game.isBetAllEnabled() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
-        return plugin.getItem("game-menu.bet-all")
+        inventory.setItem(8, plugin.getItem("game-menu.bet-all")
                 .replace("%state%", state)
-                .build();
+                .build());
     }
 
-    public ItemStack createStartTimeItem() {
+    public void setStartTimeItem() {
         int time = game.getStartTime();
-        return plugin.getItem("game-menu.start-time")
+        inventory.setItem(13, plugin.getItem("game-menu.start-time")
                 .replace("%seconds%", time)
                 .setAmount(time)
-                .build();
+                .build());
     }
 
     public ItemStack createRuleItem(@NotNull GameRule rule) {

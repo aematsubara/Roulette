@@ -57,7 +57,7 @@
 # Sounds: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
 
 # Don't touch this!
-config-version: 3
+config-version: 4
 
 # The render distance for the models. Default: 96.
 render-distance: 96
@@ -67,7 +67,7 @@ render-distance: 96
 swap-chair: true
 
 # Whether to instantly explode the fireworks.
-instant-explode: true
+instant-explode: false
 
 # Whether to fix the camera when changing chairs so the player looks forward.
 fix-chair-camera: false
@@ -93,6 +93,32 @@ money-abbreviation-format:
     B: 1_000_000_000
     T: 1_000_000_000_000
     Q: 1_000_000_000_000_000
+
+# Texts that are used in some variables.
+variable-text:
+  # All variants of parrots.
+  parrot-variant:
+    red: "&cRed"
+    blue: "&9Blue"
+    green: "&aGreen"
+    cyan: "&bCyan"
+    gray: "&8Gray"
+  # The shoulder on which a parrot can sit.
+  parrot-shoulder:
+    left: "Left"
+    right: "Right"
+  # The name of the %type% variable depending on the type of the game for the join hologram.
+  types:
+    european: "&a(European)"
+    american: "&a(American)"
+  # The state text using in some variables.
+  state:
+    enabled: "&aEnabled"
+    disabled: "&cDisabled"
+  # Text added to the surrender rule item if the table being edited isn't american.
+  only-american: "&c(Only for american)"
+  # Text added to the croupier settings item when has no name.
+  unnamed-croupier: "&cUnnamed"
 
 croupier-ball:
   # The material that'll be used as a ball by the croupier.
@@ -194,11 +220,6 @@ slots:
     red: "&c&lRed"
     black: "&0&lBlack"
 
-# The name of the %type% variable depending on the type of the game for the join hologram.
-types:
-  european: "&a(European)"
-  american: "&a(American)"
-
 confirmation-gui:
   # The title of the confirmation GUI.
   title: "Are you sure?"
@@ -237,11 +258,6 @@ not-enough-money:
   material: BARRIER
   display-name: "&c¡NOT ENOUGH MONEY!"
   lore: []
-
-# The state text using in some variables.
-state:
-  enabled: "&aenabled"
-  disabled: "&cdisabled"
 
 # Here you can modify each item within the inventory of the game editor, accessible by right-clicking an NPC.
 # %name% - the name of the game. (@title)
@@ -382,12 +398,25 @@ croupier-menu:
       - "&7Toggle parrot visibility."
       - "&7"
       - "&6Click to enable/disable."
-
-# Text added to the surrender rule item if the table being edited isn't american.
-only-american: "&c(Only for american)"
-
-# Text added to the croupier settings item when has no name.
-unnamed-croupier: "&cUnnamed"
+  parrot-sounds:
+    material: BELL
+    display-name: "&eParrot sounds: %state%"
+    lore:
+      - "&7Toggle parrot sounds."
+      - "&7"
+      - "&6Click to enable/disable."
+  parrot-variant:
+    display-name: "&eParrot variant: %variant%"
+    lore:
+      - "&7Change parrot variant."
+      - "&7"
+      - "&6Click to change."
+  parrot-shoulder:
+    display-name: "&eParrot shoulder: &a%shoulder%"
+    lore:
+      - "&7Alternate parrot shoulder."
+      - "&7"
+      - "&6Click to alternate."
 
 # Here you can modify each item within the inventory of chips.
 # You can't change the material of @chip, as this will use a head with the chip skin, defined in @chips.yml.

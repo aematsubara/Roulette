@@ -58,7 +58,7 @@ public final class Model {
     // The pattern of the decoration.
     private final String[] decoPattern;
 
-    // Configuration from model file.
+    // Configuration from a model file.
     private FileConfiguration configuration;
 
     // All patterns.
@@ -231,7 +231,7 @@ public final class Model {
 
             Vector offset = new Vector(xOffset, yOffset, zOffset);
 
-            // Pitch isn't needed.
+            // Pitch isn't necessary.
             float yaw = (float) configuration.getDouble(defaultPath + "offset.yaw");
 
             Location location = this.location.clone().add(PluginUtils.offsetVector(offset, this.location.getYaw(), this.location.getPitch()));

@@ -237,6 +237,16 @@ public final class RoulettePlugin extends JavaPlugin {
                                     temp.set("confirmation-gui", null);
                                 },
                                 3)
+                        .addChange(
+                                temp -> temp.getInt("config-version") == 3,
+                                temp -> {
+                                    // These were moved to @{variable-text}.
+                                    temp.set("types", null);
+                                    temp.set("state", null);
+                                    temp.set("only-american", null);
+                                    temp.set("unnamed-croupier", null);
+                                },
+                                4)
                         .build());
 
         ConfigFileUtils.updateConfig(

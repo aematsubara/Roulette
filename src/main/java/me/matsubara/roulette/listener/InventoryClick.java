@@ -11,9 +11,11 @@ import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.runnable.MoneyAnimation;
+import me.matsubara.roulette.util.ParrotUtils;
 import me.matsubara.roulette.util.PluginUtils;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -27,6 +29,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public final class InventoryClick implements Listener {
 
@@ -95,21 +98,24 @@ public final class InventoryClick implements Listener {
         }
     }
 
-    private void handleCroupierGUI(@NotNull InventoryClickEvent event, @NotNull CroupierGUI croupier) {
+    private void handleCroupierGUI(@NotNull InventoryClickEvent event, @NotNull CroupierGUI gui) {
         Player player = (Player) event.getWhoClicked();
         MessageManager messages = plugin.getMessageManager();
 
         ItemStack current = event.getCurrentItem();
         if (current == null) return;
 
-        Game game = croupier.getGame();
+        Game game = gui.getGame();
+
+        ClickType click = event.getClick();
+        boolean left = click.isLeftClick(), right = click.isRightClick();
 
         if (isCustomItem(current, "croupier-name")) {
-            if (event.getClick() == ClickType.LEFT) {
+            if (left) {
                 // Change name.
                 plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_NAME, game);
                 messages.send(player, MessageManager.Message.NPC_NAME);
-            } else if (event.getClick() == ClickType.RIGHT) {
+            } else if (right) {
                 // Reset name.
                 String npcName = game.getNPCName();
                 if (npcName != null && !npcName.isEmpty() && !npcName.equals(ConfigManager.Config.UNNAMED_CROUPIER.asString())) {
@@ -121,11 +127,11 @@ public final class InventoryClick implements Listener {
                 }
             }
         } else if (isCustomItem(current, "croupier-texture")) {
-            if (event.getClick() == ClickType.LEFT) {
+            if (left) {
                 // Change texture.
                 plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_TEXTURE, game);
                 messages.send(player, MessageManager.Message.NPC_TEXTURE);
-            } else if (event.getClick() == ClickType.RIGHT) {
+            } else if (right) {
                 // Reset texture.
                 if (game.hasNPCTexture()) {
                     messages.send(player, MessageManager.Message.NPC_TEXTURIZED);
@@ -136,16 +142,75 @@ public final class InventoryClick implements Listener {
                 }
             }
         } else if (isCustomItem(current, "parrot")) {
-            setParrot(event, game, croupier);
+            handleGameChange(
+                    gui,
+                    temp -> temp.setParrotEnabled(!temp.isParrotEnabled()),
+                    CroupierGUI::setParrotItem,
+                    true);
+            return;
+        } else if (isCustomItem(current, "parrot-sounds")) {
+            handleGameChange(
+                    gui,
+                    temp -> temp.setParrotSounds(!temp.isParrotSounds()),
+                    CroupierGUI::setParrotSoundsItem,
+                    false);
+            return;
+        } else if (isCustomItem(current, "parrot-variant")) {
+            handleGameChange(
+                    gui,
+                    temp -> temp.setParrotVariant(getNextOrPrevious(temp.getParrotVariant(), right)),
+                    CroupierGUI::setParrotVariantItem,
+                    true);
+            return;
+        } else if (isCustomItem(current, "parrot-shoulder")) {
+            handleGameChange(
+                    gui,
+                    temp -> temp.setParrotShoulder(getNextOrPrevious(temp.getParrotShoulder(), right)),
+                    CroupierGUI::setParrotShoulderItem,
+                    true);
 
+            // Send another metadata packet but for the other shoulder.
             NPC npc = game.getNpc();
             MetadataModifier metadata = npc.metadata();
-            npc.toggleParrotVisibility(player, metadata);
+            metadata.queue(game.getParrotShoulder().isLeft() ?
+                    MetadataModifier.EntityMetadata.SHOULDER_ENTITY_RIGHT :
+                    MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT, ParrotUtils.EMPTY_NBT);
             metadata.send(player.getWorld().getPlayers());
             return;
         } else return;
 
         closeInventory(player);
+    }
+
+    private <T extends RouletteGUI> void handleGameChange(
+            @NotNull T gui,
+            @NotNull Consumer<Game> gameChange,
+            @NotNull Consumer<T> guiChange,
+            boolean refreshParrot) {
+        Game game = gui.getGame();
+        gameChange.accept(game);
+
+        guiChange.accept(gui);
+        plugin.getGameManager().save(game);
+
+        if (refreshParrot) {
+            World world = game.getNpc().getLocation().getWorld();
+            refreshParrotChange(game, world);
+        }
+    }
+
+    private void refreshParrotChange(@NotNull Game game, World world) {
+        NPC npc = game.getNpc();
+        MetadataModifier metadata = npc.metadata();
+        npc.toggleParrotVisibility(world, metadata);
+        metadata.send(world.getPlayers());
+    }
+
+    private <E extends Enum<E>> E getNextOrPrevious(@NotNull E current, boolean next) {
+        E[] values = current.getDeclaringClass().getEnumConstants();
+        int index = current.ordinal(), length = values.length;
+
+        return next ? values[(index + 1) % length] : values[(index - 1 + length) % length];
     }
 
     private void handleConfirmGUI(@NotNull InventoryClickEvent event, ConfirmGUI confirm) {
@@ -302,7 +367,11 @@ public final class InventoryClick implements Listener {
         } else if (isCustomItem(current, "start-time")) {
             setStartTime(event, game, gui);
         } else if (isCustomItem(current, "bet-all")) {
-            setBetAll(event, game, gui);
+            handleGameChange(
+                    gui,
+                    temp -> temp.setBetAllEnabled(!temp.isBetAllEnabled()),
+                    GameGUI::setBetAllItem,
+                    false);
         } else if (isCustomItem(current, "close")) {
             closeInventory(player);
         } else if (isCustomItem(current, "croupier-settings")) {
@@ -412,7 +481,7 @@ public final class InventoryClick implements Listener {
 
         ItemStack current = event.getCurrentItem();
         if (current != null && current.getAmount() != game.getStartTime()) {
-            event.setCurrentItem(gui.createStartTimeItem());
+            gui.setStartTimeItem();
         }
 
         // Save data.
@@ -443,17 +512,5 @@ public final class InventoryClick implements Listener {
         MoneyAnimation anim = new MoneyAnimation(game);
         anim.runTaskTimer(plugin, 1L, 1L);
         game.setMoneyAnimation(anim);
-    }
-
-    private void setBetAll(@NotNull InventoryClickEvent event, @NotNull Game game, @NotNull GameGUI gui) {
-        game.setBetAllEnabled(!game.isBetAllEnabled());
-        event.setCurrentItem(gui.createBetAllItem());
-        plugin.getGameManager().save(game);
-    }
-
-    private void setParrot(@NotNull InventoryClickEvent event, @NotNull Game game, @NotNull CroupierGUI gui) {
-        game.setParrotEnabled(!game.isParrotEnabled());
-        event.setCurrentItem(gui.createParrotItem(plugin));
-        plugin.getGameManager().save(game);
     }
 }

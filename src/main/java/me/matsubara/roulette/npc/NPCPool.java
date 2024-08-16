@@ -1,6 +1,7 @@
 package me.matsubara.roulette.npc;
 
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.util.ParrotUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -38,7 +39,10 @@ public class NPCPool implements Listener {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (NPC npc : npcMap.values()) {
                 ThreadLocalRandom random = ThreadLocalRandom.current();
-                boolean playParrotSound = npc.getGame().isParrotEnabled() && random.nextInt(5) == 0;
+                Game game = npc.getGame();
+                boolean playParrotSound = game.isParrotEnabled()
+                        && game.isParrotSounds()
+                        && random.nextInt(4) == 0;
 
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     Location npcLocation = npc.getLocation();

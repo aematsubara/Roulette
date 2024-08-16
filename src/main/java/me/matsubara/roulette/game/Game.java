@@ -117,9 +117,10 @@ public final class Game {
 
     // Parrot data.
     private boolean parrotEnabled;
+    private boolean parrotSounds;
     private Parrot.Variant parrotVariant;
     private ParrotUtils.ParrotShoulder parrotShoulder;
-    private Object nmsParrot;
+    private Object parrotNBT;
 
     // Tasks.
     private BukkitTask startingTask;
@@ -163,6 +164,7 @@ public final class Game {
             @Nullable UUID accountGiveTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
             boolean parrotEnabled,
+            boolean parrotSounds,
             @Nullable Parrot.Variant parrotVariant,
             @Nullable ParrotUtils.ParrotShoulder parrotShoulder) {
         this.plugin = plugin;
@@ -172,6 +174,7 @@ public final class Game {
 
         // Initialize parrot data before spawning NPC.
         this.parrotEnabled = parrotEnabled;
+        this.parrotSounds = parrotSounds;
         this.parrotVariant = parrotVariant != null ? parrotVariant : PluginUtils.getRandomFromEnum(Parrot.Variant.class);
         this.parrotShoulder = parrotShoulder != null ? parrotShoulder : PluginUtils.getRandomFromEnum(ParrotUtils.ParrotShoulder.class);
 
@@ -269,7 +272,7 @@ public final class Game {
         });
     }
 
-    public @NotNull Location getNPCLocation() {
+    private @NotNull Location generateNPCLocation() {
         Location location = getLocation().clone();
         location.add(PluginUtils.offsetVector(new Vector(-3, 0, 1), location.getYaw(), location.getPitch()));
         return location.setDirection(PluginUtils.getDirection(PluginUtils.getFace(location.getYaw(), false).getOppositeFace()));
@@ -337,7 +340,7 @@ public final class Game {
         TextureProperty textures = isCustomNPCTexture(texture, signature) ? new TextureProperty("textures", texture, signature) : ADAM_TEXTURES;
         profile.setTextureProperties(List.of(textures));
 
-        Location npcLocation = getNPCLocation();
+        Location npcLocation = generateNPCLocation();
 
         npc = NPC.builder()
                 .profile(profile)
@@ -807,7 +810,11 @@ public final class Game {
 
         long period = plugin.getConfigManager().getPeriod();
         new BukkitRunnable() {
-            int amount = 0;
+
+            private int amount = 0;
+            private final Location fireworkLocation = joinHologram.getLocation()
+                    .clone()
+                    .add(0.0d, 3.0d, 0.0d);
 
             @Override
             public void run() {
@@ -815,7 +822,8 @@ public final class Game {
                     restart();
                     cancel();
                 }
-                spawnFirework(joinHologram.getLocation().clone().add(0.0d, 3.5d, 0.0d));
+
+                spawnFirework(fireworkLocation);
                 amount++;
             }
         }.runTaskTimer(plugin, period, period);
@@ -911,11 +919,19 @@ public final class Game {
     }
 
     private void spawnFirework(@NotNull Location location) {
-        Preconditions.checkNotNull(location.getWorld());
+        World world = location.getWorld();
+        Preconditions.checkNotNull(world);
+
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
-        Firework firework = location.getWorld().spawn(
-                location.clone().subtract(0.0d, 0.5d, 0.0d),
+        // We want the fireworks to have the same yaw as the NPC,
+        // so firework effects like creeper have the right rotation.
+        Location npcLocation = npc.getLocation();
+        location.setYaw(npcLocation.getYaw());
+        location.setPitch(npcLocation.getPitch());
+
+        Firework firework = world.spawn(
+                location,
                 Firework.class,
                 temp -> LISTEN_MODE_IGNORE.accept(plugin, temp));
         FireworkMeta meta = firework.getFireworkMeta();
@@ -925,8 +941,8 @@ public final class Game {
         FireworkEffect.Builder builder = FireworkEffect.builder()
                 .flicker(true)
                 .trail(true)
-                .withColor(PluginUtils.COLORS[random.nextInt(PluginUtils.COLORS.length)])
-                .withFade(PluginUtils.COLORS[random.nextInt(PluginUtils.COLORS.length)]);
+                .withColor(PluginUtils.getRandomColor())
+                .withFade(PluginUtils.getRandomColor());
 
         FireworkEffect.Type[] types = FireworkEffect.Type.values();
         builder.with(types[random.nextInt(types.length)]);

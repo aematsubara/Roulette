@@ -79,7 +79,7 @@ public final class GameManager implements Listener {
     }
 
     public void addFreshGame(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, false, null, null, null, null, null, null);
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, false, false, null, null, null, null, null, null);
     }
 
     public void add(
@@ -98,6 +98,7 @@ public final class GameManager implements Listener {
             @Nullable UUID accountTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
             boolean parrotEnabled,
+            boolean parrotSounds,
             @Nullable Parrot.Variant parrotVariant,
             @Nullable ParrotUtils.ParrotShoulder parrotShoulder,
             @Nullable Material carpetsType,
@@ -120,6 +121,7 @@ public final class GameManager implements Listener {
                 accountTo,
                 rules,
                 parrotEnabled,
+                parrotSounds,
                 parrotVariant,
                 parrotShoulder);
 
@@ -165,6 +167,7 @@ public final class GameManager implements Listener {
         // Save NPC related data.
         configuration.set("games." + name + ".npc.name", game.getNPCName());
         configuration.set("games." + name + ".npc.parrot.enabled", game.isParrotEnabled());
+        configuration.set("games." + name + ".npc.parrot.sounds", game.isParrotSounds());
         configuration.set("games." + name + ".npc.parrot.variant", game.getParrotVariant().name());
         configuration.set("games." + name + ".npc.parrot.shoulder", game.getParrotShoulder().name());
         if (game.hasNPCTexture()) {
@@ -241,6 +244,7 @@ public final class GameManager implements Listener {
             UUID accountTo = accountToString != null ? UUID.fromString(accountToString) : null;
 
             boolean parrotEnabled = configuration.getBoolean("games." + path + ".npc.parrot.enabled", false);
+            boolean parrotSounds = configuration.getBoolean("games." + path + ".npc.parrot.sounds", false);
             Parrot.Variant parrotVariant = PluginUtils.getOrNull(Parrot.Variant.class, configuration.getString("games." + path + ".npc.parrot.variant", ""));
             ParrotUtils.ParrotShoulder parrotShoulder = PluginUtils.getOrNull(ParrotUtils.ParrotShoulder.class, configuration.getString("games." + path + ".npc.parrot.shoulder", ""));
 
@@ -259,6 +263,7 @@ public final class GameManager implements Listener {
                     accountTo,
                     rules,
                     parrotEnabled,
+                    parrotSounds,
                     parrotVariant,
                     parrotShoulder,
                     carpets,
