@@ -10,6 +10,9 @@ import lombok.Getter;
 import me.matsubara.roulette.command.MainCommand;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
+import me.matsubara.roulette.game.data.Bet;
+import me.matsubara.roulette.game.data.Slot;
+import me.matsubara.roulette.game.data.WinData;
 import me.matsubara.roulette.hook.EssXExtension;
 import me.matsubara.roulette.hook.PAPIExtension;
 import me.matsubara.roulette.listener.EntityDamageByEntity;
@@ -20,14 +23,16 @@ import me.matsubara.roulette.listener.npc.PlayerNPCInteract;
 import me.matsubara.roulette.listener.protocol.SteerVehicle;
 import me.matsubara.roulette.listener.protocol.UseEntity;
 import me.matsubara.roulette.manager.*;
+import me.matsubara.roulette.manager.data.DataManager;
+import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.npc.NPCPool;
 import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
-import me.matsubara.roulette.util.config.ConfigChanges;
 import me.matsubara.roulette.util.config.ConfigFileUtils;
 import net.milkbowl.vault.economy.Economy;
-import org.apache.commons.lang3.RandomUtils;
+import net.milkbowl.vault.economy.EconomyResponse;
+import org.apache.commons.lang3.StringUtils;
 import org.bukkit.*;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
@@ -60,6 +65,7 @@ public final class RoulettePlugin extends JavaPlugin {
     private InputManager inputManager;
     private MessageManager messageManager;
     private StandManager standManager;
+    private DataManager dataManager;
     private WinnerManager winnerManager;
 
     // NPC Pool.
@@ -79,11 +85,24 @@ public final class RoulettePlugin extends JavaPlugin {
     private GlowingEntities glowingEntities;
 
     private static final Set<String> SPECIAL_SECTIONS = Sets.newHashSet("custom-win-multiplier.slots", "money-abbreviation-format.translations", "not-enough-money");
-    private static final List<String> GUI_TYPES = List.of("game-menu", "shop", "confirmation-gui");
+    private static final List<String> GUI_TYPES = List.of(
+            "confirmation-menu",
+            "game-menu",
+            "croupier-menu",
+            "chip-menu",
+            "game-chip-menu",
+            "bets-menu",
+            "sessions-menu",
+            "session-result-menu",
+            "table-menu");
 
     public NamespacedKey itemIdKey = new NamespacedKey(this, "ItemID");
     public NamespacedKey chipNameKey = new NamespacedKey(this, "ChipName");
+    public NamespacedKey betIndexKey = new NamespacedKey(this, "BetIndex");
     public NamespacedKey rouletteRuleKey = new NamespacedKey(this, "RouletteRule");
+    public NamespacedKey customizationGroupIdKey = new NamespacedKey(this, "CustomizationGroupID");
+    public NamespacedKey sessionKey = new NamespacedKey(this, "Session");
+    public NamespacedKey playerResultIndexKey = new NamespacedKey(this, "PlayerResultIndex");
 
     @Override
     public void onLoad() {
@@ -117,6 +136,21 @@ public final class RoulettePlugin extends JavaPlugin {
             getLogger().severe("You need to install an economy provider (like EssentialsX, CMI, etc...) to be able to use this plugin, disabling...");
             pluginManager.disablePlugin(this);
             return;
+        }
+
+        // If the old winners.yml file exists, then we want to rename the plugin folder to "Roulette_old"
+        // since we want to have a fresh plugin folder.
+        if (new File(getDataFolder(), "winners.yml").exists()) {
+            File folder = new File(getDataFolder().getPath());
+            File old = new File(folder.getParent(), "Roulette_old");
+            if (folder.renameTo(old)) {
+                getLogger().warning("Files from the old version of Roulette have been detected, moving them to " + old.getPath());
+            } else {
+                getLogger().severe("Files from the old version of Roulette have been detected but they can't be removed, " +
+                        "you'll have to stop the server and remove them manually.");
+                pluginManager.disablePlugin(this);
+                return;
+            }
         }
 
         // Register protocol events.
@@ -163,8 +197,12 @@ public final class RoulettePlugin extends JavaPlugin {
         saveDefaultConfig();
         updateConfigs();
 
+        // Save dab animation.
+        saveFile("dab_animation.txt");
+
         // AFTER updating configs.
         gameManager = new GameManager(this);
+        dataManager = new DataManager(this);
         winnerManager = new WinnerManager(this);
 
         try {
@@ -177,12 +215,58 @@ public final class RoulettePlugin extends JavaPlugin {
         reloadAbbreviations();
     }
 
+    public @NotNull File saveFile(@SuppressWarnings("SameParameterValue") String name) {
+        File file = new File(getDataFolder(), name);
+        if (!file.exists()) saveResource(name, false);
+        return file;
+    }
+
     @Override
     public void onDisable() {
         PacketEvents.getAPI().terminate();
 
-        // If disabling on startup, prevent errors in console and remove games.
+        // If disabling on startup, prevent errors in console.
         if (gameManager != null) gameManager.getGames().forEach(Game::remove);
+    }
+
+    public boolean deposit(OfflinePlayer player, double money) {
+        EconomyResponse response = economy.depositPlayer(player, money);
+        if (response.transactionSuccess()) return true;
+
+        getLogger().warning(String.format("It wasn't possible to deposit $%s to %s.", money, player.getName()));
+        return false;
+    }
+
+    public boolean withdrawFailed(OfflinePlayer player, double money) {
+        EconomyResponse response = economy.withdrawPlayer(player, money);
+        if (response.transactionSuccess()) return false;
+
+        getLogger().warning(String.format("It wasn't possible to withdraw $%s to %s.", money, player.getName()));
+        return true;
+    }
+
+    public double getExpectedMoney(@NotNull Bet bet) {
+        return getExpectedMoney(bet.getChip().price(), bet.getSlot(), bet.getWinData().winType());
+    }
+
+    public double getExpectedMoney(@NotNull PlayerResult result) {
+        return getExpectedMoney(result.money(), result.slot(), result.win());
+    }
+
+    public double getExpectedMoney(double price, Slot slot, @Nullable WinData.WinType winType) {
+        if (winType == null) return price;
+
+        double money;
+        if (winType.isNormalWin()) {
+            money = price * slot.getMultiplier(this);
+        } else if (winType.isLaPartageWin() || winType.isSurrenderWin()) {
+            // Half-money if is partage.
+            money = price / 2;
+        } else {
+            // Original money.
+            money = price;
+        }
+        return money;
     }
 
     private void fillIgnoredSections(FileConfiguration config) {
@@ -209,45 +293,7 @@ public final class RoulettePlugin extends JavaPlugin {
                     fillIgnoredSections(config);
                     return SPECIAL_SECTIONS.stream().filter(config::contains).toList();
                 },
-                ConfigChanges.builder()
-                        // Update translations (vX.X{0} -> v1.9.6{1}).
-                        .addChange(
-                                temp -> !temp.contains("config-version"),
-                                temp -> temp.set("money-abbreviation-format.translations", null),
-                                1)
-                        // Move sounds & types to multiline format (vX.X{1} -> v2.0{2}).
-                        .addChange(
-                                temp -> temp.getInt("config-version") == 1,
-                                temp -> {
-                                    // Sounds.
-                                    temp.set("sounds.click", temp.getString("sound.click", "BLOCK_NOTE_BLOCK_PLING"));
-                                    temp.set("sounds.countdown", temp.getString("sound.countdown", "ENTITY_EXPERIENCE_ORB_PICKUP"));
-                                    temp.set("sounds.spinning", temp.getString("sound.spinning", "BLOCK_METAL_PRESSURE_PLATE_CLICK_ON"));
-                                    temp.set("sounds.swap-chair", temp.getString("sound.swap-chair", "ENTITY_PLAYER_ATTACK_CRIT"));
-                                    temp.set("sounds.select", temp.getString("sound.select", "BLOCK_WOOL_PLACE"));
-                                    // Types.
-                                    temp.set("types.european", temp.getString("type.european", "&a(European)"));
-                                    temp.set("types.american", temp.getString("type.american", "&a(American)"));
-                                },
-                                2)
-                        .addChange(
-                                temp -> temp.getInt("config-version") == 2,
-                                temp -> {
-                                    // Changed to a GUI.
-                                    temp.set("confirmation-gui", null);
-                                },
-                                3)
-                        .addChange(
-                                temp -> temp.getInt("config-version") == 3,
-                                temp -> {
-                                    // These were moved to @{variable-text}.
-                                    temp.set("types", null);
-                                    temp.set("state", null);
-                                    temp.set("only-american", null);
-                                    temp.set("unnamed-croupier", null);
-                                },
-                                4)
-                        .build());
+                Collections.emptyList());
 
         ConfigFileUtils.updateConfig(
                 this,
@@ -411,7 +457,7 @@ public final class RoulettePlugin extends JavaPlugin {
             }
 
             if (!colors.isEmpty()) {
-                Color color = colors.get(RandomUtils.nextInt(0, colors.size()));
+                Color color = colors.get(PluginUtils.RANDOM.nextInt(0, colors.size()));
                 builder.setLeatherArmorMetaColor(color);
             }
         }
@@ -454,7 +500,7 @@ public final class RoulettePlugin extends JavaPlugin {
 
             int damage;
             if (damageString.equalsIgnoreCase("$RANDOM")) {
-                damage = RandomUtils.nextInt(1, maxDurability);
+                damage = PluginUtils.RANDOM.nextInt(1, maxDurability);
             } else if (damageString.contains("%")) {
                 damage = Math.round(maxDurability * ((float) PluginUtils.getRangedAmount(damageString.replace("%", "")) / 100));
             } else {
@@ -465,6 +511,18 @@ public final class RoulettePlugin extends JavaPlugin {
         }
 
         return builder;
+    }
+
+    public String formatWinType(WinData.@NotNull WinType winType) {
+        String shortName = winType.getShortName();
+        String defaultName = Optional.ofNullable(winType.getRule())
+                .map(Enum::name)
+                .orElse("none")
+                .replace("_", " ");
+
+        return getConfig().getString(
+                "variable-text.rules." + (shortName != null ? shortName : "none"),
+                StringUtils.capitalize(defaultName));
     }
 
     private @NotNull Set<Color> getFireworkColors(String path, String effect, String needed) {

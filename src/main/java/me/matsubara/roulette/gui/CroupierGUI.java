@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Getter
-public class CroupierGUI implements RouletteGUI {
+public class CroupierGUI extends RouletteGUI {
 
     // Instance of the plugin.
     private final RoulettePlugin plugin;
@@ -43,6 +43,7 @@ public class CroupierGUI implements RouletteGUI {
             ParrotUtils.ParrotShoulder.RIGHT, "865426a33df58b465f0601dd8b9bec3690b2193d1f9503c2caab78f6c2438");
 
     public CroupierGUI(@NotNull Game game, @NotNull Player player) {
+        super("croupier-menu");
         this.plugin = game.getPlugin();
         this.game = game;
 
@@ -54,11 +55,11 @@ public class CroupierGUI implements RouletteGUI {
                 27,
                 ConfigManager.Config.CROUPIER_MENU_TITLE.asString().replace("%croupier-name%", finalName));
 
-        inventory.setItem(10, plugin.getItem("croupier-menu.croupier-name")
+        inventory.setItem(10, getItem("croupier-name")
                 .replace("%croupier-name%", finalName)
                 .build());
 
-        ItemBuilder croupierTexture = plugin.getItem("croupier-menu.croupier-texture")
+        ItemBuilder croupierTexture = getItem("croupier-texture")
                 .setType(Material.PLAYER_HEAD);
 
         String url = game.getNpcTextureAsURL();
@@ -84,13 +85,13 @@ public class CroupierGUI implements RouletteGUI {
     }
 
     public void setParrotItem() {
-        inventory.setItem(13, plugin.getItem("croupier-menu.parrot")
+        inventory.setItem(13, getItem("parrot")
                 .replace("%state%", getState(Game::isParrotEnabled))
                 .build());
     }
 
     public void setParrotSoundsItem() {
-        inventory.setItem(15, plugin.getItem("croupier-menu.parrot-sounds")
+        inventory.setItem(15, getItem("parrot-sounds")
                 .replace("%state%", getState(Game::isParrotSounds))
                 .build());
     }
@@ -101,7 +102,7 @@ public class CroupierGUI implements RouletteGUI {
         String tempName = variant.name().toLowerCase();
         String variantName = plugin.getConfig().getString("variable-text.parrot-variant." + tempName, StringUtils.capitalize(tempName));
 
-        inventory.setItem(14, plugin.getItem("croupier-menu.parrot-variant")
+        inventory.setItem(14, getItem("parrot-variant")
                 .setType(Material.PLAYER_HEAD)
                 .setHead(PARROT_SKIN.get(variant), true)
                 .replace("%variant%", variantName)
@@ -114,14 +115,14 @@ public class CroupierGUI implements RouletteGUI {
         String tempName = shoulder.name().toLowerCase();
         String shoulderName = plugin.getConfig().getString("variable-text.parrot-shoulder." + tempName, StringUtils.capitalize(tempName));
 
-        inventory.setItem(16, plugin.getItem("croupier-menu.parrot-shoulder")
+        inventory.setItem(16, getItem("parrot-shoulder")
                 .setType(Material.PLAYER_HEAD)
                 .setHead(PARROT_SHOULDER.get(shoulder), true)
                 .replace("%shoulder%", shoulderName)
                 .build());
     }
 
-    private String getState(@NotNull Function<Game, Boolean> function) {
+    private @NotNull String getState(@NotNull Function<Game, Boolean> function) {
         return function.apply(game) ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
     }
 }

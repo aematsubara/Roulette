@@ -8,7 +8,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.yaml.snakeyaml.scanner.ScannerException;
+import org.yaml.snakeyaml.error.MarkedYAMLException;
 
 import java.io.File;
 import java.io.IOException;
@@ -100,10 +100,20 @@ public class ConfigFileUtils {
             Logger logger = plugin.getLogger();
 
             logger.severe("An error occurred while reloading the file {" + file.getName() + "}.");
-            if (backup != null
-                    && exception instanceof InvalidConfigurationException invalid
-                    && invalid.getCause() instanceof ScannerException scanner) {
-                handleScannerError(backup, scanner.getProblemMark().getLine());
+
+            boolean errorLogged = false;
+            if (backup != null && exception instanceof InvalidConfigurationException invalid) {
+                errorLogged = true;
+
+                Throwable cause = invalid.getCause();
+                if (cause instanceof MarkedYAMLException marked) {
+                    handleError(backup, marked.getProblemMark().getLine());
+                } else {
+                    errorLogged = false;
+                }
+            }
+
+            if (errorLogged) {
                 logger.severe("The file will be restarted and a copy of the old file will be saved indicating which line had an error.");
             } else {
                 logger.severe("The file will be restarted and a copy of the old file will be saved.");
@@ -114,7 +124,7 @@ public class ConfigFileUtils {
                 return null;
             }
 
-            // Only replace file if an exception ocurrs.
+            // Only replace the file if an exception ocurrs.
             FileUtils.deleteQuietly(file);
             error.accept(file);
 
@@ -122,12 +132,12 @@ public class ConfigFileUtils {
         }
     }
 
-    private static void handleScannerError(@NotNull File backup, int line) {
+    private static void handleError(@NotNull File backup, int line) {
         try {
             Path path = backup.toPath();
 
             List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-            lines.set(line, lines.get(line) + " <--------------------< ERROR <--------------------<");
+            lines.set(line, lines.get(line) + " # <--------------------< ERROR <--------------------<");
 
             Files.write(path, lines, StandardCharsets.UTF_8);
         } catch (IOException exception) {

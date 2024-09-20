@@ -45,7 +45,9 @@ public class VisibilityModifier extends NPCModifier {
                 return new WrapperPlayServerPlayerInfoUpdate(ADD_ACTIONS, info);
             } else {
                 WrapperPlayServerPlayerInfo.PlayerData info = new WrapperPlayServerPlayerInfo.PlayerData(null, profile, GameMode.CREATIVE, 20);
-                return new WrapperPlayServerPlayerInfo(WrapperPlayServerPlayerInfo.Action.ADD_PLAYER, info);
+                return new WrapperPlayServerPlayerInfo(remove ?
+                        WrapperPlayServerPlayerInfo.Action.REMOVE_PLAYER :
+                        WrapperPlayServerPlayerInfo.Action.ADD_PLAYER, info);
             }
         });
 

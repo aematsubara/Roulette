@@ -1,17 +1,20 @@
 package me.matsubara.roulette.manager;
 
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.animation.DabAnimation;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.model.stand.animator.ArmorStandAnimator;
+import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -25,14 +28,23 @@ public final class StandManager implements Listener {
         this.plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler
     public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
         Player player = event.getPlayer();
         handleStandRender(player, player.getLocation(), true);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler
+    public void onPlayerTeleport(@NotNull PlayerTeleportEvent event) {
+        handleMovement(event, true);
+    }
+
+    @EventHandler
     public void onPlayerMove(@NotNull PlayerMoveEvent event) {
+        handleMovement(event, false);
+    }
+
+    private void handleMovement(@NotNull PlayerMoveEvent event, boolean isSpawn) {
         Location to = event.getTo();
         if (to == null) return;
 
@@ -43,10 +55,10 @@ public final class StandManager implements Listener {
                 && to.getBlockZ() == from.getBlockZ()) return;
 
         Player player = event.getPlayer();
-        handleStandRender(player, to, false);
+        handleStandRender(player, to, isSpawn);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         handleStandRender(player, player.getLocation(), true);
@@ -59,14 +71,14 @@ public final class StandManager implements Listener {
             boolean shouldShow = true;
 
             for (PacketStand stand : game.getModel().getStands()) {
-                if (!stand.isInRange(location)) shouldShow = false;
+                if (!PluginUtils.isInRange(stand.getLocation(), location)) shouldShow = false;
             }
 
             // Show/hide model stands.
             handleStandRender(player, game.getModel().getStands(), shouldShow, isSpawn);
 
             // Show/hide holograms stands.
-            for (Bet bet : game.getPlayers().values()) {
+            for (Bet bet : game.getAllBets()) {
 
                 // Show/hide chip stand.
                 if (bet.hasStand()) {
@@ -88,6 +100,14 @@ public final class StandManager implements Listener {
             if (game.isPlaying(player)) {
                 handleStandRender(player, game.getSpinHologram().getStands(), shouldShow, isSpawn);
             }
+
+            // Show/hide dab animation stands.
+            DabAnimation animation = game.getDabAnimation();
+            if (animation != null) {
+                for (ArmorStandAnimator animator : animation.getAnimators().keySet()) {
+                    handleStandRender(player, animator.getStand(), shouldShow, isSpawn);
+                }
+            }
         }
     }
 
@@ -101,7 +121,7 @@ public final class StandManager implements Listener {
         if (shouldShow) {
             boolean temp = true;
             if ((stand.isIgnored(player) && (temp = stand.getIgnored().get(player.getUniqueId()) != PacketStand.IgnoreReason.HOLOGRAM)) || (isSpawn && temp)) {
-                stand.spawn(player);
+                stand.spawn(player, true);
             }
         } else {
             if (!stand.isIgnored(player)) stand.destroy(player);

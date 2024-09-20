@@ -1,10 +1,16 @@
 package me.matsubara.roulette.util.map;
 
+import com.cryptomorin.xseries.reflection.XReflection;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.util.ItemBuilder;
+import me.matsubara.roulette.manager.data.PlayerResult;
+import me.matsubara.roulette.manager.data.RouletteSession;
+import me.matsubara.roulette.util.PluginUtils;
+import net.md_5.bungee.api.ChatColor;
+import org.apache.commons.lang3.function.TriFunction;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -16,30 +22,56 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
+import java.text.Normalizer;
+import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Getter
 @Setter
 public final class MapBuilder extends MapRenderer {
 
     private final RoulettePlugin plugin;
-    private final Graphics2D dummyGraphics = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB).createGraphics();
-    private final Font font = new Font("", Font.PLAIN, 12);
+    private final UUID playerUUID;
+    private final RouletteSession session;
+    private final List<Text> texts = new ArrayList<>();
+    private final @SuppressWarnings("deprecation") Color color = MapPalette.getColor(MapPalette.DARK_GRAY); // Default color.
+    private final MapFont font = MinecraftFont.Font;
 
     private MapView view;
     private BufferedImage image;
     private ItemStack item;
-
-    private final List<Text> texts = new ArrayList<>();
-
     private boolean rendered;
-    private boolean built;
 
-    private static final int MIDDLE_Y = (128 - 8) / 2;
+    private static final Pattern ACCENT_PATTERN = Pattern.compile("\\p{M}");
+    public static TriFunction<RoulettePlugin, PlayerResult, String, String> MAP_REPLACER = new TriFunction<>() {
+        @Override
+        public @NotNull String apply(@NotNull RoulettePlugin plugin, @NotNull PlayerResult result, @NotNull String string) {
+            RouletteSession session = result.session();
+            if (session == null) return string;
 
-    public MapBuilder(RoulettePlugin plugin) {
+            String playerName = Objects.requireNonNullElse(Bukkit.getOfflinePlayer(result.playerUUID()).getName(), "???");
+            String moneyFormatted = PluginUtils.format(plugin.getExpectedMoney(result));
+            String originalFormatted = PluginUtils.format(result.money());
+            String date = new SimpleDateFormat(ConfigManager.Config.DATE_FORMAT.asString()).format(new Date(session.timestamp()));
+            String selected = PluginUtils.getSlotName(result.slot());
+            String winner = PluginUtils.getSlotName(session.slot());
+            return string.replace("%player%", playerName)
+                    .replace("%money%", moneyFormatted)
+                    .replace("%original-money%", originalFormatted)
+                    .replace("%date%", date)
+                    .replace("%selected-slot%", org.bukkit.ChatColor.stripColor(selected))
+                    .replace("%winner-slot%", org.bukkit.ChatColor.stripColor(winner))
+                    .replace("%table%", session.name());
+        }
+    };
+
+    public MapBuilder(RoulettePlugin plugin, UUID playerUUID, RouletteSession session) {
         this.plugin = plugin;
+        this.playerUUID = playerUUID;
+        this.session = session;
     }
 
     public void setImage(@NotNull BufferedImage image, boolean resize) {
@@ -51,8 +83,8 @@ public final class MapBuilder extends MapRenderer {
         }
     }
 
-    public void addText(int x, int y, @NotNull MapFont font, @NotNull String text) {
-        texts.add(new Text(x, y, font, text));
+    public void addText(int x, int y, @NotNull String text) {
+        texts.add(new Text(x, y, text));
     }
 
     @Override
@@ -60,82 +92,98 @@ public final class MapBuilder extends MapRenderer {
         if (rendered) return;
 
         if (image != null) {
-            drawImage(image, 0, 0, canvas);
+            canvas.drawImage(0, 0, image);
         }
 
         // Write text centered.
-        texts.forEach(text -> drawText(text.getMessage(), -1, text.getY(), canvas));
+        for (Text text : texts) {
+            try {
+                drawText(canvas, text.x(), text.y(), removeAccents(text.message()));
+            } catch (IllegalArgumentException exception) {
+                // Invalid characters or colors.
+            }
+        }
 
         rendered = true;
     }
 
-    @SuppressWarnings("deprecation")
-    private void drawText(String message, int x, int y, MapCanvas canvas) {
-        image = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
-
-        Graphics2D graphics = image.createGraphics();
-        graphics.setFont(font);
-        graphics.setColor(MapPalette.getColor(MapPalette.DARK_GRAY));
-
-        x = x == -1 ? (int) ((128 - getStringWidth(message)) / 2) : x;
-        y = y == -1 ? MIDDLE_Y : y;
-
-        // We need to add an offset because the coords were tracked with the default minecraft font.
-        graphics.drawString(message, x, y + 7);
-        graphics.dispose();
-
-        drawImage(image, 0, 0, canvas);
-    }
-
-    private double getStringWidth(String string) {
-        dummyGraphics.setFont(font);
-        return dummyGraphics.getFontMetrics().getStringBounds(string, dummyGraphics).getWidth();
+    private String removeAccents(String input) {
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        return ACCENT_PATTERN.matcher(normalized).replaceAll("");
     }
 
     @SuppressWarnings("deprecation")
-    private void drawImage(@NotNull BufferedImage image, int x, int y, MapCanvas canvas) {
-        int width = image.getWidth();
-        int height = image.getHeight();
+    public void drawText(MapCanvas canvas, int x, int y, @NotNull String text) {
+        Map<Pair<Integer, Integer>, Color> colorMap = new LinkedHashMap<>();
 
-        int[] pixels = new int[width * height];
-        image.getRGB(0, 0, width, height, pixels, 0, width);
-
-        Byte[] bytes = new Byte[width * height];
-        for (int i = 0; i < pixels.length; i++) {
-            bytes[i] = (pixels[i] >> 24) == 0x00 ? null : MapPalette.matchColor(new Color(pixels[i], true));
+        Matcher matcher = PluginUtils.PATTERN.matcher(text);
+        StringBuilder buffer = new StringBuilder();
+        while (matcher.find()) {
+            int start = matcher.start(), end = matcher.end();
+            colorMap.put(Pair.of(start, end), ChatColor.of(matcher.group(1)).getColor());
+            matcher.appendReplacement(buffer, ""); // Remove pattern.
         }
 
-        int tX = x == -1 ? ((128 - width) / 2) : x;
-        int tY = y == -1 ? ((128 - height) / 2) : y;
+        // Try to center.
+        String temp = matcher.appendTail(buffer).toString();
+        if (x == -1) x = (128 - font.getWidth(temp)) / 2;
 
-        for (int xx = 0; xx < this.image.getWidth(); xx++) {
-            for (int yy = 0; yy < this.image.getHeight(); yy++) {
-                Byte color = bytes[yy * this.image.getWidth() + xx];
-                if (color != null) canvas.setPixel(tX + xx, tY + yy, color);
+        for (int i = 0; i < text.length(); i++) {
+            MapFont.CharacterSprite sprite = font.getChar(text.charAt(i));
+            if (sprite == null) continue;
+
+            // Don't draw color characters.
+            Map.Entry<Pair<Integer, Integer>, Color> colorEntry = getColor(colorMap, i);
+            if (colorEntry != null) {
+                Pair<Integer, Integer> coords = colorEntry.getKey();
+                Integer start = coords.getKey(), end = coords.getValue();
+                if (i >= start && i < end) continue;
             }
+
+            // Get color or use default.
+            Color color = colorEntry != null ? colorEntry.getValue() : this.color;
+            byte byteColor = MapPalette.matchColor(color);
+
+            for (int h = 0; h < font.getHeight(); h++) {
+                for (int w = 0; w < sprite.getWidth(); w++) {
+                    if (!sprite.get(h, w)) continue;
+
+                    int targetX = x + w;
+                    int targetY = y + h;
+
+                    if (XReflection.supports(19)) {
+                        canvas.setPixelColor(targetX, targetY, color);
+                    } else {
+                        canvas.setPixel(targetX, targetY, byteColor);
+                    }
+                }
+            }
+
+            x += sprite.getWidth() + 1;
         }
     }
 
-    public @Nullable ItemStack build(String playerName, String moneyFormatted, String originalFormatted, String date, String selected, String winner) {
-        if (built) return null;
+    private @Nullable Map.Entry<Pair<Integer, Integer>, Color> getColor(@NotNull Map<Pair<Integer, Integer>, Color> colorMap, int index) {
+        Map.Entry<Pair<Integer, Integer>, Color> color = null;
+        for (Map.Entry<Pair<Integer, Integer>, Color> entry : colorMap.entrySet()) {
+            Integer start = entry.getKey().getKey();
+            if (index >= start) color = entry;
+        }
+        return color;
+    }
+
+    public @Nullable ItemStack build() {
+        if (item != null) return item;
 
         view = Bukkit.createMap(Bukkit.getWorlds().get(0));
         view.setScale(Scale.NORMAL);
         view.getRenderers().forEach(view::removeRenderer);
         view.addRenderer(this);
 
-        built = (item = new ItemBuilder(Material.FILLED_MAP)
-                .setDisplayName(ConfigManager.Config.MAP_IMAGE_ITEM_DISPLAY_NAME.asString())
-                .setLore(ConfigManager.Config.MAP_IMAGE_ITEM_LORE.asList())
-                .replace("%player%", playerName)
-                .replace("%money%", moneyFormatted)
-                .replace("%original-money%", originalFormatted)
-                .replace("%date%", date)
-                .replace("%selected-slot%", selected)
-                .replace("%winner-slot%", winner)
+        return item = plugin.getItem("map-image.item")
+                .setType(Material.FILLED_MAP)
+                .replace(line -> plugin.getWinnerManager().loreReplacer(playerUUID, session, line))
                 .setMapView(view)
-                .build()) != null;
-
-        return item;
+                .build();
     }
 }

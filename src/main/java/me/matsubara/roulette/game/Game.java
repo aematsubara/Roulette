@@ -1,62 +1,77 @@
 package me.matsubara.roulette.game;
 
 import com.cryptomorin.xseries.reflection.XReflection;
+import com.github.retrooper.packetevents.protocol.entity.pose.EntityPose;
 import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
 import com.github.retrooper.packetevents.protocol.player.TextureProperty;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.google.common.base.Preconditions;
-import com.google.gson.JsonParser;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.animation.DabAnimation;
+import me.matsubara.roulette.animation.MoneyAnimation;
 import me.matsubara.roulette.event.RouletteEndEvent;
-import me.matsubara.roulette.game.data.Bet;
-import me.matsubara.roulette.game.data.Chip;
-import me.matsubara.roulette.game.data.Slot;
+import me.matsubara.roulette.game.data.*;
+import me.matsubara.roulette.game.state.Selecting;
+import me.matsubara.roulette.game.state.Spinning;
 import me.matsubara.roulette.game.state.Starting;
 import me.matsubara.roulette.gui.RouletteGUI;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.listener.npc.NPCSpawn;
+import me.matsubara.roulette.manager.ChipManager;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
-import me.matsubara.roulette.manager.WinnerManager;
-import me.matsubara.roulette.manager.winner.Winner;
+import me.matsubara.roulette.manager.data.DataManager;
+import me.matsubara.roulette.manager.data.MapRecord;
+import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.npc.NPC;
-import me.matsubara.roulette.runnable.MoneyAnimation;
+import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.util.ParrotUtils;
 import me.matsubara.roulette.util.PluginUtils;
-import net.milkbowl.vault.economy.EconomyResponse;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.function.TriConsumer;
+import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("deprecation")
 @Getter
 @Setter
 public final class Game {
@@ -79,8 +94,27 @@ public final class Game {
     // The maximum number of players allowed in this game.
     private int maxPlayers;
 
-    // Players in this game.
-    private final Map<Player, Bet> players = new ConcurrentHashMap<>();
+    // Players of this game and their bets.
+    @Getter(AccessLevel.NONE)
+    private final Multimap<Player, Bet> players = Multimaps.synchronizedMultimap(MultimapBuilder
+            .hashKeys()
+            .arrayListValues()
+            .build());
+
+    // The selected bet of a player.
+    @Getter(AccessLevel.NONE)
+    private final Map<Player, Integer> playerCurrentBet = new ConcurrentHashMap<>();
+
+    // The glow color of a player's bet.
+    @Getter(AccessLevel.NONE)
+    private final Map<Player, ChatColor> playerGlowColor = new ConcurrentHashMap<>();
+
+    // Disabled chips in this game.
+    private final List<String> chipsDisabled = new ArrayList<>();
+
+    // The players that are ready to play.
+    @Getter(AccessLevel.NONE)
+    private final Set<Player> playersDone = new HashSet<>();
 
     // The slots disabled in this game.
     private final List<Slot> disabledSlots;
@@ -123,9 +157,12 @@ public final class Game {
     private Object parrotNBT;
 
     // Tasks.
-    private BukkitTask startingTask;
-    private BukkitTask selectingTask;
-    private BukkitTask spinningTask;
+    private Starting starting;
+    private Selecting selecting;
+    private Spinning spinning;
+
+    // Animations.
+    private DabAnimation dabAnimation;
     private MoneyAnimation moneyAnimation;
 
     // The current slot selected in this game.
@@ -148,6 +185,58 @@ public final class Game {
     // We want ListenMode to ignore our entities.
     private static final BiConsumer<JavaPlugin, Metadatable> LISTEN_MODE_IGNORE = (plugin, living) -> living.setMetadata("RemoveGlow", new FixedMetadataValue(plugin, true));
 
+    // All valid colors for glowing, along with their texture url.
+    private static final Map<ChatColor, String> GLOW_COLOR_URL = new LinkedHashMap<>();
+
+    // Lore replacer for some messages.
+    private static final TriFunction<Game, Bet, String, String> LORE_REPLACER = (game, bet, line) -> {
+        Chip chip = bet.getChip();
+        Slot slot = bet.getSlot();
+
+        String numbers = slot.isDoubleZero() ? "[00]" : Arrays.toString(slot.getInts());
+
+        double price = chip.price();
+        WinData winData = bet.getWinData();
+        WinData.WinType winType = winData != null ?
+                winData.winType() : bet.isEnPrison() ?
+                WinData.WinType.EN_PRISON :
+                WinData.WinType.NORMAL;
+
+        RoulettePlugin plugin = game.getPlugin();
+
+        return line
+                .replace("%bet%", PluginUtils.getSlotName(slot))
+                .replace("%numbers%", numbers.substring(1, numbers.length() - 1)) // Remove brackets.
+                .replace("%chance%", slot.getChance(game.getType().isEuropean()))
+                .replace("%multiplier%", String.valueOf(slot.getMultiplier(plugin)))
+                .replace("%money%", PluginUtils.format(price))
+                .replace("%win-money%", PluginUtils.format(plugin.getExpectedMoney(price, slot, winType)))
+                .replace("%rule%", plugin.formatWinType(winType));
+    };
+
+    // All valid colors for glowing.
+    public static final ChatColor[] GLOW_COLORS;
+
+    static {
+        GLOW_COLOR_URL.put(ChatColor.BLACK, "2a52d579afe2fdf7b8ecfa746cd016150d96beb75009bb2733ade15d487c42a1");
+        GLOW_COLOR_URL.put(ChatColor.DARK_BLUE, "fe4c1b36e5d8e2fa6d55134753eefb2f52302d20f4dac554b1afe5711b93cc");
+        GLOW_COLOR_URL.put(ChatColor.DARK_GREEN, "eb879f5764385ed6bb90755bb041574882e2f41ab9323576016cfbe7f16397a");
+        GLOW_COLOR_URL.put(ChatColor.DARK_AQUA, "d5bbd4a69d208dd25dd95ad4b0f5c7c4b2e0d626161bb1ebf3bcc7e88fd4a960");
+        GLOW_COLOR_URL.put(ChatColor.DARK_RED, "97d0b9b3c419d3e321397bedc6dcd649e51cc2fa36b883b02f4da39582cdff1b");
+        GLOW_COLOR_URL.put(ChatColor.DARK_PURPLE, "b09fa999c27a947a0aa5d4478da26ab0f189f180a7fb1ec8adcef6df76879");
+        GLOW_COLOR_URL.put(ChatColor.GOLD, "c8e44023e11eeb5b293d086351e29e6ffaec01b768dc1460b1be54b809bd6dbf");
+        GLOW_COLOR_URL.put(ChatColor.GRAY, "1b9c45d6c7cd0116436c31ed4d8dc825de03e806edb64e9a67f540b8aaae85");
+        GLOW_COLOR_URL.put(ChatColor.DARK_GRAY, "b2554dda80ea64b18bc375b81ce1ed1907fc81aea6b1cf3c4f7ad3144389f64c");
+        GLOW_COLOR_URL.put(ChatColor.BLUE, "3b5106b060eaf398217349f3cfb4f2c7c4fd9a0b0307a17eba6af7889be0fbe6");
+        GLOW_COLOR_URL.put(ChatColor.GREEN, "ac01f6796eb63d0e8a759281d037f7b3843090f9a456a74f786d049065c914c7");
+        GLOW_COLOR_URL.put(ChatColor.AQUA, "4548789b968c70ec9d1de272d0bb93a70134f2c0e60acb75e8d455a1650f3977");
+        GLOW_COLOR_URL.put(ChatColor.RED, "3c4d7a3bc3de833d3032e85a0bf6f2bef7687862b3c6bc40ce731064f615dd9d");
+        GLOW_COLOR_URL.put(ChatColor.LIGHT_PURPLE, "205c17650e5d747010e8b69a6f2363fd11eb93f81c6ce99bf03895cefb92baa");
+        GLOW_COLOR_URL.put(ChatColor.YELLOW, "200bf4bf14c8699c0f9209ca79fe18253e901e9ec3876a2ba095da052f69eba7");
+        GLOW_COLOR_URL.put(ChatColor.WHITE, "1884d5dabe073e28e6b7eb166ff61247905c79f838b6f5752e7ad406091eeaf3");
+        GLOW_COLORS = GLOW_COLOR_URL.keySet().toArray(ChatColor[]::new);
+    }
+
     public Game(
             RoulettePlugin plugin,
             String name,
@@ -166,7 +255,8 @@ public final class Game {
             boolean parrotEnabled,
             boolean parrotSounds,
             @Nullable Parrot.Variant parrotVariant,
-            @Nullable ParrotUtils.ParrotShoulder parrotShoulder) {
+            @Nullable ParrotUtils.ParrotShoulder parrotShoulder,
+            @Nullable List<String> chipsDisabled) {
         this.plugin = plugin;
         this.name = name;
         this.model = model;
@@ -193,6 +283,7 @@ public final class Game {
         }
 
         if (rules != null && !rules.isEmpty()) this.rules.putAll(rules);
+        if (chipsDisabled != null && !chipsDisabled.isEmpty()) this.chipsDisabled.addAll(chipsDisabled);
 
         this.type = type;
         this.state = GameState.IDLE;
@@ -218,8 +309,21 @@ public final class Game {
         this.spinHologram.setVisibleByDefault(false);
 
         // Spawn chairs.
+        handleChairs();
+    }
+
+    public void handleChairs() {
         for (int chair : CHAIRS) {
             String key = "CHAIR_" + chair;
+
+            ArmorStand temp = chairs.get(key);
+            if (temp != null && temp.isValid()) continue;
+
+            if (temp != null) {
+                temp.eject();
+                temp.remove();
+            }
+
             chairs.put(key, spawnChairStand(key));
         }
     }
@@ -298,19 +402,8 @@ public final class Game {
     }
 
     public @Nullable String getNpcTextureAsURL() {
-        String url = getNPCTexture();
-        if (url == null) return null;
-
-        // Decode base64.
-        String base64 = new String(Base64.getDecoder().decode(url));
-
-        // Get url from json.
-        return new JsonParser().parse(base64)
-                .getAsJsonObject()
-                .getAsJsonObject("textures")
-                .getAsJsonObject("SKIN")
-                .get("url")
-                .getAsString();
+        String texture = getNPCTexture();
+        return texture != null ? PluginUtils.getURLFromTexture(texture) : null;
     }
 
     public @Nullable String getNPCSignature() {
@@ -345,39 +438,60 @@ public final class Game {
         npc = NPC.builder()
                 .profile(profile)
                 .location(npcLocation)
-                .spawnCustomizer(new NPCSpawn(this, npcLocation))
+                .spawnCustomizer(new NPCSpawn(this))
                 .entityId(SpigotReflectionUtil.generateEntityId())
                 .game(this)
                 .build(plugin.getNpcPool());
 
-        npc.rotation().queueHeadRotation(npcLocation.getYaw()).send();
+        npc.lookAtDefaultLocation();
     }
 
     public void playSound(String sound) {
-        for (Player player : players.keySet()) {
+        for (Player player : getPlayers()) {
             playSound(sound, player);
         }
     }
 
     public void playSound(String sound, Player player) {
         Sound toPlay = PluginUtils.getOrNull(Sound.class, sound);
-        if (toPlay != null) player.playSound(player, toPlay, 1.0f, 1.0f);
+        if (toPlay != null) player.playSound(player.getLocation(), toPlay, 1.0f, 1.0f);
     }
 
-    public void broadcast(String message) {
-        for (Player player : players.keySet()) {
-            player.sendMessage(message);
+    public void broadcast(MessageManager.Message message) {
+        broadcast(message, null);
+    }
+
+    public void broadcast(MessageManager.Message message, @Nullable UnaryOperator<String> operator) {
+        broadcast(message, operator, null);
+    }
+
+    public void broadcast(MessageManager.Message message, @Nullable UnaryOperator<String> operator, @Nullable Player except) {
+        for (Player player : getPlayers()) {
+            if (player.equals(except)) continue;
+            plugin.getMessageManager().send(player, message, operator);
         }
     }
 
-    public void broadcast(@NotNull List<String> messages) {
-        for (String message : messages) {
-            broadcast(message);
+    public void npcBroadcast(MessageManager.Message message) {
+        for (Player player : getPlayers()) {
+            plugin.getMessageManager().sendNPCMessage(player, this, message);
         }
+    }
+
+    public int size() {
+        return getPlayers().size();
+    }
+
+    public boolean isEmpty() {
+        return size() == 0;
     }
 
     public boolean isFull() {
-        return players.size() == maxPlayers;
+        return size() == maxPlayers;
+    }
+
+    public boolean isPlaying(Player player) {
+        return players.containsKey(player);
     }
 
     public boolean canJoin() {
@@ -388,7 +502,7 @@ public final class Game {
         // The player may still be in the game if prison rule is enabled.
         if (!isPlaying(player)) {
             // Add player to the game and sit.
-            players.put(player, new Bet(this));
+            addEmptyBetAndSelect(player);
 
             if (sitAt != -1) {
                 // At this point, this won't be null.
@@ -399,10 +513,14 @@ public final class Game {
             }
         }
 
+        // Remove from the done set.
+        setNotReady(player);
+
         // Can be greater than 0 when prison rule is enabled, since players aren't removed from the game.
-        if (players.size() >= minPlayers && (startingTask == null || startingTask.isCancelled())) {
+        if (size() >= minPlayers && (starting == null || starting.isCancelled())) {
             // Start a starting task.
-            setStartingTask(new Starting(plugin, this).runTaskTimer(plugin, 20L, 20L));
+            starting = new Starting(plugin, this);
+            starting.runTaskTimer(plugin, 20L, 20L);
         }
 
         joinHologram.hideTo(player);
@@ -411,47 +529,71 @@ public final class Game {
         spinHologram.showTo(player);
     }
 
-    private void tryToReturnMoney(Player player) {
+    public void tryToReturnMoney(Player player, @Nullable Bet bet) {
         if (!state.isSelecting()) return;
 
-        Bet bet = players.get(player);
-        if (bet == null) return;
+        // Ignore prison bets.
+        double price = bet != null ?
+                (bet.hasChip() && !bet.isEnPrison() ? bet.getChip().price() : 0.0d) : // Single chip.
+                getBets(player).stream()
+                        .filter(temp -> temp.hasChip() && !temp.isEnPrison())
+                        .mapToDouble(temp -> temp.getChip().price())
+                        .sum(); // Multiple chips.
 
-        Chip chip = bet.getChip();
-        if (chip == null) return;
+        if (price == 0.0d || !plugin.deposit(player, price)) return;
 
-        double price = chip.getPrice();
+        sendMoneyReceivedMessage(player, price);
+    }
 
-        EconomyResponse response = plugin.getEconomy().depositPlayer(player, price);
-        if (!response.transactionSuccess()) {
-            plugin.getLogger().warning(String.format("It wasn't possible to deposit $%s to %s.", price, player.getName()));
-            return;
-        }
-
+    public void sendMoneyReceivedMessage(Player player, double money) {
         plugin.getMessageManager().send(player, MessageManager.Message.RECEIVED, message -> message
-                .replace("%money%", PluginUtils.format(price))
+                .replace("%money%", PluginUtils.format(money))
                 .replace("%name%", name.replace("_", " ")));
     }
 
-    public void remove(Player player, boolean iteratorSource) {
-        // If the player quits with a bet placed but the wheel didn't start spinning, then we want to return the money.
-        tryToReturnMoney(player);
+    public void removeCompletely(Player player) {
+        // Remove the player from the game, completely (will restart the game).
+        remove(player, null, false);
+    }
 
-        // If the game is being restarted, the players are cleared in restart() iterator.
+    public void removePartially(Player player) {
+        removePartially(player, null);
+    }
+
+    public void removePartially(Player player, @Nullable Bet bet) {
+        // Remove a single bet of the player (the player may still be in the game).
+        remove(player, bet, true);
+    }
+
+    @ApiStatus.Internal
+    public void remove(Player player, @Nullable Bet bet, boolean iteratorSource) {
+        // If the player quits with a bet placed but the wheel didn't start spinning, then we want to return the money.
+        tryToReturnMoney(player, bet);
+
+        // Add player to FOV again to prevent sending invite messages again.
+        npc.setInsideFOV(player);
+
+        // Remove from the done set.
+        setNotReady(player);
+
+        // If the game is being restarted, the players are removed in restart() iterator.
         if (!iteratorSource) {
-            players.remove(player).remove();
+            players.removeAll(player).forEach(Bet::remove);
 
             // Players are removed with an iterator in @restart, we don't need to send a message to every player about it if restarting.
-            broadcast(MessageManager.Message.LEAVE.asString()
-                    .replace("%player%", player.getName())
-                    .replace("%playing%", String.valueOf(players.size()))
+            broadcast(MessageManager.Message.LEAVE, line -> line
+                    .replace("%player-name%", player.getName())
+                    .replace("%playing%", String.valueOf(size()))
                     .replace("%max%", String.valueOf(maxPlayers)));
         }
 
         // No need to call restart() again if the game is being restarted.
-        if (players.isEmpty() && !iteratorSource) {
+        if (isEmpty() && !iteratorSource) {
             restart();
         }
+
+        // If at this point, the player still on the game, then that's because only one bet of the player was removed.
+        if (isPlaying(player)) return;
 
         // Remove the player from the chair (if sitting).
         if (isSittingOn(player)
@@ -490,25 +632,22 @@ public final class Game {
     }
 
     private @NotNull String replaceJoinHologramLines(@NotNull String line) {
+        ChipManager chipManager = plugin.getChipManager();
         return line
                 .replace("%name%", name.replace("_", " "))
                 .replace("%playing%", String.valueOf(size()))
                 .replace("%max%", String.valueOf(maxPlayers))
-                .replace("%type%", type.getName());
+                .replace("%type%", type.getName())
+                .replace("%min-amount%", PluginUtils.format(chipManager.getMinAmount(this)))
+                .replace("%max-amount%", PluginUtils.format(chipManager.getMaxAmount(this)));
     }
 
-    private void cancelTasks(BukkitTask... tasks) {
-        for (BukkitTask task : tasks) {
-            if (task != null && !task.isCancelled()) task.cancel();
+    private void cancelTasks(BukkitRunnable... runnables) {
+        for (BukkitRunnable runnable : runnables) {
+            if (runnable != null && !runnable.isCancelled()) {
+                runnable.cancel();
+            }
         }
-    }
-
-    public int size() {
-        return players.size();
-    }
-
-    public boolean isPlaying(Player player) {
-        return players.containsKey(player);
     }
 
     private boolean isChairInUse(int chair) {
@@ -543,17 +682,17 @@ public final class Game {
         sitPlayer(player, toTheRight, false);
     }
 
-    public void sitPlayer(Player player, boolean toTheRight, boolean isAdd) {
+    public void sitPlayer(Player player, boolean right, boolean isAdd) {
         // If not a chair available.
         if (!isChairAvailable()) return;
 
-        if (toTheRight && !isSittingOn(player)) {
-            for (int chair : CHAIRS) {
-                ArmorStand stand = getChair(chair);
-                if (stand == null || !stand.getPassengers().isEmpty()) continue;
-                fixChairCameraAndSit(player, stand);
-                break;
-            }
+        if (right && !isSittingOn(player)) {
+            // Find an available chair to the right or left from the first chair.
+            // We use the last chair as the current since we want to start checking from the first chair.
+            ArmorStand chair = getAvailableChair(player, CHAIRS[CHAIRS.length - 1], true);
+
+            // Sit player.
+            fixChairCameraAndSit(player, chair);
             return;
         }
 
@@ -565,28 +704,14 @@ public final class Game {
         // Add to transfer BEFORE dismounting.
         if (!isAdd) transfers.add(player.getUniqueId());
 
-        ArmorStand sitting = getChair(sittingOn);
-        if (sitting != null) {
-            sitting.removePassenger(player);
-        }
+        // Now we want to dismount the player.
+        player.leaveVehicle();
 
-        int ordinal = ArrayUtils.indexOf(CHAIRS, sittingOn);
+        // Find an available chair to the right or left from the current chair.
+        ArmorStand chair = getAvailableChair(player, sittingOn, right);
 
-        ArmorStand stand;
-
-        do {
-            if (toTheRight) {
-                ordinal++;
-                if (ordinal > CHAIRS.length - 1) ordinal = 0;
-            } else {
-                ordinal--;
-                if (ordinal < 0) ordinal = CHAIRS.length - 1;
-            }
-
-            stand = getChair(CHAIRS[ordinal]);
-        } while (stand == null || !stand.getPassengers().isEmpty());
-
-        fixChairCameraAndSit(player, stand);
+        // Finally, sit player.
+        fixChairCameraAndSit(player, chair);
     }
 
     private void fixChairCameraAndSit(Player player, ArmorStand stand) {
@@ -604,204 +729,230 @@ public final class Game {
         stand.addPassenger(player);
     }
 
-    public void moveChip(Player player, boolean toTheRight) {
+    public void moveDirectionalChip(Player player, float forward, float sideways) {
         // If not slot available, return.
-        if (!isSlotAvailable()) return;
+        if (!isSlotAvailable(player)) return;
 
-        // If the player didn't select a chip from the GUI yet, return.
-        Bet bet = players.get(player);
-        if (!bet.hasChip()) return;
+        Bet bet = getSelectedBet(player);
+        if (bet == null || !bet.hasChip() || !bet.hasSlot()) return;
 
-        if (toTheRight && !bet.hasSlot()) {
-            for (Slot slot : Slot.values(this)) {
-                if (alreadySelected(slot)) continue;
+        boolean up = forward > 0.0f, down = forward < 0.0f;
+        boolean left = sideways > 0.0f, right = sideways < 0.0f;
 
-                // Spawn hologram and chip (if not spawned).
-                bet.handle(player, slot);
-                if (XReflection.MINOR_NUMBER == 17) bet.handle(player, slot);
+        int chair = ArrayUtils.indexOf(CHAIRS, getSittingOn(player)) + 1;
+        if (chair == 0) return;
 
-                break;
-            }
-            return;
-        }
+        // Fix orientation based on the player chair.
+        boolean first = chair < 5, middle = chair == 5 || chair == 6;
+        boolean xUp = first ? up : middle ? right : down;
+        boolean xDown = first ? down : middle ? left : up;
+        boolean xLeft = first ? left : middle ? up : right;
+        boolean xRight = first ? right : middle ? down : left;
 
-        int ordinal = ArrayUtils.indexOf(Slot.values(this), bet.getSlot());
-
-        Slot slot;
-
+        Slot currentSlot = bet.getSlot();
+        Slot slot = currentSlot;
         do {
-            if (toTheRight) {
-                ordinal++;
-                if (ordinal > Slot.values(this).length - 1) ordinal = 0;
-            } else {
-                ordinal--;
-                if (ordinal < 0) ordinal = Slot.values(this).length - 1;
+            // Order of execution = up, down, left, right
+            PluginUtils.SlotHolder holder = PluginUtils.moveFromSlot(this, slot,
+                    xUp,
+                    xDown,
+                    xLeft,
+                    xRight);
+
+            slot = holder == null ? null : holder.getSlot();
+            if (slot != null
+                    && alreadySelected(player, slot)
+                    && holder instanceof PluginUtils.SlotHolderPair pair) {
+                slot = pair.getSimilar();
             }
 
-            slot = Slot.values(this)[ordinal];
-        } while (alreadySelected(slot));
+            if (slot == null) break; // If this is null, then we can't move to that side.
+        } while (alreadySelected(player, slot));
 
         // Teleport hologram and chip.
-        bet.handle(player, slot);
+        if (slot != null && currentSlot != slot) {
+            bet.handle(slot);
+        }
+    }
+
+    @ApiStatus.Internal
+    public void firstChipMove(Player player) {
+        // If not slot available, return.
+        if (!isSlotAvailable(player)) return;
+
+        // If the player didn't select a chip from the GUI yet, return.
+        Bet bet = getSelectedBet(player);
+        if (bet == null || !bet.hasChip() || bet.hasSlot()) return;
+
+        Slot[] slots = Slot.values(this);
+
+        // Find an available slot to the right or left from the first slot.
+        // We use the last slot as the current since we want to start checking from the first slot.
+        Slot slot = getAvailableSlot(player, slots[slots.length - 1]);
+
+        // Spawn hologram and chip.
+        bet.handle(slot);
+    }
+
+    private ArmorStand getAvailableChair(Player player, int currentChair, boolean right) {
+        return PluginUtils.getAvailable(player,
+                ArrayUtils.toObject(CHAIRS),
+                currentChair,
+                (temp, value) -> {
+                    ArmorStand chair = getChair(value);
+                    return chair == null || !chair.getPassengers().isEmpty();
+                },
+                right,
+                this::getChair);
+    }
+
+    private Slot getAvailableSlot(Player player, Slot currentSlot) {
+        Slot[] slots = Slot.values(this);
+        return PluginUtils.getAvailable(player,
+                slots,
+                currentSlot,
+                this::alreadySelected,
+                true,
+                Function.identity());
     }
 
     public void checkWinner() {
         spawnBottle();
 
-        MessageManager messages = plugin.getMessageManager();
-        WinnerManager winnerManager = plugin.getWinnerManager();
+        for (Player player : getPlayers()) {
+            List<Bet> bets = getBets(player);
+            if (bets.isEmpty()) continue;
 
-        Map<Player, WinType> winners = new HashMap<>();
+            for (int i = 0; i < bets.size(); i++) {
+                Bet bet = bets.get(i);
 
-        for (Player player : players.keySet()) {
-            Bet bet = players.get(player);
-            Slot slot = bet.getSlot();
+                Slot slot = bet.getSlot();
 
-            // Check for single numbers or slots with more than 1 number.
-            if (slot == winner || slot.contains(winner)) {
-                boolean prisonWin = isRuleEnabled(GameRule.EN_PRISON) && slot.applyForRules() && bet.isEnPrison();
-                winners.put(player, prisonWin ? WinType.EN_PRISON : WinType.NORMAL);
-                continue;
-            }
+                // Check for single numbers or slots with more than 1 number.
+                if (slot == winner || slot.contains(winner)) {
+                    boolean prisonWin = isRuleEnabled(GameRule.EN_PRISON) && slot.applyForRules() && bet.isEnPrison();
+                    bet.setWinData(new WinData(player, i, prisonWin ? WinData.WinType.EN_PRISON : WinData.WinType.NORMAL));
+                    continue;
+                }
 
-            // If the checks above didn't make it, check for rules.
+                // If the checks above didn't make it, check for rules.
 
-            // Partage.
-            if (isRuleEnabled(GameRule.LA_PARTAGE) && winner.isZero() && slot.applyForRules()) {
-                winners.put(player, WinType.LA_PARTAGE);
-                continue;
-            }
+                // Partage.
+                if (isRuleEnabled(GameRule.LA_PARTAGE) && winner.isZero() && slot.applyForRules()) {
+                    bet.setWinData(new WinData(player, i, WinData.WinType.LA_PARTAGE));
+                    continue;
+                }
 
-            // Surrender.
-            if (type.isAmerican() && isRuleEnabled(GameRule.SURRENDER) && winner.isAnyZero() && slot.applyForRules()) {
-                winners.put(player, WinType.SURRENDER);
+                // Surrender.
+                if (type.isAmerican() && isRuleEnabled(GameRule.SURRENDER) && winner.isAnyZero() && slot.applyForRules()) {
+                    bet.setWinData(new WinData(player, i, WinData.WinType.SURRENDER));
+                }
             }
         }
+
+        // Players that won at least once of their bets.
+        Set<Player> winners = players.entries().stream()
+                .filter(entry -> entry.getValue().getWinData() != null)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
 
         RouletteEndEvent endEvent = new RouletteEndEvent(this, winners, winner);
         plugin.getServer().getPluginManager().callEvent(endEvent);
 
-        // Set all winner bet as winner.
-        winners.keySet().forEach(player -> players.get(player).setWon(true));
+        // Set all winner bets as winner (a check is inside of Bet#setWon).
+        getAllBets().forEach(Bet::setWon);
+
+        // Save session to the database.
+        DataManager dataManager = plugin.getDataManager();
+        RouletteSession session = dataManager.saveSession(UUID.randomUUID(), name, players.entries(), winner, System.currentTimeMillis());
+
+        // Create and save maps to the database (if enabled).
+        if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBool()) {
+            List<MapRecord> maps = new ArrayList<>();
+
+            for (Player winner : winners) {
+                if (!winner.isValid() || !winner.isOnline()) continue;
+
+                Map.Entry<Integer, ItemStack> entry = plugin.getWinnerManager().render(winner.getUniqueId(), session);
+                if (entry == null) continue;
+
+                winner.getInventory().addItem(entry.getValue());
+                maps.add(new MapRecord(entry.getKey(), winner.getUniqueId(), session.sessionUUID()));
+            }
+
+            if (!maps.isEmpty()) {
+                dataManager.saveMaps(maps);
+            }
+        }
 
         // Send money to the account of the game.
         if (accountGiveTo != null) {
-            double total = 0;
-
             OfflinePlayer giveTo = Bukkit.getOfflinePlayer(accountGiveTo);
-
-            for (Player player : players.keySet()) {
-                // Don't take money from the player who won.
-                if (winners.containsKey(player)) continue;
-
+            for (Player player : getPlayers()) {
                 // Don't take money from the same player.
                 if (giveTo.getUniqueId().equals(player.getUniqueId())) continue;
 
-                Chip chip = players.get(player).getChip();
+                // Sum the money from all the bets.
+                double price = getBets(player).stream()
+                        .filter(bet -> bet.hasChip() && bet.getWinData() == null) // Don't take money from winning bets.
+                        .mapToDouble(bet -> bet.getChip().price())
+                        .sum();
+                if (price == 0.0d
+                        || !plugin.deposit(giveTo, price)
+                        || !giveTo.isOnline()) continue;
 
-                EconomyResponse response = plugin.getEconomy().depositPlayer(giveTo, chip.getPrice());
-                if (!response.transactionSuccess()) {
-                    plugin.getLogger().warning(String.format("It wasn't possible to deposit $%s to %s.", chip.getPrice(), giveTo.getName()));
-                    continue;
-                }
-
-                total += chip.getPrice();
-            }
-
-            if (giveTo.isOnline() && total > 0) {
-                String totalMoney = PluginUtils.format(total);
-                messages.send(giveTo.getPlayer(), MessageManager.Message.RECEIVED, message -> message
-                        .replace("%money%", totalMoney)
-                        .replace("%name%", name.replace("_", " ")));
+                sendMoneyReceivedMessage(giveTo.getPlayer(), price);
             }
         }
 
         if (winners.isEmpty()) {
-            broadcast(MessageManager.Message.NO_WINNER.asString().replace("%winner%", PluginUtils.getSlotName(winner)));
-            broadcast(MessageManager.Message.RESTART.asString());
+            broadcast(MessageManager.Message.NO_WINNER, line -> line.replace("%winner-slot%", PluginUtils.getSlotName(winner)));
+            getPlayers().forEach(this::sendPersonalBets);
+            broadcast(MessageManager.Message.RESTART);
             remindBetInPrison();
             restartRunnable();
             return;
         }
 
-        String[] names = winners.entrySet().stream().map(entry -> {
-            if (entry.getValue().isNormalWin()) return entry.getKey().getName();
-            return entry.getKey().getName() + " (" + entry.getValue().getFormatName() + ")";
-        }).toArray(String[]::new);
+        String[] names = getAllBets().stream().filter(bet -> bet.getWinData() != null)
+                .map(bet -> bet.getWinData().player().getName())
+                .distinct()
+                .toArray(String[]::new);
 
-        broadcast(messages.getRandomNPCMessage(npc, "winner"));
-        broadcast(MessageManager.Message.WINNERS.asList().stream().map(message -> message
-                .replace("%amount%", String.valueOf(names.length))
-                .replace("%winners%", Arrays.toString(names))
-                .replace("%winner%", PluginUtils.getSlotName(winner))).collect(Collectors.toList()));
-        broadcast(MessageManager.Message.RESTART.asString());
+        npcBroadcast(MessageManager.Message.WINNER);
+
+        for (Player player : getPlayers()) {
+            // Send all winners.
+            sendBetsMessage(
+                    player,
+                    MessageManager.Message.ALL_WINNERS,
+                    "%winner%",
+                    line -> line
+                            .replace("%amount%", String.valueOf(names.length))
+                            .replace("%winner-slot%", PluginUtils.getSlotName(winner)),
+                    (playing, lore, indexOf) -> sendWinners(playing, winners, lore, indexOf));
+            sendPersonalBets(player);
+        }
+
+        broadcast(MessageManager.Message.RESTART);
         remindBetInPrison();
 
-        for (Player winner : winners.keySet()) {
-            Bet bet = players.get(winner);
-            Chip chip = bet.getChip();
-            Slot slot = bet.getSlot();
-            WinType winType = winners.get(winner);
+        // Transfer the winning money to the players who won.
+        for (Player winner : winners) {
+            List<Bet> bets = getBets(winner);
 
-            double price;
-            if (winType.isNormalWin()) {
-                price = chip.getPrice() * slot.getMultiplier(this);
-            } else if (winType.isLaPartageWin() || winType.isSurrenderWin()) {
-                // Half-money if is partage.
-                price = chip.getPrice() / 2;
-            } else {
-                // Original money.
-                price = chip.getPrice();
-            }
+            // Sum the money from all the winning bets.
+            double price = bets.stream()
+                    .filter(bet -> bet.hasChip() && bet.getWinData() != null)
+                    .mapToDouble(plugin::getExpectedMoney)
+                    .sum();
 
-            EconomyResponse response = plugin.getEconomy().depositPlayer(winner, price);
-            if (!response.transactionSuccess()) {
-                plugin.getLogger().warning(String.format("It wasn't possible to deposit $%s to %s.", chip.getPrice(), winner.getName()));
-                continue;
-            }
-
-            if (winType.isNormalWin()) {
-                messages.send(winner, MessageManager.Message.PRICE, message -> message
-                        .replace("%amount%", PluginUtils.format(price))
-                        .replace("%multiplier%", String.valueOf(slot.getMultiplier(this))));
-            } else if (winType.isLaPartageWin()) {
-                messages.send(winner, MessageManager.Message.LA_PARTAGE);
-            } else if (winType.isEnPrisonWin()) {
-                messages.send(winner, MessageManager.Message.EN_PRISON);
-            } else {
-                messages.send(winner, MessageManager.Message.SURRENDER);
-            }
-
-            Winner win = winnerManager.getByUniqueId(winner.getUniqueId());
-            if (win == null) {
-                win = new Winner(winner.getUniqueId());
-            }
-
-            Winner.WinnerData winnerData = new Winner.WinnerData(
-                    name,
-                    -1,
-                    price,
-                    System.currentTimeMillis(),
-                    slot,
-                    this.winner,
-                    winType,
-                    chip.getPrice());
-
-            Map.Entry<Winner.WinnerData, ItemStack> entry;
-            if (ConfigManager.Config.MAP_IMAGE_ENABLED.asBool() && (entry = winnerManager.render(winner.getName(), winnerData, null)) != null) {
-                winnerData.setMapId(entry.getKey().getMapId());
-
-                // Add the map to the winner inventory.
-                ItemStack item = entry.getValue();
-                winner.getInventory().addItem(item);
-            }
-
-            // Add win data.
-            win.add(winnerData);
-
-            // Save data to file.
-            winnerManager.saveWinner(win);
+            // Give all the winning money in a single transaction.
+            plugin.deposit(winner, price);
         }
+
+        // Start dab animation for the player who won more money.
+        handleDabAnimation();
 
         if (ConfigManager.Config.RESTART_FIREWORKS.asInt() == 0) {
             restartRunnable();
@@ -829,14 +980,121 @@ public final class Game {
         }.runTaskTimer(plugin, period, period);
     }
 
+    private void handleDabAnimation() {
+        if (!ConfigManager.Config.DAB_ANIMATION_ENABLED.asBool()) return;
+
+        // Start dab animation for the player who won more money and was a single bet.
+        Optional<Bet> max = getAllBets().stream()
+                .filter(bet -> bet.isWon() && bet.getSlot().isSingleInclusive())
+                .max((first, second) -> Double.compare(
+                        plugin.getExpectedMoney(first),
+                        plugin.getExpectedMoney(second)));
+        max.ifPresent(bet -> new DabAnimation(this, bet.getOwner(), getLocation().clone()));
+    }
+
+    private void sendPersonalBets(Player player) {
+        List<Bet> bets = getBets(player);
+
+        double total = bets.stream()
+                .filter(bet -> bet.hasChip() && bet.getWinData() != null)
+                .mapToDouble(plugin::getExpectedMoney)
+                .sum();
+
+        double totalLost = bets.stream()
+                .filter(bet -> bet.hasChip() && bet.getWinData() == null)
+                .mapToDouble(bet -> bet.getChip().price())
+                .sum();
+
+        sendBets(
+                player,
+                MessageManager.Message.YOUR_WINNING_BETS,
+                MessageManager.Message.WINNING_BET_HOVER,
+                line -> line
+                        .replace("%total-money%", PluginUtils.format(total))
+                        .replace("%lost-money%", PluginUtils.format(totalLost)),
+                true);
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    public void sendBetsMessage(Player player,
+                                @NotNull MessageManager.Message message,
+                                String variable,
+                                UnaryOperator<String> loreReplacer,
+                                TriConsumer<Player, List<String>, Integer> midAction) {
+        List<String> lore = message.asList();
+        if (lore.isEmpty()) return;
+        else lore.replaceAll(loreReplacer);
+
+        int indexOf = -1;
+        for (int i = 0; i < lore.size(); i++) {
+            if (lore.get(i).contains(variable)) {
+                indexOf = i;
+                break;
+            }
+        }
+
+        if (indexOf == -1) {
+            lore.forEach(player::sendMessage);
+            return;
+        }
+
+        if (indexOf > 0) {
+            for (String line : lore.subList(0, indexOf)) {
+                player.sendMessage(line);
+            }
+        }
+
+        midAction.accept(player, lore, indexOf);
+
+        if (lore.size() > 1 && indexOf < lore.size() - 1) {
+            for (String line : lore.subList(indexOf + 1, lore.size())) {
+                player.sendMessage(line);
+            }
+        }
+    }
+
+    private void sendWinners(Player player, @NotNull Set<Player> winners, List<String> lore, int indexOf) {
+        for (Player winner : winners) {
+            // Build the hover message.
+            StringBuilder builder = new StringBuilder();
+            List<Bet> bets = getBets(winner);
+
+            List<String> hoverLines = MessageManager.Message.WINNER_HOVER.asList();
+            for (int i = 0; i < hoverLines.size(); i++) {
+
+                double total = bets.stream()
+                        .filter(bet -> bet.hasChip() && bet.getWinData() != null)
+                        .mapToDouble(plugin::getExpectedMoney)
+                        .sum();
+
+                int count = (int) bets.stream()
+                        .filter(bet -> bet.hasChip() && bet.getWinData() != null)
+                        .count();
+
+                builder.append(hoverLines.get(i)
+                        .replace("%money%", PluginUtils.format(total))
+                        .replace("%bets%", String.valueOf(count)));
+
+                if (i != hoverLines.size() - 1) builder.append("\n");
+            }
+
+            String text = lore.get(indexOf).replace("%winner%", winner.getName());
+            HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(builder.toString()));
+
+            BaseComponent[] components = TextComponent.fromLegacyText(text);
+            for (BaseComponent component : components) {
+                component.setHoverEvent(hoverEvent);
+            }
+
+            player.spigot().sendMessage(components);
+        }
+    }
+
     private void remindBetInPrison() {
-        players.entrySet().stream()
-                .filter(entry -> {
-                    Bet bet = entry.getValue();
-                    return isRuleEnabled(GameRule.EN_PRISON) && bet.getSlot().applyForRules() && !bet.isWon() && !bet.isEnPrison() && winner.isZero();
-                })
+        players.entries().stream()
+                .filter(entry -> betAppliesForPrison(entry.getValue(), false))
                 .map(Map.Entry::getKey)
-                .forEach(player -> player.sendMessage(MessageManager.Message.PRISON_REMINDER.asString()));
+                .forEach(player -> plugin.getMessageManager().send(player, MessageManager.Message.PRISON_REMINDER));
     }
 
     private void spawnBottle() {
@@ -852,7 +1110,7 @@ public final class Game {
         oneSettings.setRightArmPose(new EulerAngle(angle, 0.0d, 0.0d));
 
         // First part.
-        selectedOne = new PacketStand(baseLocation, oneSettings, true, plugin.getConfigManager().getRenderDistance());
+        selectedOne = new PacketStand(baseLocation, oneSettings, true);
 
         Location modelLocation = getLocation();
         float yaw = modelLocation.getYaw(), pitch = modelLocation.getPitch();
@@ -864,7 +1122,7 @@ public final class Game {
         twoSettings.setRightArmPose(new EulerAngle(angle, angle, 0.0d));
 
         // Second part.
-        selectedTwo = new PacketStand(baseLocation.clone().add(offset), twoSettings, true, plugin.getConfigManager().getRenderDistance());
+        selectedTwo = new PacketStand(baseLocation.clone().add(offset), twoSettings, true);
 
         // Where to teleport the bottle.
         PacketStand temp = model.getByName(winner.name());
@@ -894,10 +1152,12 @@ public final class Game {
         Axis axis = offset.getLeft();
 
         // If no bet in the winning slot, place it at the table.
-        List<Bet> betsInWinnerSlot = players.values().stream().filter(bet -> bet.getSlot() == winner).toList();
+        List<Bet> betsInWinnerSlot = getAllBets().stream()
+                .filter(bet -> bet.getSlot() == winner)
+                .toList();
         if (betsInWinnerSlot.isEmpty()) return null;
 
-        Bet randomBet = betsInWinnerSlot.get(RandomUtils.nextInt(0, betsInWinnerSlot.size()));
+        Bet randomBet = betsInWinnerSlot.get(PluginUtils.RANDOM.nextInt(0, betsInWinnerSlot.size()));
         int offsetIndex = randomBet.getOffsetIndex();
 
         return new Vector(axis == Axis.X ? offsets[offsetIndex] : 0.0d, 0.0d, axis == Axis.Z ? offsets[offsetIndex] : 0.0d);
@@ -922,7 +1182,7 @@ public final class Game {
         World world = location.getWorld();
         Preconditions.checkNotNull(world);
 
-        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Random random = PluginUtils.RANDOM;
 
         // We want the fireworks to have the same yaw as the NPC,
         // so firework effects like creeper have the right rotation.
@@ -944,8 +1204,7 @@ public final class Game {
                 .withColor(PluginUtils.getRandomColor())
                 .withFade(PluginUtils.getRandomColor());
 
-        FireworkEffect.Type[] types = FireworkEffect.Type.values();
-        builder.with(types[random.nextInt(types.length)]);
+        builder.with(PluginUtils.getRandomFromEnum(FireworkEffect.Type.class));
 
         meta.addEffect(builder.build());
         meta.setPower(random.nextInt(1, 5));
@@ -966,7 +1225,10 @@ public final class Game {
 
         // Hide the ball.
         PacketStand ball = model.getByName("BALL");
-        if (ball != null) ball.setEquipment(null, PacketStand.ItemSlot.HEAD);
+        if (ball != null) ball.setEquipment(new ItemStack(Material.AIR), PacketStand.ItemSlot.HEAD);
+
+        // Stand the NPC.
+        npc.metadata().queue(MetadataModifier.EntityMetadata.POSE, EntityPose.STANDING).send();
 
         // Show the ball in the NPC hand.
         npc.equipment().queue(EquipmentSlot.MAIN_HAND, plugin.getConfigManager().getBall()).send();
@@ -981,44 +1243,75 @@ public final class Game {
             selectedTwo = null;
         }
 
-        Iterator<Map.Entry<Player, Bet>> iterator = players.entrySet().iterator();
+        Set<Player> reAdd = new LinkedHashSet<>();
+
+        Iterator<Map.Entry<Player, Bet>> iterator = players.entries().iterator();
         while (iterator.hasNext()) {
             Map.Entry<Player, Bet> entry = iterator.next();
 
             Player player = entry.getKey();
             Bet bet = entry.getValue();
 
-            // Remove player only if prison rule isn't enabled (or the selected slot doesn't apply for that rule).
-            if (!isRuleEnabled(GameRule.EN_PRISON) || !bet.getSlot().applyForRules() || bet.isWon() || bet.isEnPrison() || !winner.isZero()) {
-                // Remove hologram and chip.
-                bet.remove();
-
-                // If the player dismounted his seat, don't count him for the next game.
-                if (!forceRemove && ConfigManager.Config.KEEP_SEAT.asBool() && isSittingOn(player)) {
-                    // Keep player, put the bet manually since it's not set in add().
-                    players.put(player, new Bet(this));
-                    add(player, -1);
-                } else {
-                    // Remove player.
-                    iterator.remove();
-                    remove(player, true);
-                }
+            // Set the bet in prison and re-add player, keeping the bet.
+            if (betAppliesForPrison(bet, false)) {
+                bet.setEnPrison(true);
+                add(player, -1);
                 continue;
             }
 
-            // Set the bet in prison and re-add player.
-            bet.setEnPrison(true);
+            // Remove hologram and chip.
+            bet.remove();
+
+            // Remove bet entry.
+            iterator.remove();
+
+            // If the player left his seat or doesn't have enough money, don't count him for the next game.
+            if (!forceRemove && ConfigManager.Config.KEEP_SEAT.asBool() && isSittingOn(player)) {
+                // Keep player, put the bet manually since it's not set in add().
+                reAdd.add(player);
+            } else {
+                // Remove player.
+                removePartially(player, bet);
+            }
+        }
+
+        // We need to re-add the players here to prevent concurrent issues.
+        for (Player player : reAdd) {
+            // No need to add an empty bet, the player is in prison.
+            if (hasBetsInPrison(player)) continue;
+
+            // The player is broke, remove him.
+            if (!plugin.getChipManager().hasEnoughMoney(this, player)) {
+                removePartially(player);
+                continue;
+            }
+
+            addEmptyBetAndSelect(player);
             add(player, -1);
         }
 
-        if (players.isEmpty()) {
-            // Cancel tasks.
-            cancelTasks(startingTask, selectingTask, spinningTask);
+        // Select the last chip for the players remaining and set as done.
+        getPlayers().forEach(player -> {
+            selectLast(player);
+            if (hasBetsInPrison(player)) {
+                setDone(player);
+            }
+        });
+
+        if (isEmpty()) {
+            // Cancel tasks (except for MoneyAnimation).
+            cancelTasks(starting, selecting, spinning, dabAnimation);
         }
 
         // Show join hologram to every player if hidden and update.
         joinHologram.setVisibleByDefault(true);
-        if (plugin.isEnabled()) updateJoinHologram(false);
+        if (plugin.isEnabled()) {
+            Predicate<Player> showAgain = Predicates.not(joinHologram::isVisibleTo).and(Predicates.not(this::isSittingOn));
+            Bukkit.getOnlinePlayers().stream()
+                    .filter(showAgain)
+                    .forEach(joinHologram::showTo);
+            updateJoinHologram(false);
+        }
 
         // If the spin hologram has any lines, destroy it.
         if (spinHologram.size() > 0) {
@@ -1026,32 +1319,63 @@ public final class Game {
         }
 
         // Show holograms for the players that are left in the table.
-        for (Player player : players.keySet()) {
+        for (Player player : getPlayers()) {
             spinHologram.showTo(player);
         }
     }
 
-    public boolean isSlotAvailable() {
+    private boolean hasBetsInPrison(Player player) {
+        return getBets(player).stream().anyMatch(bet -> betAppliesForPrison(bet, true));
+    }
+
+    public boolean betAppliesForPrison(Bet bet, boolean ignorePrevious) {
+        return isRuleEnabled(GameRule.EN_PRISON)
+                && bet.hasSlot()
+                && bet.getSlot().applyForRules()
+                && !bet.isWon()
+                && (ignorePrevious || !bet.isEnPrison())
+                && winner.isZero();
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public boolean isSlotAvailable(Player player) {
         for (Slot slot : Slot.values(this)) {
-            if (alreadySelected(slot)) continue;
+            if (alreadySelected(player, slot)) continue;
             return true;
         }
         return false;
     }
 
-    public boolean alreadySelected(Slot slot) {
+    public boolean alreadySelected(Player player, Slot slot) {
+        // Outside have some limitations; you can't make a bet in (RED/BLACK) at the same time,
+        // the same goes for (EVEN/ODD), (LOW/HIGH), all COLUMN and all DOZENS.
+        // Also, you can't make more than 1 bet on the same slot.
+        SlotType conflictType = SlotType.hasConflict(this, player, slot);
+        if (conflictType != null) {
+            return true;
+        }
+
+        // You can't make more than 1 bet on the same slot.
+        if (getBets(player).stream()
+                .anyMatch(bet -> slot == bet.getSlot())) {
+            // If the player already selected this slot (another bet),
+            // then we don't want the player to select this again.
+            return true;
+        }
+
+        // All bet slots have a maximum of bets allowed at the same time.
         int count = 0;
-        for (Player player : players.keySet()) {
-            if (players.get(player).getSlot() == slot) {
-                count++;
-            }
+        for (Player playing : getPlayers()) {
+            count += (int) getBets(playing).stream().
+                    filter(bet -> bet.getSlot() == slot)
+                    .count();
         }
         return count == slot.getMaxBets(type.isEuropean());
     }
 
     public void remove() {
         if (plugin.isEnabled()) {
-            players.keySet().forEach(player -> plugin.getMessageManager().send(player, MessageManager.Message.GAME_STOPPED));
+            getPlayers().forEach(player -> plugin.getMessageManager().send(player, MessageManager.Message.GAME_STOPPED));
         }
 
         // First, restart the game.
@@ -1061,7 +1385,7 @@ public final class Game {
         for (Player player : Bukkit.getOnlinePlayers()) {
             Inventory inventory = player.getOpenInventory().getTopInventory();
             if (!(inventory.getHolder() instanceof RouletteGUI gui)) continue;
-            if (gui.getGame().equals(this)) player.closeInventory();
+            if (equals(gui.getGame())) player.closeInventory();
         }
 
         // Remove model.
@@ -1084,8 +1408,9 @@ public final class Game {
     }
 
     private void playParrotDeathSound() {
-        Location npcLocation = npc.getLocation();
+        if (!parrotEnabled || !parrotSounds) return;
 
+        Location npcLocation = npc.getLocation();
         World world = npcLocation.getWorld();
         if (world != null) world.playSound(npcLocation, Sound.ENTITY_PARROT_DEATH, 1.0f, 1.0f);
     }
@@ -1111,19 +1436,175 @@ public final class Game {
         this.maxPlayers = maxPlayers > 10 ? 10 : Math.max(maxPlayers, this.minPlayers);
     }
 
-    public void validateChairs() {
-        for (int chair : CHAIRS) {
-            String key = "CHAIR_" + chair;
+    public String getGlowColorURL(ChatColor color) {
+        return GLOW_COLOR_URL.get(color);
+    }
 
-            ArmorStand temp = chairs.get(key);
-            if (temp != null && temp.isValid()) continue;
+    public void changeGlowColor(Player player, boolean next) {
+        playerGlowColor.put(player, PluginUtils.getNextOrPrevious(
+                GLOW_COLORS,
+                getGlowColor(player).ordinal(),
+                next));
+    }
 
-            if (temp != null) {
-                temp.eject();
-                temp.remove();
+    public ChatColor getGlowColor(Player player) {
+        return playerGlowColor.getOrDefault(player, ChatColor.WHITE);
+    }
+
+    public void removeBet(Player player, int betIndex) {
+        if (betIndex < 0) return;
+
+        List<Bet> bets = getBets(player);
+        if (bets.isEmpty() || betIndex > bets.size() - 1) return;
+
+        bets.remove(betIndex);
+    }
+
+    public int getSelectedBetIndex(Player player) {
+        return playerCurrentBet.getOrDefault(player, -1);
+    }
+
+    public void addEmptyBetAndSelect(Player player) {
+        players.put(player, new Bet(this, player));
+        selectLast(player);
+    }
+
+    public void selectLast(Player player) {
+        playerCurrentBet.put(player, getBets(player).size() - 1);
+    }
+
+    public void selectBet(Player player, int betIndex) {
+        if (betIndex < 0) return;
+
+        List<Bet> bets = getBets(player);
+        if (bets.isEmpty() || betIndex > bets.size() - 1) return;
+
+        playerCurrentBet.put(player, betIndex);
+    }
+
+    public @Nullable Bet getSelectedBet(Player player) {
+        int index = getSelectedBetIndex(player);
+        if (index < 0) return null;
+
+        List<Bet> bets = getBets(player);
+        if (bets.isEmpty() || index > bets.size() - 1) return null;
+
+        return bets.get(index);
+    }
+
+    public @NotNull List<Bet> getBets(Player player) {
+        return (List<Bet>) players.get(player);
+    }
+
+    public @NotNull Set<Player> getPlayers() {
+        return players.keySet();
+    }
+
+    public @NotNull Collection<Bet> getAllBets() {
+        return players.values();
+    }
+
+    public void removeSleepingPlayers() {
+        MessageManager messages = plugin.getMessageManager();
+
+        // Check if the players selected a chip.
+        Iterator<Map.Entry<Player, Bet>> iterator = players.entries().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Player, Bet> entry = iterator.next();
+
+            // If somehow player is null (maybe disconnected), continue. This should NEVER happen.
+            Player player = entry.getKey();
+            if (player == null || !player.isOnline()) continue;
+
+            // If the player didn't select a chip, close inventory and remove from the game.
+            // This is only possible if the player never selected his first bet chip.
+            Bet bet = entry.getValue();
+            if (bet.hasChip()) continue;
+
+            iterator.remove();
+
+            // At this point, the state is SPINNING so the original money won't be returned.
+            removePartially(player, bet);
+
+            messages.send(player, MessageManager.Message.OUT_OF_TIME);
+
+            // If the player still has a menu open, we must close it.
+            closeOpenMenu(player);
+        }
+    }
+
+    public void closeOpenMenu(@NotNull Player player) {
+        InventoryHolder holder = player.getOpenInventory().getTopInventory().getHolder();
+        if (holder instanceof RouletteGUI) player.closeInventory();
+    }
+
+    public boolean isDone(Player player) {
+        return playersDone.contains(player);
+    }
+
+    public void setDone(Player player) {
+        playersDone.add(player);
+    }
+
+    public void setNotReady(Player player) {
+        playersDone.remove(player);
+    }
+
+    public boolean isChipDisabled(@NotNull Chip chip) {
+        return chipsDisabled.contains(chip.name());
+    }
+
+    public void enableChip(@NotNull Chip chip) {
+        chipsDisabled.remove(chip.name());
+    }
+
+    public void disableChip(@NotNull Chip chip) {
+        chipsDisabled.add(chip.name());
+    }
+
+    public void sendBets(Player player,
+                         MessageManager.Message message,
+                         MessageManager.Message hover,
+                         UnaryOperator<String> loreReplacer,
+                         boolean winOnly) {
+        // Send bets message formatted with hover messages.
+        sendBetsMessage(player,
+                message,
+                "%bet%",
+                loreReplacer,
+                (temp, lines, index) -> sendBets(temp, lines, index, hover, winOnly));
+    }
+
+    private void sendBets(Player player, List<String> lore, int indexOf, MessageManager.Message hover, boolean winOnly) {
+        List<Bet> bets = winOnly ? getBets(player)
+                .stream()
+                .filter(Bet::isWon)
+                .toList() : getBets(player);
+
+        if (bets.isEmpty()) {
+            player.sendMessage(lore.get(indexOf).replace("%bet%", MessageManager.Message.NO_WINNING_BETS.asString()));
+            return;
+        }
+
+        for (Bet bet : bets) {
+            List<String> hoverLines = hover.asList();
+
+            // Build the hover message.
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < hoverLines.size(); i++) {
+                builder.append(LORE_REPLACER.apply(this, bet, hoverLines.get(i)));
+                if (i != hoverLines.size() - 1) builder.append("\n");
             }
 
-            chairs.put(key, spawnChairStand(key));
+            String text = lore.get(indexOf).replace("%bet%", PluginUtils.getSlotName(bet.getSlot()));
+            HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(builder.toString()));
+
+            BaseComponent[] components = TextComponent.fromLegacyText(text);
+            for (BaseComponent component : components) {
+                component.setHoverEvent(hoverEvent);
+            }
+
+            player.spigot().sendMessage(components);
         }
     }
 }

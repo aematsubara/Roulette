@@ -16,11 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.invoke.MethodHandle;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.*;
 
 public class ParrotUtils {
 
@@ -120,8 +116,7 @@ public class ParrotUtils {
     }
 
     public static @Nullable Object createParrot(World world, Parrot.Variant variant) {
-        if (PARROT_TYPE == null) return null;
-
+        Preconditions.checkNotNull(PARROT_TYPE);
         Preconditions.checkNotNull(PARROT_CONSTRUCTOR);
         Preconditions.checkNotNull(GET_WORLD_HANDLE);
         Preconditions.checkNotNull(GET_BUKKIT_ENTITY);
@@ -143,7 +138,7 @@ public class ParrotUtils {
     }
 
     public static Sound getAmbient(@NotNull World world) {
-        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Random random = PluginUtils.RANDOM;
         if (world.getDifficulty() != Difficulty.PEACEFUL && random.nextInt(100) == 0) {
             List<EntityType> list = Lists.newArrayList(MOB_SOUND_MAP.keySet());
             return getImitatedSound(list.get(random.nextInt(list.size())));
@@ -151,31 +146,29 @@ public class ParrotUtils {
         return Sound.ENTITY_PARROT_AMBIENT;
     }
 
-    private static Sound getImitatedSound(EntityType type) {
+    public static Sound getImitatedSound(EntityType type) {
         return MOB_SOUND_MAP.getOrDefault(type, Sound.ENTITY_PARROT_AMBIENT);
     }
 
-    public static boolean imitateNearbyMobs(@NotNull Location location) {
+    public static @Nullable Sound imitateNearbyMobs(@NotNull Location location) {
         World world = location.getWorld();
-        if (world == null) return false;
+        if (world == null) return null;
 
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        if (random.nextInt(2) != 0) return false;
+        Random random = PluginUtils.RANDOM;
+        if (random.nextInt(50) != 0) return null;
 
         List<Entity> nearby = new ArrayList<>(world.getNearbyEntities(location, 15.0d, 15.0d, 15.0d, temp -> MOB_SOUND_MAP.containsKey(temp.getType())));
-        if (nearby.isEmpty()) return false;
+        if (nearby.isEmpty()) return null;
 
         Entity randomNearby = nearby.get(random.nextInt(nearby.size()));
-        if (randomNearby.isSilent()) return false;
+        if (randomNearby.isSilent()) return null;
 
-        Sound sound = getImitatedSound(randomNearby.getType());
-
-        world.playSound(location, sound, 0.7f, getPitch(random));
-        return true;
+        return getImitatedSound(randomNearby.getType());
     }
 
-    public static float getPitch(@NotNull ThreadLocalRandom current) {
-        return (current.nextFloat() - current.nextFloat()) * 0.2f + 1.0f;
+    public static float getPitch() {
+        Random random = PluginUtils.RANDOM;
+        return (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f;
     }
 
     public enum ParrotShoulder {

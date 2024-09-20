@@ -20,19 +20,21 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 @Getter
 public class NPC {
 
     private final Collection<Player> seeingPlayers = new CopyOnWriteArraySet<>();
+    private final Collection<UUID> insideFOVPlayers = new CopyOnWriteArraySet<>();
     private final int entityId;
     private final UserProfile profile;
     private final SpawnCustomizer spawnCustomizer;
     private final Location location;
     private final Game game;
 
-    public NPC(UserProfile profile, SpawnCustomizer spawnCustomizer, Location location, int entityId, Game game) {
+    public NPC(UserProfile profile, SpawnCustomizer spawnCustomizer, @NotNull Location location, int entityId, Game game) {
         this.entityId = entityId;
         this.spawnCustomizer = spawnCustomizer;
         this.location = location;
@@ -73,6 +75,11 @@ public class NPC {
 
     protected void removeSeeingPlayer(Player player) {
         seeingPlayers.remove(player);
+        removeFOV(player);
+    }
+
+    public void lookAtDefaultLocation(Player... players) {
+        rotation().queueBodyRotation(location.getYaw(), location.getPitch()).send(players);
     }
 
     public Collection<Player> getSeeingPlayers() {
@@ -81,6 +88,19 @@ public class NPC {
 
     public boolean isShownFor(Player player) {
         return seeingPlayers.contains(player);
+    }
+
+    public void removeFOV(@NotNull Player player) {
+        insideFOVPlayers.remove(player.getUniqueId());
+        lookAtDefaultLocation(player);
+    }
+
+    public boolean isInsideFOV(@NotNull Player player) {
+        return insideFOVPlayers.contains(player.getUniqueId());
+    }
+
+    public void setInsideFOV(@NotNull Player player) {
+        insideFOVPlayers.add(player.getUniqueId());
     }
 
     public AnimationModifier animation() {

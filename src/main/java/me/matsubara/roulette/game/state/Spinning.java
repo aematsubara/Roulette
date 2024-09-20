@@ -9,8 +9,6 @@ import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Slot;
-import me.matsubara.roulette.gui.ChipGUI;
-import me.matsubara.roulette.gui.ConfirmGUI;
 import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
@@ -23,15 +21,11 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.UnaryOperator;
 
 public final class Spinning extends BukkitRunnable {
 
@@ -58,47 +52,21 @@ public final class Spinning extends BukkitRunnable {
         System.arraycopy(Slot.values(game), 0, slots, 0, isEuropean ? 37 : 38);
 
         game.setState(GameState.SPINNING);
+        game.removeSleepingPlayers();
 
-        Map<Player, Bet> players = game.getPlayers();
-        MessageManager messages = plugin.getMessageManager();
-
-        // Check if the players selected a chip.
-        Iterator<Map.Entry<Player, Bet>> iterator = players.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<Player, Bet> entry = iterator.next();
-
-            // If somehow player is null (maybe disconnected), continue.
-            Player player = entry.getKey();
-            if (player == null || !player.isOnline()) continue;
-
-            // If the player didn't select a chip, close inventory and remove from the game.
-            Bet bet = entry.getValue();
-            if (!bet.hasChip()) {
-                iterator.remove();
-                game.remove(player, true);
-
-                messages.send(player, MessageManager.Message.OUT_OF_TIME);
-
-                // If the player still has the chip inventory open, close it.
-                InventoryHolder holder = player.getOpenInventory().getTopInventory().getHolder();
-                if (holder instanceof ChipGUI || holder instanceof ConfirmGUI) {
-                    player.closeInventory();
-                }
-
-                continue;
-            }
-
-            // Show the bet to the player.
-            Slot selected = bet.getSlot();
-            String numbers = selected.isDoubleZero() ? "[00]" : Arrays.toString(selected.getInts());
-
-            messages.send(player, MessageManager.Message.YOUR_BET, message -> message
-                    .replace("%bet%", PluginUtils.getSlotName(selected))
-                    .replace("%numbers%", numbers)
-                    .replace("%chance%", selected.getChance(game.getType().isEuropean())));
+        for (Player player : game.getPlayers()) {
+            // Remove glow, hide hologram and close custom menus.
+            game.getBets(player).forEach(Bet::hide);
+            game.sendBets(
+                    player,
+                    MessageManager.Message.YOUR_BETS,
+                    MessageManager.Message.BET_HOVER,
+                    UnaryOperator.identity(),
+                    false);
+            game.closeOpenMenu(player);
         }
 
-        if (players.isEmpty()) {
+        if (game.isEmpty()) {
             game.restart();
             shouldStart = false;
             return;
@@ -106,11 +74,7 @@ public final class Spinning extends BukkitRunnable {
 
         NPC npc = game.getNpc();
 
-        game.broadcast(messages.getRandomNPCMessage(npc, "no-bets"));
-        game.broadcast(MessageManager.Message.SPINNING_START.asString());
-
-        // Hide holograms to the players so everyone can see the spinning hologram.
-        players.forEach((player, bet) -> bet.getHologram().hideTo(player));
+        game.npcBroadcast(MessageManager.Message.NO_BETS);
 
         // Play NPC spin animation.
         npc.metadata().queue(MetadataModifier.EntityMetadata.POSE, EntityPose.CROUCHING).send();
@@ -148,7 +112,7 @@ public final class Spinning extends BukkitRunnable {
         ball.teleport(location);
 
         // Select a random number.
-        int which = ThreadLocalRandom.current().nextInt(0, isEuropean ? 37 : 38);
+        int which = PluginUtils.RANDOM.nextInt(0, isEuropean ? 37 : 38);
         game.setWinner(slots[which]);
 
         if (time == 1) {

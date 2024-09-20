@@ -29,7 +29,7 @@ public final class ConfigManager {
         return (long) (((double) Config.RESTART_TIME.asInt() / Config.RESTART_FIREWORKS.asInt()) * 20L);
     }
 
-    public String getColumnOrDozen(String type, int index) {
+    public @NotNull String getColumnOrDozen(String type, int index) {
         return PluginUtils.translate(plugin.getConfig().getString("slots." + type + "." + index));
     }
 
@@ -39,12 +39,13 @@ public final class ConfigManager {
         FIX_CHAIR_CAMERA("fix-chair-camera"),
         HIT_ON_GAME("hit-on-game"),
         KEEP_SEAT("keep-seat"),
-        LEAVE_CONFIRM("leave-confirm"),
+        DATE_FORMAT("date-format"),
         MOVE_INTERVAL("move-interval"),
-        CROUPIER_BALL("croupier-ball.material"),
-        CROUPIER_BALL_SPEED("croupier-ball.speed"),
+        CROUPIER_BALL("croupier-ball"),
         COUNTDOWN_WAITING("countdown.waiting"),
-        COUNTDOWN_SELECTING("countdown.selecting"),
+        COUNTDOWN_SELECTING("countdown.selecting.base"),
+        COUNTDOWN_SELECTING_EXTRA("countdown.selecting.extra"),
+        COUNTDOWN_SELECTING_MAX("countdown.selecting.max"),
         COUNTDOWN_SORTING("countdown.sorting"),
         RESTART_TIME("restart.time"),
         RESTART_FIREWORKS("restart.fireworks"),
@@ -55,10 +56,6 @@ public final class ConfigManager {
         SOUND_SELECT("sounds.select"),
         DISABLED_SLOTS("disabled-slots"),
         MAP_IMAGE_ENABLED("map-image.enabled"),
-        MAP_IMAGE_DATE_FORMAT("map-image.date-format"),
-        MAP_IMAGE_TEXT("map-image.text"),
-        MAP_IMAGE_ITEM_DISPLAY_NAME("map-image.item.display-name"),
-        MAP_IMAGE_ITEM_LORE("map-image.item.lore"),
         CANCEL_WORD("cancel-word"),
         SPINNING("spin-holograms.spinning"),
         WINNING_NUMBER("spin-holograms.winning-number"),
@@ -73,23 +70,28 @@ public final class ConfigManager {
         BLACK("slots.other.black"),
         TYPE_EUROPEAN("variable-text.types.european"),
         TYPE_AMERICAN("variable-text.types.american"),
-        CONFIRM_GUI_TITLE("confirmation-gui.title"),
-        CONFIRM_GUI_CONFIRM("confirmation-gui.confirm"),
-        CONFIRM_GUI_CANCEL("confirmation-gui.cancel"),
         JOIN_HOLOGRAM("join-hologram"),
         SELECT_HOLOGRAM("select-hologram"),
-        NOT_ENOUGH_MONEY_MATERIAL("not-enough-money.material"),
-        NOT_ENOUGH_MONEY_DISPLAY_NAME("not-enough-money.display-name"),
-        NOT_ENOUGH_MONEY_LORE("not-enough-money.lore"),
         STATE_ENABLED("variable-text.state.enabled"),
         STATE_DISABLED("variable-text.state.disabled"),
-        SHOP_TITLE("shop.title"),
-        GAME_MENU_TITLE("game-menu.title"),
+        SESSION_RESULT_MENU_TITLE("session-result-menu.title"),
+        SESSIONS_MENU_TITLE("sessions-menu.title"),
+        BETS_MENU_TITLE("bets-menu.title"),
+        CHIP_MENU_TITLE("chip-menu.title"),
+        CONFIRM_MENU_TITLE("confirmation-menu.title"),
         CROUPIER_MENU_TITLE("croupier-menu.title"),
+        GAME_CHIP_MENU_TITLE("game-chip-menu.title"),
+        GAME_MENU_TITLE("game-menu.title"),
+        TABLE_MENU_TITLE("table-menu.title"),
         ONLY_AMERICAN("variable-text.only-american"),
         UNNAMED_CROUPIER("variable-text.unnamed-croupier"),
         CUSTOM_WIN_MULTIPLIER_ENABLED("custom-win-multiplier.enabled"),
-        MONEY_ABBREVIATION_FORMAT_ENABLED("money-abbreviation-format.enabled");
+        MONEY_ABBREVIATION_FORMAT_ENABLED("money-abbreviation-format.enabled"),
+        DAB_ANIMATION_ENABLED("dab-animation.enabled"),
+        DAB_ANIMATION_AMOUNT("dab-animation.settings.amount"),
+        DAB_ANIMATION_RADIUS("dab-animation.settings.radius"),
+        DAB_ANIMATION_RAINBOW_EFFECT_SPEED("dab-animation.rainbow-effect.speed"),
+        DAB_ANIMATION_RAINBOW_EFFECT_GLOWING("dab-animation.rainbow-effect.glowing");
 
         private final RoulettePlugin plugin = JavaPlugin.getPlugin(RoulettePlugin.class);
         private final String path;
@@ -98,12 +100,20 @@ public final class ConfigManager {
             this.path = path;
         }
 
-        public String asString() {
-            return PluginUtils.translate(plugin.getConfig().getString(path));
+        public String asStringRaw() {
+            return plugin.getConfig().getString(path);
+        }
+
+        public @NotNull String asString() {
+            return PluginUtils.translate(asStringRaw());
+        }
+
+        public @NotNull List<String> asListRaw() {
+            return plugin.getConfig().getStringList(path);
         }
 
         public @NotNull List<String> asList() {
-            return PluginUtils.translate(plugin.getConfig().getStringList(path));
+            return PluginUtils.translate(asListRaw());
         }
 
         public boolean asBool() {
