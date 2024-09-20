@@ -30,7 +30,10 @@ import org.spigotmc.event.entity.EntityDismountEvent;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.UUID;
 
 public final class GameManager implements Listener {
 
@@ -55,13 +58,11 @@ public final class GameManager implements Listener {
         if (!(event.getDismounted() instanceof ArmorStand)) return;
 
         Game playing = getGameByPlayer(player);
-        if (playing == null
-                || playing.getTransfers().remove(player.getUniqueId())
-                || !playing.isPlaying(player)) return;
+        if (playing == null || playing.getTransfers().remove(player.getUniqueId())) return;
 
         // Remove player from game.
         plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
-        playing.remove(player, false);
+        playing.removeCompletely(player);
     }
 
     private void load() {
@@ -79,7 +80,7 @@ public final class GameManager implements Listener {
     }
 
     public void addFreshGame(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, false, null, null, null, null, null, null);
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, false, false, null, null, null, null, null, null);
     }
 
     public void add(
@@ -98,19 +99,20 @@ public final class GameManager implements Listener {
             @Nullable UUID accountTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
             boolean parrotEnabled,
+            boolean parrotSounds,
             @Nullable Parrot.Variant parrotVariant,
             @Nullable ParrotUtils.ParrotShoulder parrotShoulder,
-            @Nullable Material carpetsType,
-            @Nullable Material planksType,
-            @Nullable Material slabsType,
-            @Nullable String[] decoPattern) {
+            @Nullable Material carpet,
+            @Nullable Material customization,
+            @Nullable Integer patternIndex,
+            @Nullable List<String> chipsDisabled) {
         Game game = new Game(
                 plugin,
                 name,
                 npcName,
                 npcTexture,
                 npcSignature,
-                new Model(plugin, type.getModelName(), modelId, location, carpetsType, planksType, slabsType, decoPattern),
+                new Model(plugin, type.getModelName(), modelId, location, carpet, customization, patternIndex),
                 minPlayers,
                 maxPlayers,
                 type,
@@ -120,8 +122,10 @@ public final class GameManager implements Listener {
                 accountTo,
                 rules,
                 parrotEnabled,
+                parrotSounds,
                 parrotVariant,
-                parrotShoulder);
+                parrotShoulder,
+                chipsDisabled);
 
         games.add(game);
 
@@ -136,16 +140,19 @@ public final class GameManager implements Listener {
         configuration.set("games." + name + ".model.id", game.getModelId().toString());
         configuration.set("games." + name + ".model.type", game.getType().name());
 
-        // Save wool material for chairs.
-        String woolMaterial = game.getModel().getCarpetsType().name();
-        configuration.set("games." + name + ".model.wool-type", woolMaterial.substring(0, woolMaterial.lastIndexOf("_")));
+        Model model = game.getModel();
 
-        // Save wood material for chairs.
-        String woodMaterial = game.getModel().getPlanksType().name();
-        configuration.set("games." + name + ".model.wood-type", woodMaterial.substring(0, woodMaterial.lastIndexOf("_")));
+        // Save wool material for chairs.
+        configuration.set("games." + name + ".model.carpet", null); // Previous mapping.
+        configuration.set("games." + name + ".model.wool-type", model.getCarpetsType().name());
+
+        // Save customization material for the table and chairs.
+        configuration.set("games." + name + ".model.wood-type", null); // Previous mapping.
+        configuration.set("games." + name + ".model.customization-group", model.getTexture().block().name());
 
         // Save decoration pattern.
-        configuration.set("games." + name + ".model.deco-pattern", Arrays.asList(game.getModel().getDecoPattern()));
+        configuration.set("games." + name + ".model.deco-pattern", null); // Previous mapping.
+        configuration.set("games." + name + ".model.pattern-index", model.getPatternIndex());
 
         // Save location.
         saveLocation(name, game.getLocation());
@@ -161,10 +168,12 @@ public final class GameManager implements Listener {
         configuration.set("games." + name + ".settings.start-time", game.getStartTime());
         configuration.set("games." + name + ".settings.min-players", game.getMinPlayers());
         configuration.set("games." + name + ".settings.max-players", game.getMaxPlayers());
+        configuration.set("games." + name + ".settings.chips-disabled", game.getChipsDisabled());
 
         // Save NPC related data.
         configuration.set("games." + name + ".npc.name", game.getNPCName());
         configuration.set("games." + name + ".npc.parrot.enabled", game.isParrotEnabled());
+        configuration.set("games." + name + ".npc.parrot.sounds", game.isParrotSounds());
         configuration.set("games." + name + ".npc.parrot.variant", game.getParrotVariant().name());
         configuration.set("games." + name + ".npc.parrot.shoulder", game.getParrotShoulder().name());
         if (game.hasNPCTexture()) {
@@ -192,10 +201,7 @@ public final class GameManager implements Listener {
         ConfigurationSection section = configuration.getConfigurationSection("games");
         if (section == null) return;
 
-        int loaded = 0;
-
         for (String path : section.getKeys(false)) {
-
             // Load model related data.
             UUID modelId = UUID.fromString(configuration.getString("games." + path + ".model.id", UUID.randomUUID().toString()));
             GameType type;
@@ -206,14 +212,10 @@ public final class GameManager implements Listener {
                 continue;
             }
 
-            String woolType = configuration.getString("games." + path + ".model.wool-type", "");
-            String woodType = configuration.getString("games." + path + ".model.wood-type", "");
+            Material carpet = PluginUtils.getOrNull(Material.class, configuration.getString("games." + path + ".model.wool-type"));
+            Material customization = PluginUtils.getOrNull(Material.class, configuration.getString("games." + path + ".model.customization-group"));
 
-            Material carpets = PluginUtils.getOrNull(Material.class, woolType + "_CARPET");
-            Material planks = PluginUtils.getOrNull(Material.class, woodType + "_PLANKS");
-            Material slabs = PluginUtils.getOrNull(Material.class, woodType + "_SLAB");
-
-            String[] pattern = configuration.getStringList("games." + path + ".model.deco-pattern").toArray(new String[0]);
+            int patternIndex = configuration.getInt("games." + path + ".model.pattern-index", -1);
 
             // Load location.
             Location location = loadLocation(path);
@@ -229,6 +231,7 @@ public final class GameManager implements Listener {
             int startTime = configuration.getInt("games." + path + ".settings.start-time");
             int minPlayers = configuration.getInt("games." + path + ".settings.min-players");
             int maxPlayers = configuration.getInt("games." + path + ".settings.max-players");
+            List<String> chipsDisabled = configuration.getStringList("games." + path + ".settings.chips-disabled");
 
             // Load NPC related data.
             String npcName = configuration.getString("games." + path + ".npc.name");
@@ -241,6 +244,7 @@ public final class GameManager implements Listener {
             UUID accountTo = accountToString != null ? UUID.fromString(accountToString) : null;
 
             boolean parrotEnabled = configuration.getBoolean("games." + path + ".npc.parrot.enabled", false);
+            boolean parrotSounds = configuration.getBoolean("games." + path + ".npc.parrot.sounds", false);
             Parrot.Variant parrotVariant = PluginUtils.getOrNull(Parrot.Variant.class, configuration.getString("games." + path + ".npc.parrot.variant", ""));
             ParrotUtils.ParrotShoulder parrotShoulder = PluginUtils.getOrNull(ParrotUtils.ParrotShoulder.class, configuration.getString("games." + path + ".npc.parrot.shoulder", ""));
 
@@ -259,20 +263,20 @@ public final class GameManager implements Listener {
                     accountTo,
                     rules,
                     parrotEnabled,
+                    parrotSounds,
                     parrotVariant,
                     parrotShoulder,
-                    carpets,
-                    planks,
-                    slabs,
-                    pattern);
-
-            loaded++;
+                    carpet,
+                    customization,
+                    patternIndex,
+                    chipsDisabled);
         }
 
-        if (loaded > 0) {
+        if (!games.isEmpty()) {
             plugin.getLogger().info("All games have been loaded from games.yml!");
             return;
         }
+
         plugin.getLogger().info("No games have been loaded from games.yml, why don't you create one?");
     }
 
@@ -302,7 +306,7 @@ public final class GameManager implements Listener {
 
     public boolean isPlaying(Player player) {
         for (Game game : games) {
-            if (game.getPlayers().containsKey(player)) return true;
+            if (game.isPlaying(player)) return true;
         }
         return false;
     }

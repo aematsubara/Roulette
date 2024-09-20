@@ -4,8 +4,8 @@ import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
+import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.winner.Winner;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -18,12 +18,10 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 @Getter
-public final class GameGUI implements RouletteGUI {
+public final class GameGUI extends RouletteGUI {
 
     // Instance of the plugin.
     private final RoulettePlugin plugin;
@@ -34,11 +32,12 @@ public final class GameGUI implements RouletteGUI {
     // Inventoy being used.
     private final Inventory inventory;
 
-    // Task id used for changing the winning slots.
+    // Task id used for showing the chips enabled in this game.
     private int taskId;
 
-    public GameGUI(RoulettePlugin plugin, @NotNull Game game, @NotNull Player player) {
-        this.plugin = plugin;
+    public GameGUI(@NotNull Game game, @NotNull Player player) {
+        super("game-menu");
+        this.plugin = game.getPlugin();
         this.game = game;
         this.inventory = Bukkit.createInventory(
                 this,
@@ -61,100 +60,62 @@ public final class GameGUI implements RouletteGUI {
             inventory.setItem(i, background);
         }
 
-        ItemBuilder croupier = plugin.getItem("game-menu.croupier-settings")
+        ItemBuilder croupier = getItem("croupier-settings")
                 .setType(Material.PLAYER_HEAD);
 
         String url = game.getNpcTextureAsURL();
         if (url != null) croupier.setHead(url, true);
 
-        String npcName = game.getNPCName();
-        inventory.setItem(0, croupier
-                .replace("%croupier-name%", npcName != null ? npcName : ConfigManager.Config.UNNAMED_CROUPIER.asString())
-                .build());
+        inventory.setItem(0, croupier.build());
 
         OfflinePlayer accountTo = game.getAccountGiveTo() != null ? Bukkit.getOfflinePlayer(game.getAccountGiveTo()) : null;
 
         ItemBuilder account;
         if (accountTo != null) {
             String accountName = accountTo.getName();
-            account = plugin.getItem("game-menu.account")
+            account = getItem("account")
                     .setOwningPlayer(accountTo)
                     .replace("%player%", accountName != null ? accountName : "???");
         } else {
-            account = plugin.getItem("game-menu.no-account");
+            account = getItem("no-account");
         }
 
         inventory.setItem(10, account.build());
 
         int minAmount = game.getMinPlayers(), maxAmount = game.getMaxPlayers();
 
-        inventory.setItem(11, plugin.getItem("game-menu.min-amount").setAmount(minAmount).build());
-        inventory.setItem(12, plugin.getItem("game-menu.max-amount").setAmount(maxAmount).build());
+        inventory.setItem(11, getItem("min-amount").setAmount(minAmount).build());
+        inventory.setItem(12, getItem("max-amount").setAmount(maxAmount).build());
 
-        inventory.setItem(13, createStartTimeItem());
+        setStartTimeItem();
 
         // Rules.
         inventory.setItem(14, createRuleItem(GameRule.LA_PARTAGE));
         inventory.setItem(15, createRuleItem(GameRule.EN_PRISON));
         inventory.setItem(16, createRuleItem(GameRule.SURRENDER));
 
-        inventory.setItem(8, createBetAllItem());
+        setBetAllItem();
 
-        List<Winner.WinnerData> winners = new ArrayList<>();
+        taskId = new GameChipRunnable(game, inventory)
+                .runTaskTimer(plugin, 0L, 20L)
+                .getTaskId();
 
-        for (Winner winner : plugin.getWinnerManager().getWinners()) {
-            for (Winner.WinnerData data : winner.getWinnerData()) {
-                if (!game.getName().equalsIgnoreCase(data.getGame())) continue;
-                winners.add(data);
-            }
-        }
-
-        // Sort them by the winning date.
-        winners.sort(Comparator.comparingLong(Winner.WinnerData::getDate).reversed());
-
-        if (winners.isEmpty()) {
-            inventory.setItem(18, plugin.getItem("game-menu.last-winning-numbers")
-                    .setHead("badc048a7ce78f7dad72a07da27d85c0916881e5522eeed1e3daf217a38c1a", true)
-                    .build());
-        }
-
-        this.taskId = winners.isEmpty() ? -1 : new BukkitRunnable() {
-            private int index = 0;
-
-            @Override
-            public void run() {
-                if (index > 0 && index == winners.size() && winners.size() == 1) {
-                    cancel();
-                    return;
-                }
-
-                // Go back to the first.
-                if (index == winners.size()) index = 0;
-
-                inventory.setItem(18, plugin.getItem("game-menu.last-winning-numbers")
-                        .setHead(winners.get(index).getWinner().getUrl(), true)
-                        .build());
-
-                index++;
-            }
-        }.runTaskTimer(plugin, 0, 40L).getTaskId();
-
-        inventory.setItem(26, plugin.getItem("game-menu.close").build());
+        inventory.setItem(26, getItem("table-settings").build());
     }
 
-    public ItemStack createBetAllItem() {
+    public void setBetAllItem() {
         String state = game.isBetAllEnabled() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
-        return plugin.getItem("game-menu.bet-all")
+        inventory.setItem(8, getItem("bet-all")
                 .replace("%state%", state)
-                .build();
+                .build());
     }
 
-    public ItemStack createStartTimeItem() {
+    public void setStartTimeItem() {
         int time = game.getStartTime();
-        return plugin.getItem("game-menu.start-time")
+        inventory.setItem(13, getItem("start-time")
                 .replace("%seconds%", time)
                 .setAmount(time)
-                .build();
+                .build());
     }
 
     public ItemStack createRuleItem(@NotNull GameRule rule) {
@@ -162,7 +123,7 @@ public final class GameGUI implements RouletteGUI {
         if (rule.isSurrender() && !game.getType().isAmerican()) bannerColor = Material.GRAY_BANNER;
         else bannerColor = game.getRules().getOrDefault(rule, false) ? Material.LIME_BANNER : Material.RED_BANNER;
 
-        ItemBuilder builder = plugin.getItem("game-menu." + rule.name().toLowerCase().replace("_", "-"))
+        ItemBuilder builder = getItem(rule.name().toLowerCase().replace("_", "-"))
                 .setType(bannerColor)
                 .addItemFlags(ItemFlag.HIDE_POTION_EFFECTS)
                 .setData(plugin.getRouletteRuleKey(), PersistentDataType.STRING, rule.name());
@@ -173,5 +134,27 @@ public final class GameGUI implements RouletteGUI {
         }
 
         return builder.build();
+    }
+
+    private class GameChipRunnable extends BukkitRunnable {
+
+        private final Inventory inventory;
+        private final List<Chip> chips;
+
+        private int index;
+
+        private GameChipRunnable(@NotNull Game game, Inventory inventory) {
+            this.inventory = inventory;
+            this.chips = game.getPlugin().getChipManager().getChipsByGame(game);
+        }
+
+        @Override
+        public void run() {
+            inventory.setItem(18, getItem("game-chip")
+                    .setHead(chips.get(index).url(), true)
+                    .build());
+
+            if (++index == chips.size()) index = 0;
+        }
     }
 }

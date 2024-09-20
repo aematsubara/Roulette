@@ -10,6 +10,7 @@ import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.game.data.Bet;
+import me.matsubara.roulette.gui.BetsGUI;
 import me.matsubara.roulette.gui.ConfirmGUI;
 import me.matsubara.roulette.manager.ConfigManager;
 import org.bukkit.entity.ArmorStand;
@@ -17,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -38,22 +40,23 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         WrapperPlayClientSteerVehicle wrapper = new WrapperPlayClientSteerVehicle(event);
 
         // Get required values from the packet.
+        float forward = wrapper.getForward();
         float sideways = wrapper.getSideways();
         boolean jump = wrapper.isJump(), dismount = wrapper.isUnmount();
 
-        // At the moment, we only care about left/right, space and shift keys.
-        if (sideways == 0.0f && !jump && !dismount) return;
+        // Nothing changed?
+        if (forward == 0.0f && sideways == 0.0f && !jump && !dismount) return;
 
         // Let player dismount if is a passenger of a packet stand.
         models:
         for (Game game : plugin.getGameManager().getGames()) {
             for (ArmorStand stand : game.getChairs().values()) {
-                if (handle(player, stand, game, sideways, jump, dismount, event)) break models;
+                if (handle(player, stand, game, forward, sideways, jump, dismount, event)) break models;
             }
         }
     }
 
-    private boolean handle(Player player, @NotNull ArmorStand stand, @NotNull Game game, float sideways, boolean jump, boolean dismount, PacketPlayReceiveEvent event) {
+    private boolean handle(Player player, @NotNull ArmorStand stand, @NotNull Game game, float forward, float sideways, boolean jump, boolean dismount, PacketPlayReceiveEvent event) {
         if (!stand.getPassengers().contains(player)) return false;
 
         // Prevent player dismounting.
@@ -62,56 +65,41 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         // If the player is in cooldown, return.
         if (steerCooldown.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis()) return true;
 
+        List<Bet> bets = game.getBets(player);
+        if (bets.isEmpty()) return true;
+
         GameState state = game.getState();
+        boolean prison = bets.stream().anyMatch(Bet::isEnPrison);
 
-        // If moving left/right and the game is already started, return.
-        if (sideways != 0.0f && !state.isIdle() && !state.isStarting() && !state.isSelecting()) {
-            return true;
+        // Move the current bet.
+        Bet bet = game.getSelectedBet(player);
+        if (bet == null) return true;
+
+        // Handle chip movement (up/down/left/right).
+        if ((forward != 0.0f || sideways != 0.0f) && canMoveChip(player, game, bet)) {
+            game.moveDirectionalChip(player, forward, sideways);
         }
 
-        Bet bet = game.getPlayers().get(player);
-
-        // Left.
-        if (sideways > 0.0f) {
-            if ((state.isIdle() || state.isStarting()) && canSwapChair(player, game)) {
-                runTask(() -> game.sitPlayer(player, false));
-            } else {
-                // Only allow move chip if the bet isn't in prison.
-                if (!game.isRuleEnabled(GameRule.EN_PRISON) || !bet.isEnPrison()) {
-                    game.moveChip(player, false);
-                }
-            }
+        // Handle chair movement (left/right).
+        if (sideways != 0.0f && canSwapChair(player, game, prison)) {
+            runTask(() -> game.sitPlayer(player, sideways < 0.0f));
         }
 
-        // Right.
-        if (sideways < 0.0f) {
-            if ((state.isIdle() || state.isStarting()) && canSwapChair(player, game)) {
-                runTask(() -> game.sitPlayer(player, true));
-            } else {
-                // Only allow move chip if the bet isn't in prison.
-                if (!game.isRuleEnabled(GameRule.EN_PRISON) || !bet.isEnPrison()) {
-                    game.moveChip(player, true);
-                }
-            }
-        }
-
-        // Shift.
+        // Handle shift.
         if (dismount) {
-            if (state.isEnding() && !game.isRuleEnabled(GameRule.EN_PRISON)) {
-                // Let player unmount.
-                if (player.getVehicle() instanceof ArmorStand chair && game.getChairs().containsValue(chair)) {
-                    runTask(player::leaveVehicle);
-                }
-            } else {
-                // Open leave confirms gui to the player sync.
-                runTask(() -> new ConfirmGUI(game, player, ConfirmGUI.ConfirmType.LEAVE));
-            }
+            // Open leave confirms gui to the player sync.
+            runTask(() -> new ConfirmGUI(game, player, ConfirmGUI.ConfirmType.LEAVE));
         }
 
-        // Jump.
-        if (jump && state.isSelecting()) {
-            bet.nextGlowColor();
-            bet.updateStandGlow(player);
+        // Handle jump.
+        if (jump
+                && state.isSelecting()
+                && !game.isDone(player)
+                && !bets.isEmpty()
+                && (bets.size() > 1 || bets.get(0).hasChip())) {
+            // Only allow opening the bet GUI if the player doesn't have any bet in prison
+            // and already has a bet with a chip.
+            runTask(() -> new BetsGUI(game, player));
         }
 
         // Put player in cooldown.
@@ -125,7 +113,15 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         plugin.getServer().getScheduler().runTask(plugin, runnable);
     }
 
-    private boolean canSwapChair(Player player, @NotNull Game game) {
-        return (game.getState().isIdle() || game.getState().isStarting()) && (ConfigManager.Config.SWAP_CHAIR.asBool() || player.hasPermission("roulette.swapchair"));
+    private boolean canMoveChip(Player player, @NotNull Game game, Bet bet) {
+        return game.getState().isSelecting() && !game.isDone(player) && (!game.isRuleEnabled(GameRule.EN_PRISON) || !bet.isEnPrison());
+    }
+
+    private boolean canSwapChair(Player player, @NotNull Game game, boolean prison) {
+        return hasSwapChairPermission(player) && (!game.getState().isSelecting() || game.isDone(player) || prison);
+    }
+
+    private boolean hasSwapChairPermission(Player player) {
+        return ConfigManager.Config.SWAP_CHAIR.asBool() || player.hasPermission("roulette.swapchair");
     }
 }

@@ -26,6 +26,6 @@ public final class PlayerQuit implements Listener {
 
         // Remove player from game when leaving.
         Game game = plugin.getGameManager().getGameByPlayer(player);
-        if (game != null) game.remove(player, false);
+        if (game != null) game.removeCompletely(player);
     }
 }

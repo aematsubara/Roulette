@@ -6,7 +6,7 @@
 
     <groupId>me.matsubara</groupId>
     <artifactId>Roulette</artifactId>
-    <version>2.2</version>
+    <version>3.0</version>
     <packaging>jar</packaging>
 
     <name>Roulette</name>
@@ -134,7 +134,7 @@
 
     <dependencies>
         <!-- Spigot -->
-        <!-- Unfortunately, we are forced to use this version to guarantee compatibility with previous versions. -->
+        <!-- Unfortunately, we are forced to use 1.20.1 to guarantee compatibility with previous versions. -->
         <!--suppress VulnerableLibrariesLocal -->
         <dependency>
             <groupId>org.spigotmc</groupId>
@@ -205,14 +205,14 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.14.0</version>
+            <version>3.13.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- commons-io -->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.15.1</version>
+            <version>2.13.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- netty -->
@@ -235,6 +235,13 @@
             <groupId>com.github.retrooper</groupId>
             <artifactId>packetevents-spigot</artifactId>
             <version>2.4.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- sqlite -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.46.1.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

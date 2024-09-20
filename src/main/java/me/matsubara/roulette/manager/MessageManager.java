@@ -4,7 +4,7 @@ import com.cryptomorin.xseries.messages.ActionBar;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.npc.NPC;
+import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -14,15 +14,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.UnaryOperator;
 
+@Getter
+@Setter
 public final class MessageManager {
 
     private final RoulettePlugin plugin;
+    private FileConfiguration configuration;
 
-    @Getter
-    private @Setter FileConfiguration configuration;
+    private static final UnaryOperator<String> IDENTITY = UnaryOperator.identity();
 
     public MessageManager(RoulettePlugin plugin) {
         this.plugin = plugin;
@@ -30,58 +31,53 @@ public final class MessageManager {
     }
 
     public void send(CommandSender sender, @NotNull Message message) {
-        send(sender, message.getPath(), null);
+        send(sender, message, null);
     }
 
-    public void send(CommandSender sender, @NotNull Message message, UnaryOperator<String> operator) {
-        send(sender, message.getPath(), operator);
-    }
-
-    public void send(CommandSender sender, Message... messages) {
-        for (Message message : messages) {
-            send(sender, message.getPath(), null);
-        }
-    }
-
-    public void send(CommandSender sender, String path, @Nullable UnaryOperator<String> operator) {
+    public void send(CommandSender sender, @NotNull Message message, @Nullable UnaryOperator<String> operator) {
+        String path = message.getPath();
         if (configuration.get(path) instanceof List) {
-            // Multiple messages.
-            List<String> messages = configuration.getStringList(path);
-            for (String line : messages) {
-                String message = PluginUtils.translate(line);
-                if (operator != null) message = operator.apply(message);
-                sender.sendMessage(message);
+            for (String line : configuration.getStringList(path)) {
+                sender.sendMessage(operator(operator).apply(PluginUtils.translate(line)));
             }
-        } else {
-            // Single line message.
-            String message = configuration.getString(path);
-            if (message != null) {
-                String newMessage = PluginUtils.translate(message.replace("[AB]", ""));
-                if (operator != null) newMessage = operator.apply(newMessage);
-
-                if (!message.startsWith("[AB]") || !(sender instanceof Player)) {
-                    sender.sendMessage(newMessage);
-                    return;
-                }
-                ActionBar.sendActionBar(plugin, ((Player) sender), newMessage, 50L);
-            }
+            return;
         }
+        sendSingleMessage(sender, configuration.getString(path), operator);
     }
 
-    public String getRandomNPCMessage(@NotNull NPC npc, @NotNull String type) {
-        String npcName = npc.getProfile().getName().equalsIgnoreCase("") ? null : npc.getProfile().getName();
-        String message = switch (type) {
-            case "bets" -> getMessage(Message.BETS.asList());
-            case "no-bets" -> getMessage(Message.NO_BETS.asList());
-            default -> getMessage(Message.WINNER.asList());
-        };
-        if (npcName == null || Message.CROUPIER_PREFIX.asString().equalsIgnoreCase("")) return message;
-        return Message.CROUPIER_PREFIX.asString().replace("%croupier%", npcName).concat(message);
+    public void sendNPCMessage(CommandSender sender, @NotNull Game game, @NotNull Message message) {
+        sendNPCMessage(sender, game, message, null);
     }
 
-    private String getMessage(@NotNull List<String> list) {
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        return list.get(random.nextInt(list.size()));
+    public void sendNPCMessage(CommandSender sender, @NotNull Game game, @NotNull Message message, @Nullable UnaryOperator<String> operator) {
+        sendSingleMessage(sender, getNPCMessage(game, message), operator);
+    }
+
+    private void sendSingleMessage(CommandSender sender, @Nullable String message, @Nullable UnaryOperator<String> operator) {
+        if (message == null) return;
+
+        String newMessage = (operator(operator)).apply(PluginUtils.translate(message.replace("[AB]", "")));
+
+        if (!message.startsWith("[AB]") || !(sender instanceof Player player)) {
+            sender.sendMessage(newMessage);
+            return;
+        }
+
+        ActionBar.sendActionBar(plugin, player, newMessage, 50L);
+    }
+
+    private String getNPCMessage(@NotNull Game game, @NotNull Message message) {
+        List<String> messages = message.asList();
+        String random = messages.get(PluginUtils.RANDOM.nextInt(messages.size()));
+
+        String name = game.getNPCName(), prefix = Message.CROUPIER_PREFIX.asString();
+        if (name == null || prefix.equalsIgnoreCase("")) return random;
+
+        return prefix.replace("%croupier%", name).concat(random);
+    }
+
+    private UnaryOperator<String> operator(@Nullable UnaryOperator<String> operator) {
+        return operator != null ? operator : IDENTITY;
     }
 
     public enum Message {
@@ -89,6 +85,7 @@ public final class MessageManager {
         BETS("npc.bets"),
         NO_BETS("npc.no-bets"),
         WINNER("npc.winner"),
+        INVITE("npc.invite"),
         CREATE("command.create"),
         DELETE("command.delete"),
         EXIST("command.exist"),
@@ -98,25 +95,39 @@ public final class MessageManager {
         NOT_PERMISSION("command.not-permission"),
         RELOADING("command.reloading"),
         RELOAD("command.reload"),
+        SESSION_RESULT_REMOVED("session.result-removed"),
+        SESSION_LOST_RECOVERED("session.lost-recovered"),
+        SESSION_BET_IN_PRISON("session.bet-in-prison"),
+        SESSION_BET_REVERTED("session.bet-reverted"),
+        SESSION_TRANSACTION_COMPLETED("session.transaction-completed"),
+        SESSION_TRANSACTION_FAILED("session.transaction-failed"),
+        SESSION_EMPTY("session.empty"),
         STARTING("game.starting"),
         SELECT_BET("game.select-bet"),
         BET_IN_PRISON("game.bet-in-prison"),
-        CHANGE_GLOW_COLOR("game.change-glow-color"),
+        BET_SELECTED("game.bet-selected"),
+        BET_ALREADY_SELECTED("game.bet-already-selected"),
+        AT_LEAST_ONE_BET_REQUIRED("game.at-least-one-bet-required"),
+        BET_REMOVED("game.bet-removed"),
+        YOU_ARE_DONE("game.you-are-done"),
+        PLAYER_DONE("game.player-done"),
+        ALL_PLAYERS_DONE("game.all-players-done"),
+        EXTRA_TIME_ADDED("game.extra-time-added"),
         SPINNING("game.spinning"),
         OUT_OF_TIME("game.out-of-time"),
-        YOUR_BET("game.your-bet"),
-        SPINNING_START("game.spinning-start"),
+        YOUR_BETS("game.your-bets"),
+        BET_HOVER("game.bet-hover"),
         JOIN("game.join"),
         LEAVE("game.leave"),
         NO_WINNER("game.no-winner"),
-        WINNERS("game.winners"),
-        PRICE("game.price"),
+        ALL_WINNERS("game.all-winners"),
+        WINNER_HOVER("game.winner-hover"),
+        YOUR_WINNING_BETS("game.your-winning-bets"),
+        WINNING_BET_HOVER("game.winning-bet-hover"),
+        NO_WINNING_BETS("game.no-winning-bets"),
         RESTART("game.restart"),
         PRISON_REMINDER("game.prison-reminder"),
         LEAVE_PLAYER("game.leave-player"),
-        LA_PARTAGE("game.la-partage"),
-        EN_PRISON("game.en-prison"),
-        SURRENDER("game.surrender"),
         ALREADY_INGAME("other.already-ingame"),
         ALREADY_STARTED("other.already-started"),
         SEAT_TAKEN("other.seat-taken"),
@@ -146,7 +157,8 @@ public final class MessageManager {
         NPC_RENAMED("other.npc-renamed"),
         NPC_ALREADY_RENAMED("other.npc-already-renamed"),
         NPC_TEXTURIZED("other.npc-texturized"),
-        NPC_ALREADY_TEXTURIZED("other.npc-already-texturized");
+        NPC_ALREADY_TEXTURIZED("other.npc-already-texturized"),
+        AT_LEAST_ONE_CHIP_REQUIRED("other.at-least-one-chip-required");
 
         private final RoulettePlugin plugin = JavaPlugin.getPlugin(RoulettePlugin.class);
         private final @Getter String path;
@@ -155,7 +167,7 @@ public final class MessageManager {
             this.path = path;
         }
 
-        public String asString() {
+        public @NotNull String asString() {
             return PluginUtils.translate(plugin.getMessageManager().getConfiguration().getString(path));
         }
 

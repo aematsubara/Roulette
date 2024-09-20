@@ -7,6 +7,7 @@ import io.netty.buffer.Unpooled;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.util.PluginUtils;
 import me.matsubara.roulette.util.Reflection;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
@@ -46,9 +47,6 @@ public final class PacketStand {
         NONE,
         HOLOGRAM
     }
-
-    // The render distance taken from the model.
-    private final double renderDistance;
 
     // Entity id.
     private final int entityId;
@@ -385,22 +383,15 @@ public final class PacketStand {
         }
     }
 
-    public PacketStand(@NotNull Location location, StandSettings settings, boolean showEveryone, int renderDistance) {
+    public PacketStand(@NotNull Location location, StandSettings settings, boolean showEveryone) {
         Validate.notNull(location.getWorld(), "World can't be null.");
 
         setLocation(location);
-        this.renderDistance = Math.min(renderDistance * renderDistance, BUKKIT_VIEW_DISTANCE);
         this.entityId = ENTITY_COUNTER.incrementAndGet();
         this.entityUniqueId = UUID.randomUUID();
         this.settings = settings;
 
         if (showEveryone) spawn();
-    }
-
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public boolean isInRange(@NotNull Location location) {
-        if (!this.location.getWorld().equals(location.getWorld())) return false;
-        return this.location.distanceSquared(location) <= renderDistance;
     }
 
     public void spawn() {
@@ -410,7 +401,11 @@ public final class PacketStand {
     }
 
     public void spawn(@NotNull Player player) {
-        if (!isInRange(player.getLocation())) return;
+        spawn(player, false);
+    }
+
+    public void spawn(@NotNull Player player, boolean ignoreRangeCheck) {
+        if (!ignoreRangeCheck && !PluginUtils.isInRange(location, player.getLocation())) return;
         if (!plugin.isEnabled()) return;
 
         ignored.remove(player.getUniqueId());
@@ -418,10 +413,22 @@ public final class PacketStand {
         Object spawnPacket = VERSION > 18 ? after18SpawnPacket() : before18SpawnPacket(yaw, pitch);
         if (spawnPacket == null) return;
 
+        // Send spawn.
         sendPacket(player, spawnPacket);
-        updateLocation();
-        updateMetadata();
-        updateEquipment();
+
+        // Send teleport.
+        Object teleport = createTeleport();
+        if (teleport != null) sendPacket(player, teleport);
+
+        // Send rotation.
+        Object rotation = createEntityHeadRotation();
+        if (rotation != null) sendPacket(player, rotation);
+
+        // Send metadata.
+        updateMetadata(player);
+
+        // Send equipment.
+        updateEquipment(player);
     }
 
     public void setLocation(@NotNull Location location) {
@@ -494,11 +501,14 @@ public final class PacketStand {
     }
 
     private void updateLocation() {
-        sendTeleport();
-        sendRotation();
+        Object teleport = createTeleport();
+        if (teleport != null) sendPacket(teleport);
+
+        Object rotation = createEntityHeadRotation();
+        if (rotation != null) sendPacket(rotation);
     }
 
-    private void sendTeleport() {
+    private @Nullable Object createTeleport() {
         try {
             Object packetDataSerializer = PacketStand.packetDataSerializer.invoke(Unpooled.buffer());
             writeInt.invoke(packetDataSerializer, entityId);
@@ -508,15 +518,11 @@ public final class PacketStand {
             writeByte.invoke(packetDataSerializer, yaw);
             writeByte.invoke(packetDataSerializer, pitch);
             writeBoolean.invoke(packetDataSerializer, false);
-            sendPacket(packetEntityTeleport.invoke(packetDataSerializer));
+            return packetEntityTeleport.invoke(packetDataSerializer);
         } catch (Throwable exception) {
             exception.printStackTrace();
+            return null;
         }
-    }
-
-    private void sendRotation() {
-        Object headRotation = createEntityHeadRotation();
-        if (headRotation != null) sendPacket(headRotation);
     }
 
     private @Nullable Object createEntityHeadRotation() {
@@ -533,6 +539,10 @@ public final class PacketStand {
     }
 
     public void setEquipment(ItemStack item, ItemSlot slot) {
+        setEquipment(null, item, slot);
+    }
+
+    public void setEquipment(@Nullable Player player, ItemStack item, ItemSlot slot) {
         settings.getEquipment().put(slot, item);
 
         try {
@@ -543,18 +553,28 @@ public final class PacketStand {
             } else {
                 packetEquipment = packetEntityEquipment.invoke(entityId, slot.getNmsObject(), itemStack);
             }
-            sendPacket(packetEquipment);
+
+            if (player != null) sendPacket(player, packetEquipment);
+            else sendPacket(packetEquipment);
         } catch (Throwable exception) {
             exception.printStackTrace();
         }
     }
 
-    public void updateEquipment() {
+    public void updateEquipment(@Nullable Player player) {
         if (!settings.hasEquipment()) return;
 
         for (ItemSlot slot : ItemSlot.values()) {
             ItemStack item = settings.getEquipment().get(slot);
-            if (item != null) setEquipment(item, slot);
+            if (item != null) setEquipment(player, item, slot);
+        }
+    }
+
+    public void updateMetadata(Player player) {
+        try {
+            sendPacket(player, createEntityMetadata(getCorrectDataWatcherItems()));
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
         }
     }
 

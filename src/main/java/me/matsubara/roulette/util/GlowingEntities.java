@@ -28,8 +28,8 @@ import java.util.logging.Logger;
  * <p>
  * <b>1.17 -> 1.21</b>
  *
- * @version 1.3.5
  * @author SkytAsul
+ * @version 1.3.5
  */
 public class GlowingEntities implements Listener {
 
@@ -106,7 +106,7 @@ public class GlowingEntities implements Listener {
     /**
      * Make the {@link Entity} passed as a parameter glow with its default team color.
      *
-     * @param entity entity to make glow
+     * @param entity   entity to make glow
      * @param receiver player which will see the entity glowing
      * @throws ReflectiveOperationException
      */
@@ -117,9 +117,9 @@ public class GlowingEntities implements Listener {
     /**
      * Make the {@link Entity} passed as a parameter glow with the specified color.
      *
-     * @param entity entity to make glow
+     * @param entity   entity to make glow
      * @param receiver player which will see the entity glowing
-     * @param color color of the glowing effect
+     * @param color    color of the glowing effect
      * @throws ReflectiveOperationException
      */
     public void setGlowing(Entity entity, Player receiver, ChatColor color) throws ReflectiveOperationException {
@@ -131,7 +131,7 @@ public class GlowingEntities implements Listener {
      * Make the entity with specified entity ID glow with its default team color.
      *
      * @param entityID entity id of the entity to make glow
-     * @param teamID internal string used to add the entity to a team
+     * @param teamID   internal string used to add the entity to a team
      * @param receiver player which will see the entity glowing
      * @throws ReflectiveOperationException
      */
@@ -143,9 +143,9 @@ public class GlowingEntities implements Listener {
      * Make the entity with specified entity ID glow with the specified color.
      *
      * @param entityID entity id of the entity to make glow
-     * @param teamID internal string used to add the entity to a team
+     * @param teamID   internal string used to add the entity to a team
      * @param receiver player which will see the entity glowing
-     * @param color color of the glowing effect
+     * @param color    color of the glowing effect
      * @throws ReflectiveOperationException
      */
     public void setGlowing(int entityID, String teamID, Player receiver, ChatColor color)
@@ -156,12 +156,12 @@ public class GlowingEntities implements Listener {
     /**
      * Make the entity with specified entity ID glow with the specified color, and keep some flags.
      *
-     * @param entityID entity id of the entity to make glow
-     * @param teamID internal string used to add the entity to a team
-     * @param receiver player which will see the entity glowing
-     * @param color color of the glowing effect
+     * @param entityID   entity id of the entity to make glow
+     * @param teamID     internal string used to add the entity to a team
+     * @param receiver   player which will see the entity glowing
+     * @param color      color of the glowing effect
      * @param otherFlags internal flags that must be kept (on fire, crouching...). See
-     *        <a href="https://wiki.vg/Entity_metadata#Entity">wiki.vg</a> for more informations.
+     *                   <a href="https://wiki.vg/Entity_metadata#Entity">wiki.vg</a> for more informations.
      * @throws ReflectiveOperationException
      */
     public void setGlowing(int entityID, String teamID, Player receiver, ChatColor color, byte otherFlags)
@@ -207,7 +207,7 @@ public class GlowingEntities implements Listener {
      * <p>
      * This has <b>no effect</b> on glowing status given by another plugin or vanilla behavior.
      *
-     * @param entity entity to remove glowing effect from
+     * @param entity   entity to remove glowing effect from
      * @param receiver player which will no longer see the glowing effect
      * @throws ReflectiveOperationException
      */

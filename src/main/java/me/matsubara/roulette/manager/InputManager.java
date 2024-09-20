@@ -48,33 +48,35 @@ public final class InputManager implements Listener {
         if (type == null) return;
 
         String message = ChatColor.stripColor(event.getMessage());
+        MessageManager messageManager = plugin.getMessageManager();
+        GameManager gameManager = plugin.getGameManager();
 
         if (message.equalsIgnoreCase(ConfigManager.Config.CANCEL_WORD.asString())) {
-            plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_CANCELLED);
+            messageManager.send(player, MessageManager.Message.REQUEST_CANCELLED);
             event.setCancelled(true);
             remove(player);
             return;
         }
 
-        Game game = plugin.getGameManager().getGame(player.getMetadata("rouletteEditing").get(0).asString());
+        Game game = gameManager.getGame(player.getMetadata("rouletteEditing").get(0).asString());
         if (game == null) return;
 
         event.setCancelled(true);
 
         if (type == InputType.ACCOUNT_NAME) {
-            if (isInvalidPlayerName(player, message, true)) return;
+            if (isInvalidPlayerName(player, message)) return;
 
             @SuppressWarnings("deprecation") OfflinePlayer target = Bukkit.getOfflinePlayer(ChatColor.stripColor(message));
             if (target.hasPlayedBefore()) {
                 game.setAccountGiveTo(target.getUniqueId());
 
-                plugin.getMessageManager().send(player, MessageManager.Message.ACCOUNT);
-                plugin.getGameManager().save(game);
+                messageManager.send(player, MessageManager.Message.ACCOUNT);
+                gameManager.save(game);
             } else {
-                plugin.getMessageManager().send(player, MessageManager.Message.UNKNOWN_ACCOUNT);
+                messageManager.send(player, MessageManager.Message.UNKNOWN_ACCOUNT);
             }
         } else if (type == InputType.CROUPIER_NAME) {
-            if (isInvalidPlayerName(player, message, false)) return;
+            if (isInvalidPlayerName(player, message)) return;
 
             // Limited to 16 characters.
             String name = PluginUtils.translate(message);
@@ -89,8 +91,8 @@ public final class InputManager implements Listener {
             String signature = game.getNPCSignature();
 
             game.setNPC(name, texture, signature);
-            plugin.getMessageManager().send(player, MessageManager.Message.NPC_RENAMED);
-            plugin.getGameManager().save(game);
+            messageManager.send(player, MessageManager.Message.NPC_RENAMED);
+            gameManager.save(game);
         } else {
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 try {
@@ -109,10 +111,12 @@ public final class InputManager implements Listener {
                     BufferedReader reader = new BufferedReader(
                             new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
 
-                    @SuppressWarnings("deprecation") JsonObject textureObject = new JsonParser().parse(reader)
+                    JsonObject textureObject = JsonParser.parseReader(reader)
                             .getAsJsonObject()
                             .getAsJsonObject("data")
                             .getAsJsonObject("texture");
+
+                    reader.close();
 
                     String texture = textureObject.get("value").getAsString();
                     String signature = textureObject.get("signature").getAsString();
@@ -121,11 +125,11 @@ public final class InputManager implements Listener {
 
                     String name = game.getNPCName() == null ? "" : game.getNPCName();
                     game.setNPC(name, texture, signature);
-                    plugin.getMessageManager().send(player, MessageManager.Message.NPC_TEXTURIZED);
-                    plugin.getGameManager().save(game);
+                    messageManager.send(player, MessageManager.Message.NPC_TEXTURIZED);
+                    gameManager.save(game);
 
                 } catch (IOException throwable) {
-                    plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_INVALID);
+                    messageManager.send(player, MessageManager.Message.REQUEST_INVALID);
                     throwable.printStackTrace();
                 }
             });
@@ -134,9 +138,8 @@ public final class InputManager implements Listener {
         remove(player);
     }
 
-    private boolean isInvalidPlayerName(Player player, String message, boolean checkPattern) {
-        boolean invalid = checkPattern ? !message.matches("\\w{3,16}") : message.length() > 16;
-        if (!invalid) return false;
+    private boolean isInvalidPlayerName(Player player, @NotNull String message) {
+        if (message.matches("\\w{3,16}")) return false;
 
         plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_INVALID);
         remove(player);

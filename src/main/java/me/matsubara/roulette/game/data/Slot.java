@@ -1,6 +1,7 @@
 package me.matsubara.roulette.game.data;
 
 import lombok.Getter;
+import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.manager.ConfigManager;
 import org.apache.commons.lang3.ArrayUtils;
@@ -88,8 +89,7 @@ public enum Slot {
     }
 
     Slot(int... ints) {
-        this.url = null;
-        this.ints = ints;
+        this(null, ints);
     }
 
     public int getMaxBets(boolean isEuropean) {
@@ -139,10 +139,10 @@ public enum Slot {
         return 3.0d;
     }
 
-    public double getMultiplier(Game game) {
+    public double getMultiplier(RoulettePlugin plugin) {
         double defaultValue = getMultiplier();
         if (!ConfigManager.Config.CUSTOM_WIN_MULTIPLIER_ENABLED.asBool()) return defaultValue;
-        return game.getPlugin().getConfig().getDouble("custom-win-multiplier.slots." + name(), defaultValue);
+        return plugin.getConfig().getDouble("custom-win-multiplier.slots." + name(), defaultValue);
     }
 
     public @NotNull String getChance(boolean isEuropean) {

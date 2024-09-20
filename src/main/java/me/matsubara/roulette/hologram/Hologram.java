@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 @Getter
 public final class Hologram {
@@ -47,13 +48,15 @@ public final class Hologram {
     private static final double LINE_DISTANCE = 0.23d;
 
     // Rainbow colors.
-    private static final String[] RAINBOW = arrayToStrings(
-            ChatColor.RED,
-            ChatColor.GOLD,
-            ChatColor.YELLOW,
-            ChatColor.GREEN,
-            ChatColor.AQUA,
-            ChatColor.LIGHT_PURPLE);
+    private static final String[] RAINBOW = Stream.of(
+                    ChatColor.RED,
+                    ChatColor.GOLD,
+                    ChatColor.YELLOW,
+                    ChatColor.GREEN,
+                    ChatColor.AQUA,
+                    ChatColor.LIGHT_PURPLE)
+            .map(ChatColor::toString)
+            .toArray(String[]::new);
 
     public Hologram(RoulettePlugin plugin, Location location) {
         this.plugin = plugin;
@@ -77,8 +80,6 @@ public final class Hologram {
     private boolean skipUpdate(Player player) {
         Boolean playerState;
         if (visibility == null || (playerState = visibility.get(player.getName())) == null) return false;
-
-        // if (!(playerState && !visibleByDefault) && !(!playerState || visibleByDefault)) return true;
 
         Game gameByPlayer = plugin.getGameManager().getGameByPlayer(player);
         return gameByPlayer != null && gameByPlayer.getJoinHologram().equals(this);
@@ -144,7 +145,7 @@ public final class Hologram {
                 settings.setInvisible(true);
 
                 // Create packet stand, but don't show to all players.
-                PacketStand stand = new PacketStand(current, settings, false, plugin.getConfigManager().getRenderDistance());
+                PacketStand stand = new PacketStand(current, settings, false);
 
                 // Spawn packet stand to players who can see this hologram.
                 for (Player player : Bukkit.getOnlinePlayers()) {
@@ -256,14 +257,5 @@ public final class Hologram {
             Bukkit.getScheduler().cancelTask(taskId);
             taskId = -1;
         }
-    }
-
-    @SuppressWarnings("SameParameterValue")
-    private static String[] arrayToStrings(Object... array) {
-        String[] result = new String[array.length];
-        for (int i = 0; i < array.length; i++) {
-            result[i] = array[i] != null ? array[i].toString() : null;
-        }
-        return result;
     }
 }

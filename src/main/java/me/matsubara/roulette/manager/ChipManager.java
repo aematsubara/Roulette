@@ -1,13 +1,19 @@
 package me.matsubara.roulette.manager;
 
+import com.google.common.base.Predicates;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Chip;
+import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -67,7 +73,7 @@ public final class ChipManager {
 
         if (loaded > 0) {
             plugin.getLogger().info("All chips have been loaded from chips.yml!");
-            chips.sort(Comparator.comparing(Chip::getPrice));
+            chips.sort(Comparator.comparing(Chip::price));
             return;
         }
 
@@ -90,17 +96,64 @@ public final class ChipManager {
         return PluginUtils.translate(configuration.getStringList("chips." + path + ".lore"));
     }
 
-    public Double getMinAmount() {
+    public List<Chip> getChipsByGame(@NotNull Game game) {
+        return chips.stream()
+                .filter(Predicates.not(game::isChipDisabled))
+                .toList();
+    }
+
+    public @Nullable Chip getChipByPrice(Game game, double money) {
+        for (Chip chip : getChipsByGame(game)) {
+            if (money == chip.price()) return chip;
+        }
+        return null;
+    }
+
+    public Double getMinAmount(Game game) {
         // If no chip, return "unreacheable" value.
-        if (chips.isEmpty()) return Double.MAX_VALUE;
-        return chips.get(0).getPrice();
+        List<Chip> chips = getChipsByGame(game);
+        return chips.isEmpty() ? Double.MAX_VALUE : chips.get(0).price();
+    }
+
+    public Double getMaxAmount(Game game) {
+        // If no chip, return "unreacheable" value.
+        List<Chip> chips = getChipsByGame(game);
+        return chips.isEmpty() ? Double.MAX_VALUE : chips.get(chips.size() - 1).price();
+    }
+
+    public boolean hasEnoughMoney(Game game, Player player) {
+        double minAmount = getMinAmount(game);
+        if (plugin.getEconomy().has(player, minAmount)) return true;
+
+        plugin.getMessageManager().send(player,
+                MessageManager.Message.MIN_REQUIRED,
+                message -> message.replace("%money%", PluginUtils.format(minAmount)));
+        return false;
     }
 
     public @Nullable Chip getByName(String name) {
         for (Chip chip : chips) {
-            if (chip.getName().equalsIgnoreCase(name)) return chip;
+            if (chip.name().equalsIgnoreCase(name)) return chip;
         }
         return null;
+    }
+
+    public ItemStack createChipItem(@NotNull Chip chip, String guiName, boolean isShop) {
+        ItemBuilder builder = plugin.getItem(guiName + ".items.chip");
+
+        if (isShop) {
+            String displayName = chip.displayName();
+            if (displayName != null) builder.setDisplayName(displayName);
+
+            List<String> lore = chip.lore();
+            if (lore != null) builder.setLore(lore);
+        }
+
+        return builder
+                .setHead(chip.url(), true)
+                .replace("%money%", PluginUtils.format(chip.price()))
+                .setData(plugin.getChipNameKey(), PersistentDataType.STRING, chip.name())
+                .build();
     }
 
     public void reloadConfig() {

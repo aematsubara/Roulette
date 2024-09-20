@@ -2,6 +2,8 @@ package me.matsubara.roulette.listener;
 
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
+import me.matsubara.roulette.game.data.Bet;
+import me.matsubara.roulette.gui.BetsGUI;
 import me.matsubara.roulette.gui.ChipGUI;
 import me.matsubara.roulette.gui.ConfirmGUI;
 import me.matsubara.roulette.gui.GameGUI;
@@ -38,8 +40,14 @@ public final class InventoryClose implements Listener {
         Game game = plugin.getGameManager().getGameByPlayer(player);
         if (game == null) return;
 
-        if (inventory.getHolder() instanceof ChipGUI) {
-            if (game.getPlayers().get(player).hasChip()) return;
+        Bet bet = game.getSelectedBet(player);
+        if (bet == null) return;
+
+        if (inventory.getHolder() instanceof ChipGUI chip) {
+            if (bet.hasChip()) return;
+
+            // We only want to force the first bet.
+            if (chip.isNewBet()) return;
 
             // The time for selecting a chip is over.
             if (game.getState().isSpinning()) return;
@@ -47,23 +55,32 @@ public final class InventoryClose implements Listener {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (player.getOpenInventory().getTopInventory().getHolder() instanceof ConfirmGUI) return;
 
-                int page = ((ChipGUI) inventory.getHolder()).getCurrentPage();
-                runTask(() -> new ChipGUI(game, player, page));
+                int page = chip.getCurrentPage();
+                runTask(() -> new ChipGUI(game, player, page, false));
             }, 2L);
             return;
         }
 
         if (!(inventory.getHolder() instanceof ConfirmGUI gui)) return;
 
-        if (gui.getType().isLeave()) return;
-
-        // Is bet all confirm gui.
-        if (game.getPlayers().get(player).hasChip()) return;
+        ConfirmGUI.ConfirmType type = gui.getType();
+        if (type.isLeave()) return;
 
         // The time for selecting a chip is over.
         if (game.getState().isSpinning()) return;
 
-        runTask(() -> new ChipGUI(game, player, gui.getPreviousPage()));
+        if (type.isDone()) {
+            // The player is done, no need to re-open the bet GUI.
+            if (game.isDone(player)) return;
+
+            runTask(() -> new BetsGUI(game, player, gui.getPreviousPage()));
+            return;
+        }
+
+        // The player selected a chip, no need to re-open the chip GUI.
+        if (bet.hasChip()) return;
+
+        runTask(() -> new ChipGUI(game, player, gui.getPreviousPage(), gui.getSourceGUI().isNewBet()));
     }
 
     private void runTask(Runnable runnable) {

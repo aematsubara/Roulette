@@ -3,11 +3,13 @@ package me.matsubara.roulette.command;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
-import me.matsubara.roulette.game.WinType;
 import me.matsubara.roulette.game.data.Slot;
+import me.matsubara.roulette.game.data.WinData;
+import me.matsubara.roulette.gui.data.SessionsGUI;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
-import me.matsubara.roulette.manager.winner.Winner;
+import me.matsubara.roulette.manager.data.PlayerResult;
+import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -22,7 +24,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -30,7 +31,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
     private final RoulettePlugin plugin;
 
-    private static final List<String> COMMAND_ARGS = List.of("create", "delete", "reload", "map");
+    private static final List<String> COMMAND_ARGS = List.of("create", "delete", "reload", "sessions", "map");
     private static final List<String> TABLE_NAME_ARG = List.of("<name>");
     private static final List<String> TYPES = List.of("american", "european");
     private static final List<String> HELP = Stream.of(
@@ -38,6 +39,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             "&6&lRoulette &f&oCommands &c<required> | [optional]",
             "&e/roulette create <name> <type> &f- &7Create a new roulette.",
             "&e/roulette delete <name> &f- &7Delete a game.",
+            "&e/roulette sessions &f- &7Open the sessions menu.",
             "&e/roulette reload &f- &7Reload configuration files.",
             "&e/roulette map &f- &7Gives a win voucher.",
             "&8&m--------------------------------------------------").map(PluginUtils::translate).toList();
@@ -55,7 +57,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
         // No arguments provided.
         boolean noArgs = args.length == 0;
-        if (noArgs || args.length > 3 || !COMMAND_ARGS.contains(args[0].toLowerCase())) {
+        if (noArgs || args.length > 3 || (!COMMAND_ARGS.contains(args[0].toLowerCase()))) {
             // Otherwise, send a help message.
             if (noArgs) HELP.forEach(sender::sendMessage);
             else messages.send(sender, MessageManager.Message.SINTAX);
@@ -64,6 +66,22 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             switch (args[0].toLowerCase()) {
+                case "sessions" -> {
+                    // This command can't be executed from the console.
+                    Player player = getPlayerFromSender(sender);
+                    if (player == null) return true;
+
+                    // If the player doesn't have permission to open the session menu, send (@no-permission) message.
+                    if (!hasPermission(player, "roulette.sessions")) return true;
+
+                    if (plugin.getDataManager().getSessions().isEmpty()) {
+                        messages.send(player, MessageManager.Message.SESSION_EMPTY);
+                        return true;
+                    }
+
+                    new SessionsGUI(plugin, player);
+                    return true;
+                }
                 case "reload" -> {
                     // If the player doesn't have permission to reload, send (@no-permission) message.
                     if (!hasPermission(sender, "roulette.reload")) return true;
@@ -74,9 +92,6 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                     messages.send(sender, MessageManager.Message.RELOADING);
                     CompletableFuture.runAsync(plugin::updateConfigs).thenRun(() -> plugin.getServer().getScheduler().runTask(plugin, () -> {
                         plugin.reloadAbbreviations();
-
-                        // Reload winners config.
-                        plugin.getWinnerManager().reloadConfig();
 
                         // Reload chips config.
                         plugin.getChipManager().reloadConfig();
@@ -96,20 +111,24 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
                     // If the player doesn't have permission to get a map, send (@no-permission) message.
                     if (!hasPermission(player, "roulette.map")) return true;
-                    ThreadLocalRandom random = ThreadLocalRandom.current();
-                    double randomPrice = random.nextDouble(100000d);
-                    Map.Entry<Winner.WinnerData, ItemStack> data = plugin.getWinnerManager().render(
-                            player.getName(),
-                            new Winner.WinnerData(
-                                    "Roulette",
-                                    -1,
-                                    randomPrice,
-                                    System.currentTimeMillis(),
-                                    getRandomFromEnum(Slot.class),
-                                    getRandomFromEnum(Slot.class),
-                                    getRandomFromEnum(WinType.class),
-                                    randomPrice / 2),
-                            null);
+
+                    // Dummy session.
+                    RouletteSession session = new RouletteSession(UUID.randomUUID(),
+                            "Roulette",
+                            new ArrayList<>(),
+                            Slot.SLOT_0,
+                            System.currentTimeMillis());
+
+                    // Dummy result.
+                    PlayerResult result = new PlayerResult(session,
+                            player.getUniqueId(),
+                            PluginUtils.getRandomFromEnum(WinData.WinType.class),
+                            PluginUtils.RANDOM.nextInt(100000),
+                            PluginUtils.getRandomFromEnum(Slot.class));
+
+                    session.results().add(result);
+
+                    Map.Entry<Integer, ItemStack> data = plugin.getWinnerManager().render(player.getUniqueId(), session);
                     if (data != null) player.getInventory().addItem(data.getValue());
                     return true;
                 }
@@ -195,11 +214,6 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         if (sender instanceof Player player) return player;
         plugin.getMessageManager().send(sender, MessageManager.Message.FROM_CONSOLE);
         return null;
-    }
-
-    private <T extends Enum<T>> T getRandomFromEnum(@NotNull Class<T> clazz) {
-        T[] constants = clazz.getEnumConstants();
-        return constants[ThreadLocalRandom.current().nextInt(constants.length)];
     }
 
     @Override

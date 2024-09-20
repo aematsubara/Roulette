@@ -1,19 +1,32 @@
 package me.matsubara.roulette.listener;
 
+import com.google.common.base.Predicates;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.animation.MoneyAnimation;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
+import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Chip;
+import me.matsubara.roulette.game.data.CustomizationGroup;
+import me.matsubara.roulette.game.data.WinData;
+import me.matsubara.roulette.game.state.Selecting;
 import me.matsubara.roulette.gui.*;
+import me.matsubara.roulette.gui.data.SessionResultGUI;
+import me.matsubara.roulette.gui.data.SessionsGUI;
+import me.matsubara.roulette.hologram.Hologram;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.InputManager;
 import me.matsubara.roulette.manager.MessageManager;
+import me.matsubara.roulette.manager.data.DataManager;
+import me.matsubara.roulette.manager.data.PlayerResult;
+import me.matsubara.roulette.manager.data.RouletteSession;
+import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.npc.modifier.MetadataModifier;
-import me.matsubara.roulette.runnable.MoneyAnimation;
+import me.matsubara.roulette.util.ParrotUtils;
 import me.matsubara.roulette.util.PluginUtils;
-import net.milkbowl.vault.economy.EconomyResponse;
-import org.bukkit.Sound;
+import org.apache.commons.lang3.ArrayUtils;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -26,7 +39,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 public final class InventoryClick implements Listener {
 
@@ -82,34 +99,364 @@ public final class InventoryClick implements Listener {
 
         // Play click sound.
         Sound clickSound = PluginUtils.getOrNull(Sound.class, ConfigManager.Config.SOUND_CLICK.asString());
-        if (clickSound != null) player.playSound(player, clickSound, 1.0f, 1.0f);
+        if (clickSound != null) player.playSound(player.getLocation(), clickSound, 1.0f, 1.0f);
 
-        if (holder instanceof ConfirmGUI confirm) {
-            handleConfirmGUI(event, confirm);
-        } else if (holder instanceof ChipGUI chip) {
-            handleChipGUI(event, chip);
-        } else if (holder instanceof CroupierGUI croupier) {
-            handleCroupierGUI(event, croupier);
+        if (holder instanceof BetsGUI gui) {
+            handleBetsGUI(event, gui);
+        } else if (holder instanceof ChipGUI gui) {
+            handleChipGUI(event, gui);
+        } else if (holder instanceof ConfirmGUI gui) {
+            handleConfirmGUI(event, gui);
+        } else if (holder instanceof CroupierGUI gui) {
+            handleCroupierGUI(event, gui);
+        } else if (holder instanceof GameChipGUI gui) {
+            handleGameChipGUI(event, gui);
         } else if (holder instanceof GameGUI gui) {
             handleGameGUI(event, gui);
+        } else if (holder instanceof TableGUI gui) {
+            handleTableGUI(event, gui);
+        } else if (holder instanceof SessionsGUI gui) {
+            handleSessionsGUI(event, gui);
+        } else if (holder instanceof SessionResultGUI gui) {
+            handleSessionResultGUI(event, gui);
         }
     }
 
-    private void handleCroupierGUI(@NotNull InventoryClickEvent event, @NotNull CroupierGUI croupier) {
+    private void handleSessionResultGUI(@NotNull InventoryClickEvent event, SessionResultGUI gui) {
+        Player player = (Player) event.getWhoClicked();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        if (isCustomItem(current, "previous")) {
+            gui.previousPage(event.isShiftClick());
+        } else if (isCustomItem(current, "next")) {
+            gui.nextPage(event.isShiftClick());
+        }
+
+        Integer resultIndex = meta.getPersistentDataContainer().get(plugin.getPlayerResultIndexKey(), PersistentDataType.INTEGER);
+        if (resultIndex == null) return;
+
+        RouletteSession session = gui.getSession();
+
+        PlayerResult result = session.results().get(resultIndex);
+        if (result == null) return;
+
+        ClickType click = event.getClick();
+        boolean left = click.isLeftClick(), right = click.isRightClick();
+        if (!left && !right) return;
+
+        DataManager dataManager = plugin.getDataManager();
+        MessageManager messageManager = plugin.getMessageManager();
+
+        if (right) {
+            dataManager.remove(result);
+            messageManager.send(player, MessageManager.Message.SESSION_RESULT_REMOVED);
+            closeInventory(player);
+            return;
+        }
+
+        WinData.WinType win = result.win();
+
+        OfflinePlayer winner = Bukkit.getOfflinePlayer(result.playerUUID());
+
+        double originalMoney = result.money();
+        double expectedMoney = plugin.getExpectedMoney(originalMoney, result.slot(), win);
+
+        // Player lost. We want to refund the original money.
+        if (win == null) {
+            if (!plugin.deposit(winner, originalMoney)) return;
+
+            Optional.ofNullable(winner.getPlayer())
+                    .ifPresent(temp -> messageManager.send(temp,
+                            MessageManager.Message.SESSION_LOST_RECOVERED,
+                            line -> line.replace("%money%", PluginUtils.format(originalMoney))));
+
+            messageManager.send(player, MessageManager.Message.SESSION_TRANSACTION_COMPLETED);
+            dataManager.remove(result);
+            closeInventory(player);
+            return;
+        }
+
+        // Player won in prison, the player already recovered his original money.
+        if (win.isEnPrisonWin()) {
+            messageManager.send(player, MessageManager.Message.SESSION_BET_IN_PRISON);
+            dataManager.remove(result);
+            closeInventory(player);
+            return;
+        }
+
+        if (plugin.getEconomy().has(winner, expectedMoney)) {
+            // Remove the money that the player won.
+            if (plugin.withdrawFailed(winner, expectedMoney)) return;
+
+            // Deposit the original money.
+            if (!plugin.deposit(winner, originalMoney)) return;
+
+            Optional.ofNullable(winner.getPlayer())
+                    .ifPresent(temp -> messageManager.send(temp,
+                            MessageManager.Message.SESSION_BET_REVERTED,
+                            line -> line
+                                    .replace("%win-money%", PluginUtils.format(expectedMoney))
+                                    .replace("%money%", PluginUtils.format(originalMoney))));
+
+            dataManager.remove(result);
+            messageManager.send(player, MessageManager.Message.SESSION_TRANSACTION_COMPLETED);
+        } else {
+            messageManager.send(player, MessageManager.Message.SESSION_TRANSACTION_FAILED);
+        }
+
+        closeInventory(player);
+    }
+
+    private void handleSessionsGUI(@NotNull InventoryClickEvent event, SessionsGUI gui) {
+        Player player = (Player) event.getWhoClicked();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        if (isCustomItem(current, "previous")) {
+            gui.previousPage(event.isShiftClick());
+        } else if (isCustomItem(current, "next")) {
+            gui.nextPage(event.isShiftClick());
+        }
+
+        UUID sessionUUID = meta.getPersistentDataContainer().get(plugin.getSessionKey(), PluginUtils.UUID_TYPE);
+        if (sessionUUID == null) return;
+
+        RouletteSession session = plugin.getDataManager().getSessionByUUID(sessionUUID);
+        if (session == null) return;
+
+        // Open results.
+        runTask(() -> new SessionResultGUI(plugin, player, session));
+    }
+
+    private void handleGameChipGUI(@NotNull InventoryClickEvent event, GameChipGUI gui) {
+        Player player = (Player) event.getWhoClicked();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        if (isCustomItem(current, "previous")) {
+            gui.previousPage(event.isShiftClick());
+        } else if (isCustomItem(current, "next")) {
+            gui.nextPage(event.isShiftClick());
+        }
+
+        String chipName = meta.getPersistentDataContainer().get(plugin.getChipNameKey(), PersistentDataType.STRING);
+        if (chipName == null) return;
+
+        Chip chip = plugin.getChipManager().getByName(chipName);
+        if (chip == null) return;
+
+        Game game = gui.getGame();
+
+        if (game.isChipDisabled(chip)) {
+            game.enableChip(chip);
+        } else {
+            if (plugin.getChipManager().getChipsByGame(game).size() == 1) {
+                plugin.getMessageManager().send(player, MessageManager.Message.AT_LEAST_ONE_CHIP_REQUIRED);
+                closeInventory(player);
+                return;
+            }
+            game.disableChip(chip);
+        }
+
+        int slot = event.getRawSlot() + (isCustomItem(current, "chip") ? 9 : 0);
+        gui.setChipStatusItem(slot, chip);
+
+        // Update join hologram and save data.
+        game.updateJoinHologram(false);
+        plugin.getGameManager().save(game);
+    }
+
+    private void handleTableGUI(@NotNull InventoryClickEvent event, TableGUI gui) {
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        Game game = gui.getGame();
+        Model model = game.getModel();
+
+        ClickType click = event.getClick();
+        boolean left = click.isLeftClick(), right = click.isRightClick();
+        if (!left && !right) return;
+
+        if (isCustomItem(current, "texture")) {
+            CustomizationGroup texture = PluginUtils.getNextOrPrevious(CustomizationGroup.GROUPS,
+                    CustomizationGroup.GROUPS.indexOf(model.getTexture()),
+                    right);
+            model.setTexture(texture);
+            gui.setTextureItem();
+        } else if (isCustomItem(current, "chair")) {
+            Material newCarpet = PluginUtils.getNextOrPrevious(TableGUI.VALID_CARPETS,
+                    ArrayUtils.indexOf(TableGUI.VALID_CARPETS, model.getCarpetsType()),
+                    right);
+            model.setCarpetsType(newCarpet);
+            gui.setChairItem();
+        } else if (isCustomItem(current, "decoration")) {
+            String[] pattern = PluginUtils.getNextOrPrevious(Model.PATTERNS,
+                    model.getPatternIndex(),
+                    right);
+            model.setPatternIndex(ArrayUtils.indexOf(Model.PATTERNS, pattern));
+            gui.setDecorationItem();
+        } else return;
+
+        model.updateModel();
+        plugin.getGameManager().save(game);
+    }
+
+    private void handleBetsGUI(@NotNull InventoryClickEvent event, BetsGUI gui) {
+        Player player = (Player) event.getWhoClicked();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        Game game = gui.getGame();
+        List<Bet> bets = game.getBets(player);
+
+        ClickType click = event.getClick();
+        boolean left = click.isLeftClick(), right = click.isRightClick();
+        if (!left && !right) return;
+
+        if (isCustomItem(current, "glow-color")) {
+            // Change glow color and update it for the existing bets.
+            game.changeGlowColor(player, right);
+
+            // Update the glow for the selected bet.
+            Bet bet = game.getSelectedBet(player);
+            if (bet != null) bet.updateStandGlow(player);
+
+            gui.setGlowColorItem();
+            return;
+        } else if (isCustomItem(current, "new-bet")) {
+            // At this point, the player shouldn't have access to this inventory.
+            if (game.isDone(player)) {
+                closeInventory(player);
+                return;
+            }
+
+            if (plugin.getChipManager().hasEnoughMoney(game, player)) {
+                // Open a new chip menu for a new bet.
+                runTask(() -> new ChipGUI(game, player, true));
+                return;
+            }
+
+            closeInventory(player);
+            return;
+        } else if (isCustomItem(current, "previous")) {
+            gui.previousPage(event.getClick().isShiftClick());
+            return;
+        } else if (isCustomItem(current, "next")) {
+            gui.nextPage(event.getClick().isShiftClick());
+            return;
+        } else if (isCustomItem(current, "done")) {
+            runTask(() -> {
+                ConfirmGUI confirm = new ConfirmGUI(game, player, ConfirmGUI.ConfirmType.DONE);
+                confirm.setPreviousPage(gui.getCurrentPage());
+            });
+            return;
+        }
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        Integer betIndex = meta.getPersistentDataContainer().get(plugin.getBetIndexKey(), PersistentDataType.INTEGER);
+        if (betIndex == null) return;
+
+        Bet bet = bets.get(betIndex);
+        if (bet == null) return;
+
+        MessageManager messageManager = plugin.getMessageManager();
+
+        if (left) {
+            // We don't want players to interact with prison bets.
+            if (bet.isEnPrison()) {
+                messageManager.send(player, MessageManager.Message.BET_IN_PRISON);
+                return;
+            }
+
+            // This bet is already selected.
+            if (betIndex.equals(game.getSelectedBetIndex(player))) {
+                messageManager.send(player, MessageManager.Message.BET_ALREADY_SELECTED);
+                closeInventory(player);
+                return;
+            }
+
+            // Select bet.
+            game.selectBet(player, betIndex);
+
+            // Handle holograms and close inventory.
+            handlePlayerBetHolograms(game, player);
+            closeInventory(player);
+
+            messageManager.send(player, MessageManager.Message.BET_SELECTED,
+                    line -> line.replace("%bet%", String.valueOf(betIndex + 1)));
+            return;
+        }
+
+        // We don't want players to interact with prison bets.
+        if (bet.isEnPrison()) {
+            messageManager.send(player, MessageManager.Message.BET_IN_PRISON);
+            closeInventory(player);
+            return;
+        }
+
+        if (bets.stream()
+                .filter(Predicates.not(Bet::isEnPrison))
+                .count() == 1) {
+            messageManager.send(player, MessageManager.Message.AT_LEAST_ONE_BET_REQUIRED);
+            closeInventory(player);
+            return;
+        }
+
+        // First try to return the money, then remove the bet.
+        game.tryToReturnMoney(player, bet);
+        game.removeBet(player, betIndex);
+
+        // Remove hologram and chip.
+        bet.remove();
+
+        // Select the last bet.
+        game.selectLast(player);
+
+        // Handle holograms and close inventory.
+        handlePlayerBetHolograms(game, player);
+        closeInventory(player);
+
+        messageManager.send(player, MessageManager.Message.BET_REMOVED,
+                line -> line.replace("%bet%", String.valueOf(betIndex + 1)));
+    }
+
+    private void handleCroupierGUI(@NotNull InventoryClickEvent event, @NotNull CroupierGUI gui) {
         Player player = (Player) event.getWhoClicked();
         MessageManager messages = plugin.getMessageManager();
 
         ItemStack current = event.getCurrentItem();
         if (current == null) return;
 
-        Game game = croupier.getGame();
+        Game game = gui.getGame();
+
+        ClickType click = event.getClick();
+        boolean left = click.isLeftClick(), right = click.isRightClick();
 
         if (isCustomItem(current, "croupier-name")) {
-            if (event.getClick() == ClickType.LEFT) {
+            if (left) {
                 // Change name.
                 plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_NAME, game);
                 messages.send(player, MessageManager.Message.NPC_NAME);
-            } else if (event.getClick() == ClickType.RIGHT) {
+            } else if (right) {
                 // Reset name.
                 String npcName = game.getNPCName();
                 if (npcName != null && !npcName.isEmpty() && !npcName.equals(ConfigManager.Config.UNNAMED_CROUPIER.asString())) {
@@ -121,11 +468,11 @@ public final class InventoryClick implements Listener {
                 }
             }
         } else if (isCustomItem(current, "croupier-texture")) {
-            if (event.getClick() == ClickType.LEFT) {
+            if (left) {
                 // Change texture.
                 plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_TEXTURE, game);
                 messages.send(player, MessageManager.Message.NPC_TEXTURE);
-            } else if (event.getClick() == ClickType.RIGHT) {
+            } else if (right) {
                 // Reset texture.
                 if (game.hasNPCTexture()) {
                     messages.send(player, MessageManager.Message.NPC_TEXTURIZED);
@@ -136,16 +483,68 @@ public final class InventoryClick implements Listener {
                 }
             }
         } else if (isCustomItem(current, "parrot")) {
-            setParrot(event, game, croupier);
+            handleGameChange(
+                    gui,
+                    temp -> temp.setParrotEnabled(!temp.isParrotEnabled()),
+                    CroupierGUI::setParrotItem,
+                    true);
+            return;
+        } else if (isCustomItem(current, "parrot-sounds")) {
+            handleGameChange(
+                    gui,
+                    temp -> temp.setParrotSounds(!temp.isParrotSounds()),
+                    CroupierGUI::setParrotSoundsItem,
+                    false);
+            return;
+        } else if (isCustomItem(current, "parrot-variant")) {
+            handleGameChange(
+                    gui,
+                    temp -> temp.setParrotVariant(PluginUtils.getNextOrPreviousEnum(temp.getParrotVariant(), right)),
+                    CroupierGUI::setParrotVariantItem,
+                    true);
+            return;
+        } else if (isCustomItem(current, "parrot-shoulder")) {
+            handleGameChange(
+                    gui,
+                    temp -> temp.setParrotShoulder(PluginUtils.getNextOrPreviousEnum(temp.getParrotShoulder(), right)),
+                    CroupierGUI::setParrotShoulderItem,
+                    true);
 
+            // Send another metadata packet but for the other shoulder.
             NPC npc = game.getNpc();
             MetadataModifier metadata = npc.metadata();
-            npc.toggleParrotVisibility(player, metadata);
+            metadata.queue(game.getParrotShoulder().isLeft() ?
+                    MetadataModifier.EntityMetadata.SHOULDER_ENTITY_RIGHT :
+                    MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT, ParrotUtils.EMPTY_NBT);
             metadata.send(player.getWorld().getPlayers());
             return;
         } else return;
 
         closeInventory(player);
+    }
+
+    private <T extends RouletteGUI> void handleGameChange(
+            @NotNull T gui,
+            @NotNull Consumer<Game> gameChange,
+            @NotNull Consumer<T> guiChange,
+            boolean refreshParrot) {
+        Game game = gui.getGame();
+        gameChange.accept(game);
+
+        guiChange.accept(gui);
+        plugin.getGameManager().save(game);
+
+        if (refreshParrot) {
+            World world = game.getNpc().getLocation().getWorld();
+            refreshParrotChange(game, world);
+        }
+    }
+
+    private void refreshParrotChange(@NotNull Game game, World world) {
+        NPC npc = game.getNpc();
+        MetadataModifier metadata = npc.metadata();
+        npc.toggleParrotVisibility(world, metadata);
+        metadata.send(world.getPlayers());
     }
 
     private void handleConfirmGUI(@NotNull InventoryClickEvent event, ConfirmGUI confirm) {
@@ -155,43 +554,66 @@ public final class InventoryClick implements Listener {
         if (current == null) return;
 
         Game game = confirm.getGame();
+        ConfirmGUI.ConfirmType type = confirm.getType();
 
-        if (confirm.getType().isLeave()) {
+        // Clicked on the item of the middle.
+        String iconPath = type.getIconPath();
+        if (isCustomItem(current, iconPath.substring(iconPath.lastIndexOf(".") + 1))) return;
 
-            if (isCustomItem(current, "confirm")) {
-                plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
-                game.remove(player, false);
-            } else if (isCustomItem(current, "exit")) {
-                // Do nothing.
-                return;
-            }
+        // Close the inventory.
+        if (isCustomItem(current, "cancel")) {
+            closeInventory(player);
+            return;
+        }
 
+        MessageManager messageManager = plugin.getMessageManager();
+
+        if (type.isLeave()) {
+            // Remove the player from the game.
+            messageManager.send(player, MessageManager.Message.LEAVE_PLAYER);
+            game.removeCompletely(player);
+        } else if (type.isBetAll()) {
+            // Bet all the money.
+            double money = plugin.getEconomy().getBalance(player);
+
+            // If the @bet-all item has URL, use it. Otherwise, use a default one.
+            String skin = plugin.getConfig().getString("chip-menu.items.bet-all.url", "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852");
+
+            takeMoney(game, player, money, getBetAllChip(game, skin, money), confirm.getSourceGUI().isNewBet());
         } else {
-            if (isCustomItem(current, "confirm")) {
-                double money = plugin.getEconomy().getBalance(player);
+            // Make the call.
+            game.setDone(player);
 
-                // If the @bet-all item has URL, use it. Otherwise, use a default one.
-                String skin = plugin.getConfig().getString("shop.bet-all.url", "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852");
+            // Remove glow and hide hologram.
+            game.getBets(player).forEach(Bet::hide);
 
-                takeMoney(game, player, money, getBetAllChip(skin, money));
-            } else if (isCustomItem(current, "bet-all")) {
-                // Do nothing.
-                return;
+            // If all players are done, then we want to reduce the start time.
+            if (game.getPlayers().stream().noneMatch(Predicates.not(game::isDone))) {
+                game.broadcast(MessageManager.Message.ALL_PLAYERS_DONE);
+
+                Selecting selecting = game.getSelecting();
+                if (selecting != null
+                        && !selecting.isCancelled()
+                        && selecting.getSeconds() > 5) {
+                    selecting.setSeconds(5);
+                }
+            } else {
+                messageManager.send(player, MessageManager.Message.YOU_ARE_DONE);
+                // Let the other players know.
+                game.broadcast(
+                        MessageManager.Message.YOU_ARE_DONE,
+                        line -> line.replace("%player-name%", player.getName()),
+                        player);
             }
         }
 
         closeInventory(player);
     }
 
-    private @NotNull Chip getBetAllChip(String skin, double money) {
-        Chip betAll = new Chip("bet-all", skin, money);
-
+    private @NotNull Chip getBetAllChip(Game game, String skin, double money) {
         // If the bet-all money is the same of one chip from chips.yml, use that chip.
-        for (Chip chip : plugin.getChipManager().getChips()) {
-            if (money == chip.getPrice()) return chip;
-        }
-
-        return betAll;
+        Chip chip = plugin.getChipManager().getChipByPrice(game, money);
+        return chip != null ? chip : new Chip("bet-all", skin, money);
     }
 
     public boolean isCustomItem(@NotNull ItemStack item, String name) {
@@ -218,13 +640,14 @@ public final class InventoryClick implements Listener {
             int currentPage = holder.getCurrentPage();
             runTask(() -> {
                 ConfirmGUI gui = new ConfirmGUI(game, player, ConfirmGUI.ConfirmType.BET_ALL);
+                gui.setSourceGUI(holder);
                 gui.setPreviousPage(currentPage);
             });
             return;
         } else if (isCustomItem(current, "exit")) {
             // Remove player from game.
             plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
-            game.remove(player, false);
+            game.removeCompletely(player);
         } else {
             ItemMeta meta = current.getItemMeta();
             if (meta == null) return;
@@ -235,7 +658,7 @@ public final class InventoryClick implements Listener {
             Chip chip = plugin.getChipManager().getByName(chipName);
             if (chip == null) return;
 
-            double money = chip.getPrice();
+            double money = chip.price();
 
             // Check if the player has the required money for this chip.
             if (!plugin.getEconomy().has(player, money)) {
@@ -244,28 +667,24 @@ public final class InventoryClick implements Listener {
                 return;
             }
 
-            takeMoney(game, player, money, chip);
+            takeMoney(game, player, money, chip, holder.isNewBet());
         }
 
         closeInventory(player);
     }
 
-    private void takeMoney(Game game, Player player, double money, Chip chip) {
+    private void takeMoney(Game game, Player player, double money, Chip chip, boolean isNewBet) {
         // Take money from player.
-        EconomyResponse response = plugin.getEconomy().withdrawPlayer(player, money);
-        if (!response.transactionSuccess()) {
-            plugin.getLogger().warning(String.format("It wasn't possible to withdraw $%s to %s.", money, player.getName()));
-            return;
-        }
+        if (plugin.withdrawFailed(player, money)) return;
 
         // Remove the money and close inventory.
         MessageManager messages = plugin.getMessageManager();
         messages.send(player, MessageManager.Message.SELECTED_AMOUNT, message -> message
                 .replace("%money%", PluginUtils.format(money))
                 .replace("%money-left%", PluginUtils.format(plugin.getEconomy().getBalance(player))));
-        messages.send(player, MessageManager.Message.CONTROL);
+        if (!isNewBet) messages.send(player, MessageManager.Message.CONTROL);
 
-        playerBet(game, player, chip);
+        playerBet(game, player, chip, isNewBet);
     }
 
     private void handleGameGUI(@NotNull InventoryClickEvent event, @NotNull GameGUI gui) {
@@ -289,7 +708,7 @@ public final class InventoryClick implements Listener {
                 if (game.getAccountGiveTo() != null) {
                     game.setAccountGiveTo(null);
                     messages.send(player, MessageManager.Message.NO_ACCOUNT);
-                    event.setCurrentItem(plugin.getItem("game-menu.no-account").build());
+                    event.setCurrentItem(plugin.getItem("game-menu.items.no-account").build());
                 } else {
                     messages.send(player, MessageManager.Message.ACCOUNT_ALREADY_DELETED);
                 }
@@ -302,11 +721,18 @@ public final class InventoryClick implements Listener {
         } else if (isCustomItem(current, "start-time")) {
             setStartTime(event, game, gui);
         } else if (isCustomItem(current, "bet-all")) {
-            setBetAll(event, game, gui);
-        } else if (isCustomItem(current, "close")) {
-            closeInventory(player);
+            handleGameChange(
+                    gui,
+                    temp -> temp.setBetAllEnabled(!temp.isBetAllEnabled()),
+                    GameGUI::setBetAllItem,
+                    false);
+        } else if (isCustomItem(current, "table-settings")) {
+            runTask(() -> new TableGUI(game, player));
         } else if (isCustomItem(current, "croupier-settings")) {
             runTask(() -> new CroupierGUI(game, player));
+            return;
+        } else if (isCustomItem(current, "game-chip")) {
+            runTask(() -> new GameChipGUI(game, player));
             return;
         }
 
@@ -397,7 +823,7 @@ public final class InventoryClick implements Listener {
             item.setAmount(!isMax ? game.getMaxPlayers() : game.getMinPlayers());
         }
 
-        // Save data.
+        // Update join hologram and save data.
         game.updateJoinHologram(false);
         plugin.getGameManager().save(game);
     }
@@ -412,7 +838,7 @@ public final class InventoryClick implements Listener {
 
         ItemStack current = event.getCurrentItem();
         if (current != null && current.getAmount() != game.getStartTime()) {
-            event.setCurrentItem(gui.createStartTimeItem());
+            gui.setStartTimeItem();
         }
 
         // Save data.
@@ -427,33 +853,66 @@ public final class InventoryClick implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, runnable);
     }
 
-    private void playerBet(@NotNull Game game, Player player, Chip chip) {
-        // Save player chip.
-        game.getPlayers().get(player).setChip(chip);
+    private void handlePlayerBetHolograms(@NotNull Game game, Player player) {
+        List<Bet> bets = game.getBets(player);
+        for (int i = 0; i < bets.size(); i++) {
+            Bet bet = bets.get(i);
 
-        // First automated move.
-        game.moveChip(player, true);
+            Hologram hologram = bet.getHologram();
+            if (hologram == null) continue;
 
-        // Send a glow advice message.
-        plugin.getMessageManager().send(player, MessageManager.Message.CHANGE_GLOW_COLOR);
+            if (i == game.getSelectedBetIndex(player)) {
+                // Show hologram.
+                hologram.showTo(player);
 
-        if (game.getMoneyAnimation() != null) return;
+                // Update hologram lines.
+                List<String> lines = hologram.getLines();
+                for (int j = 0; j < lines.size(); j++) {
+                    hologram.setLine(j, lines.get(j));
+                }
+
+                // Add glow.
+                bet.updateStandGlow(player);
+            } else {
+                // Hide hologram and remove glow.
+                hologram.hideTo(player);
+                bet.removeStandGlow(player);
+            }
+        }
+    }
+
+    private void playerBet(@NotNull Game game, Player player, Chip chip, boolean isNewBet) {
+        // Handle the new bet (if needed).
+        if (isNewBet) handleNewBet(game, player);
+
+        // Set the chip of the bet.
+        Bet bet = game.getSelectedBet(player);
+        if (bet != null) bet.setChip(chip);
+
+        // After adding a new bet, we only want to show the hologram of the SELECTED bet.
+        handlePlayerBetHolograms(game, player);
+
+        // Place the bet on the first empty slot.
+        game.firstChipMove(player);
 
         // If the money animation isn't running, run now.
-        MoneyAnimation anim = new MoneyAnimation(game);
-        anim.runTaskTimer(plugin, 1L, 1L);
-        game.setMoneyAnimation(anim);
+        if (game.getMoneyAnimation() == null) {
+            new MoneyAnimation(game);
+        }
     }
 
-    private void setBetAll(@NotNull InventoryClickEvent event, @NotNull Game game, @NotNull GameGUI gui) {
-        game.setBetAllEnabled(!game.isBetAllEnabled());
-        event.setCurrentItem(gui.createBetAllItem());
-        plugin.getGameManager().save(game);
-    }
+    private void handleNewBet(@NotNull Game game, Player player) {
+        game.addEmptyBetAndSelect(player);
 
-    private void setParrot(@NotNull InventoryClickEvent event, @NotNull Game game, @NotNull CroupierGUI gui) {
-        game.setParrotEnabled(!game.isParrotEnabled());
-        event.setCurrentItem(gui.createParrotItem(plugin));
-        plugin.getGameManager().save(game);
+        Selecting selecting = game.getSelecting();
+        if (selecting == null || selecting.isCancelled()) return;
+
+        int extra = ConfigManager.Config.COUNTDOWN_SELECTING_EXTRA.asInt();
+        int max = ConfigManager.Config.COUNTDOWN_SELECTING_MAX.asInt();
+        selecting.setSeconds(Math.min(selecting.getSeconds() + extra, max - 1));
+
+        game.broadcast(MessageManager.Message.EXTRA_TIME_ADDED, line -> line
+                .replace("%extra%", String.valueOf(extra))
+                .replace("%player-name%", player.getName()), player);
     }
 }

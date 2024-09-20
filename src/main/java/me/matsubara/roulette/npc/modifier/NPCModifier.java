@@ -2,6 +2,7 @@ package me.matsubara.roulette.npc.modifier;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
+import lombok.Getter;
 import me.matsubara.roulette.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -14,7 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class NPCModifier {
 
     protected final NPC npc;
-    protected final List<LazyPacket> packetContainers = new CopyOnWriteArrayList<>();
+    protected final @Getter List<LazyPacket> packetContainers = new CopyOnWriteArrayList<>();
 
     public NPCModifier(NPC npc) {
         this.npc = npc;

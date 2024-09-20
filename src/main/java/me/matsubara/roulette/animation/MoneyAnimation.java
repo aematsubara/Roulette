@@ -1,4 +1,4 @@
-package me.matsubara.roulette.runnable;
+package me.matsubara.roulette.animation;
 
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.model.stand.PacketStand;
@@ -22,6 +22,9 @@ public final class MoneyAnimation extends BukkitRunnable {
         this.goUp = true;
         this.count = 0;
         this.toFinish = 0;
+
+        game.setMoneyAnimation(this);
+        runTaskTimer(game.getPlugin(), 1L, 1L);
     }
 
     @Override

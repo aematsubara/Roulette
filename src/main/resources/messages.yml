@@ -1,14 +1,12 @@
-# All messages are customizable, you can use HEX colors using &#RRGGBB (1.16+).
+# All messages are customizable, you can use HEX colors using &#RRGGBB.
 
 # Don't touch this!
 config-version: 1
 
 # NPC related messages.
-#
-# Available placeholders:
-# %croupier% - the croupier name. (@croupier-prefix)
 npc:
-  croupier-prefix: "&b%croupier%: "
+  # %croupier% - the croupier name.
+  croupier-prefix: "&b(Croupier) %croupier%: "
   bets:
     - "&ePlace your bets, ladies and gentlemen, please!"
     - "&ePlace your bets, my friends."
@@ -22,11 +20,29 @@ npc:
     - "&eWe have a winner."
     - "&eListen, we got a winner here."
     - "&eWe've got a winner, ladies and gentlemen!"
+  invite:
+    - "&e99% of gamblers quit before they hit it big. Are you in the 1%?"
+    - "&eDon’t just stand there-come play! Your next spin could be the one!"
+    - "&eThe only bet you lose is the one you don’t place! Take your shot!"
+    - "&eThe wheel is spinning, the stakes are high! Are you brave enough to try?"
+    - "&eBet big, win bigger! Step up and let the croupier show you the way to riches!"
+
+session:
+  result-removed: "&6The result has been deleted!"
+  # %money% - original bet money returned.
+  lost-recovered: "&6You have recovered &a%money% &6from a lost bet!"
+  bet-in-prison: "&6This bet won in prison so there is nothing to do."
+  # %win-money% - previously won money that has been taken from the player.
+  # %money% - original bet money returned.
+  bet-reverted: "&cA bet you had was cancelled. We have taken your winnings (&a%win-money%&c) and refunded your original money (&a%money%&c)."
+  transaction-completed: "&6Transaction completed successfully!"
+  transaction-failed:
+    - "&cThis player spent part of the money won and the full amount cannot be removed!"
+    - "&cYou'll have to handle it manually. Once you're done, right click to delete this result!"
+  empty: "&cThere are no roulette sessions yet."
 
 # Command related messages.
-#
-# Avalaible placeholders:
-# %name% - the name of the game. (for all except @creating and @wait)
+# %name% - the name of the game.
 command:
   create: "&6The game &e%name% &6has been created!"
   delete: "&6The game &e%name% &6has been deleted!"
@@ -39,73 +55,129 @@ command:
   reload: "&6The configuration files have been reloaded!"
 
 # Game related messages.
-#
-# Available placeholders:
-# %seconds% - the countdown time involved. (@starting and @spinning)
-# %bet% - the selected bet of the player. (@your-bet)
-# %numbers% - the numbers that belong to the slot. (@your-bet)
-# %chance% - chance of winning. (@your-bet)
-# %player% - the player involved. (@join and @leave)
-# %playing% - number of players in the game. (@join and @leave)
-# %max% - the maximum number of players allowed. (@join and @leave)
-# %amount% - the number of winners in the game. (@winners and @price)
-# %winners% - a list with the names of the winners, separated by commas. (@winners)
-# %multiplier% - the prize multiplier, depending on the slot. (@price)
-# %winner% - the winning slot. (@no-winner & @winner)
 game:
+  # %seconds% - the countdown time involved.
   starting: "&6Starting the game in &e%seconds% &6seconds..."
   select-bet: "&6Please, select your bet."
-  bet-in-prison: "&cYour bet is in prison, you can't move it."
-  change-glow-color: "&bYou can change the glow color by using the space (jump) key to make it easier to identify your bet."
+  bet-in-prison: "&cThis bet is in prison, you can't interact with it!"
+  # %bet% - the number of the bet.
+  bet-selected: "&6Bet &a#%bet% &6selected!"
+  bet-already-selected: "&cThis bet is already selected!"
+  at-least-one-bet-required: "&cYou need at least one bet to be able to play!"
+  # %bet% - the number of the bet.
+  bet-removed: "&6Bet &a#%bet% &6has been removed!"
+  you-are-done: "&6You're done, just wait for the other players."
+  # %player-name% - the name of the player.
+  player-done: "&6The player &e%player-name% &6is done!"
+  all-players-done: "&6All players have placed their bets! Accelerating the countdown..."
+  # %extra% - the extra seconds added.
+  # %player-name% - the name of the player.
+  extra-time-added: "&6Extra &a%extra%s &6were added so &e%player-name% &6can make a new bet!"
+  # %seconds% - the countdown time involved.
   spinning: "&6Spinning the roulette in &e%seconds% &6seconds..."
   out-of-time: "&cYou haven't made your bet, you're out of the game."
-  your-bet:
+  your-bets:
     - "&7"
     - "&a▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀"
     - "&7"
-    - "&eYour bet: %bet% &7%numbers%"
-    - "&6Chance of winning: &b%chance%"
+    - "&eYour bet(s): &7[hover to see more information]"
+    - "&f➡ %bet%"
     - "&7"
     - "&a▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀"
     - "&7"
-  spinning-start: "&6Spinning..."
-  join: "&e%player% &6has joined the game. (&e%playing%&6/&e%max%&6)"
-  leave: "&7%player% &chas left the game. (&7%playing%&c/&7%max%&c)"
-  no-winner: "&cThe winner is... the casino! %winner%"
-  winners:
+  # The information about a bet that will be seen when you hover over the mouse.
+  # %bet% - the selected bet of the player.
+  # %numbers% - the numbers that belong to the slot.
+  # %money% - the price of the bet.
+  # %win-money% - the money that the player can win.
+  # %chance% - chance of winning.
+  # %multiplier% - the prize multiplier, depending on the slot.
+  bet-hover:
+    - "%bet%"
+    - "&eNumbers: &7%numbers%"
+    - "&ePrice: &a%money% ➡ %win-money%"
+    - "&eChance: &b%chance%"
+    - "&eMultiplier: &d&lx%multiplier%"
+  # %player-name% - the name of the player.
+  # %playing% - number of players in the game.
+  # %max% - the maximum number of players allowed.
+  join: "&e%player-name% &6has joined the game. (&e%playing%&6/&e%max%&6)"
+  # %player-name% - the name of the player.
+  # %playing% - number of players in the game.
+  # %max% - the maximum number of players allowed.
+  leave: "&7%player-name% &chas left the game. (&7%playing%&c/&7%max%&c)"
+  # %winner-slot% - the winning slot.
+  no-winner: "&cThe winner is... the casino! %winner-slot%"
+  # %amount% - the number of winners in the game.
+  # %winner% - the name of a winner (all winners will be listed one below the other).
+  # %winner-slot% - the winning slot.
+  all-winners:
     - "&7"
     - "&a▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀"
     - "&7"
-    - "&eWinners (%amount%): &7%winners%"
-    - "&6What are you waiting to play? You can earn a lot of money!"
-    - "&6Winner slot: %winner%"
+    - "&eWinners (%amount%): &7[hover to see more information]"
+    - "&f➡ &a%winner%"
+    - "&7Winner slot: %winner-slot%"
     - "&7"
     - "&a▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀"
     - "&7"
-  price: "&6¡You won &a%amount% &6(&bx%multiplier% &lMULTIPLIER&6)!"
+  # %money% - the total amount of money the player won.
+  # %bets% - the number of winning bets.
+  winner-hover:
+    - "&eThis player won a total of &a%money% &ein &7%bets% &ebets!"
+  # %bet% - one of the winning bets (all winning bets will be listed one below the other).
+  # %total-money% - the total of all the money earned.
+  # %lost-money% - the total of all the money lost.
+  your-winning-bets:
+    - "&7"
+    - "&a▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀"
+    - "&7"
+    - "&eYour winning bet(s): &7[hover to see more information]"
+    - "&f➡ %bet%"
+    - "&7Gains: &a%total-money%"
+    - "&7Losses: &c%lost-money%"
+    - "&7"
+    - "&a▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀"
+    - "&7"
+  # The information about a bet that will be seen when you hover over the mouse.
+  # %bet% - the selected bet of the player.
+  # %numbers% - the numbers that belong to the slot.
+  # %money% - the price of the bet.
+  # %win-money% - the money that the player can win.
+  # %chance% - chance of winning.
+  # %multiplier% - the prize multiplier, depending on the slot.
+  # %rule% - the rule by which the player won (if there was one).
+  winning-bet-hover:
+    - "%bet%"
+    - "&eMoney: &a%money% ➡ %win-money%"
+    - "&eMultiplier: &d&lx%multiplier%"
+    - "&eRule: &6%rule%"
+  no-winning-bets: "&cNothing :("
   restart: "&6Restarting game, please wait..."
-  prison-reminder: "&aYour bet is in prison as the number 0 is the winner; stay at the table and win the next game to get your money back (you can leave if you want)."
+  prison-reminder:
+    - "&aYour bet is in prison as the number 0 is the winner."
+    - "&aStay at the table and win the next game to get your money back."
+    - "&a(If you leave the game you won't get your money back)"
   leave-player: "&cYou've left the game!"
-  la-partage: "&6You've earned half your money due to &eLa Partage &6rule!"
-  en-prison: "&6You've earned your money original due to &eEn Prison &6rule!"
-  surrender: "&6You've earned half your money due to &eSurrender &6rule!"
 
-# Avalaible placeholders.
-# %money% - the money involved. (@min-required, @selected-amount and @received)
-# %money-left% - they money left in your account. (@selected-amount)
-# %name% - the name of the game. (@received)
+# Other messages.
 other:
   already-ingame: "&c¡You're already in game!"
   already-started: "&cThe game is already started."
   seat-taken: "&cThis seat is already taken!"
   game-stopped: "&cThe game you were playing was stopped or deleted!"
+  # %money% - the money involved.
   min-required: "&cSorry, but you need at least &a%money% &cto play."
+  # %money% - the money involved.
+  # %money-left% - they money left in your account.
   selected-amount: "&c%money% &6will be taken from your account (&a%money-left% &6left)."
-  control: "&7Use the WASD keys to choose a bet."
+  control: "&bUse the &7WASD &bkeys to move your bet. &7Space &bto manage all your bets."
   account: "&6The account has been changed!"
   no-account: "&cThe game account has been deleted!"
   account-already-deleted: "&cThe account is already deleted!"
   unknown-account: "&cThe player couldn't be found!"
+  # %name% - the name of the game.
+  # %money% - the money involved.
   received: "&6You've received &a%money% &6from the game &7%name%&6."
   vanish: "&cYou can't join the game in vanish mode."
   full: "&cThis game is full!"
@@ -123,3 +195,4 @@ other:
   npc-already-renamed: "&cThe name of the NPC has already been changed!"
   npc-texturized: "&6The texture of the NPC has been changed!"
   npc-already-texturized: "&cThe texture of the NPC has already been changed!"
+  at-least-one-chip-required: "&cYou need at least one chip to be able to play, you can't disable them all!"
