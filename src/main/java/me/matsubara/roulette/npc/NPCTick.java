@@ -5,6 +5,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
+import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.npc.modifier.RotationModifier;
 import me.matsubara.roulette.util.ParrotUtils;
@@ -21,7 +22,6 @@ public class NPCTick implements Runnable {
     private final RoulettePlugin plugin;
 
     private static final float CROUPIER_FOV = 85.0f;
-    private static final double LOOK_AT_RANGE = Math.pow(20.0d, 2);
 
     public NPCTick(@NotNull NPCPool pool) {
         this.pool = pool;
@@ -85,6 +85,7 @@ public class NPCTick implements Runnable {
     }
 
     private boolean handleFOV(@NotNull NPC npc, Player player) {
+        if (!ConfigManager.Config.NPC_LOOK_AND_INVITE_ENABLED.asBool()) return false;
         if (!npc.isShownFor(player)) return false;
 
         Game game = npc.getGame();
@@ -111,8 +112,9 @@ public class NPCTick implements Runnable {
         if (angleDifference > CROUPIER_FOV) return false;
 
         // The player must be around X blocks from the table (not the NPC).
-        double distanceSqr = game.getLocation().distanceSquared(target);
-        if (distanceSqr > Math.min(LOOK_AT_RANGE, PluginUtils.getRenderDistance())) return false;
+        double range = ConfigManager.Config.NPC_LOOK_AND_INVITE_RANGE.asDouble();
+        if (game.getLocation().distanceSquared(target)
+                > Math.min(range * range, PluginUtils.getRenderDistance())) return false;
 
         // Send an invitation message to the player the first time they enter the FOV.
         if (!npc.isInsideFOV(player) && notInvitedYet(player)) {

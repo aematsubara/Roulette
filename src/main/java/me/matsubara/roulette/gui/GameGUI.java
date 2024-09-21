@@ -19,6 +19,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Locale;
 
 @Getter
 public final class GameGUI extends RouletteGUI {
@@ -123,7 +124,7 @@ public final class GameGUI extends RouletteGUI {
         if (rule.isSurrender() && !game.getType().isAmerican()) bannerColor = Material.GRAY_BANNER;
         else bannerColor = game.getRules().getOrDefault(rule, false) ? Material.LIME_BANNER : Material.RED_BANNER;
 
-        ItemBuilder builder = getItem(rule.name().toLowerCase().replace("_", "-"))
+        ItemBuilder builder = getItem(rule.name().toLowerCase(Locale.ROOT).replace("_", "-"))
                 .setType(bannerColor)
                 .addItemFlags(ItemFlag.HIDE_POTION_EFFECTS)
                 .setData(plugin.getRouletteRuleKey(), PersistentDataType.STRING, rule.name());

@@ -85,6 +85,13 @@ keep-seat: true
 # Information and examples: https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
 date-format: "MM-dd-yyyy HH:mm:ss"
 
+# Here you can configure the NPC function to look at nearby players and invite them to play.
+npc-look-and-invite:
+  # Whether this function is enabled.
+  enabled: true
+  # The distance to start looking at a player.
+  range: 20.0
+
 # If you want to use an abbreviation format when naming money.
 # Useful for prison type servers where money values are much higher.
 # You can add your own translations per value, using the abbreviation as the key.

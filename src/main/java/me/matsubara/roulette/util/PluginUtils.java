@@ -281,7 +281,7 @@ public final class PluginUtils {
 
     public static <T extends Enum<T>> T getOrDefault(Class<T> clazz, @NotNull String name, T defaultValue) {
         try {
-            return Enum.valueOf(clazz, name.toUpperCase());
+            return Enum.valueOf(clazz, name.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             return defaultValue;
         }

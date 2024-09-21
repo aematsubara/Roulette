@@ -18,6 +18,6 @@ public final class EssXExtension {
         if (essentials == null) return false;
 
         User user = essentials.getUser(player);
-        return user != null && user.isVanished();
+        return user != null && (user.isVanished() || user.isHidden());
     }
 }

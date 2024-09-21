@@ -15,6 +15,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -99,7 +100,7 @@ public class CroupierGUI extends RouletteGUI {
     public void setParrotVariantItem() {
         Parrot.Variant variant = game.getParrotVariant();
 
-        String tempName = variant.name().toLowerCase();
+        String tempName = variant.name().toLowerCase(Locale.ROOT);
         String variantName = plugin.getConfig().getString("variable-text.parrot-variant." + tempName, StringUtils.capitalize(tempName));
 
         inventory.setItem(14, getItem("parrot-variant")
@@ -112,7 +113,7 @@ public class CroupierGUI extends RouletteGUI {
     public void setParrotShoulderItem() {
         ParrotUtils.ParrotShoulder shoulder = game.getParrotShoulder();
 
-        String tempName = shoulder.name().toLowerCase();
+        String tempName = shoulder.name().toLowerCase(Locale.ROOT);
         String shoulderName = plugin.getConfig().getString("variable-text.parrot-shoulder." + tempName, StringUtils.capitalize(tempName));
 
         inventory.setItem(16, getItem("parrot-shoulder")

@@ -15,6 +15,7 @@ import me.matsubara.roulette.model.stand.PacketStand;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
+import org.bukkit.metadata.MetadataValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -154,7 +155,11 @@ public final class UseEntity extends SimplePacketListenerAbstract {
     }
 
     private boolean isPluginVanished(@NotNull Player player) {
-        if (player.hasMetadata("vanished")) return true;
+        // SuperVanish, PremiumVanish, EssentialsX, VanishNoPacket and many more vanish plugins.
+        for (MetadataValue meta : player.getMetadata("vanished")) {
+            if (meta.asBoolean()) return true;
+        }
+
         EssXExtension extension = plugin.getEssXExtension();
         return extension != null && extension.isVanished(player);
     }

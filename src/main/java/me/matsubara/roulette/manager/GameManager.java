@@ -30,10 +30,7 @@ import org.spigotmc.event.entity.EntityDismountEvent;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public final class GameManager implements Listener {
 
@@ -159,7 +156,7 @@ public final class GameManager implements Listener {
 
         // Save rules.
         for (GameRule rule : GameRule.values()) {
-            String ruleName = rule.name().replace("_", "-").toLowerCase();
+            String ruleName = rule.name().replace("_", "-").toLowerCase(Locale.ROOT);
             configuration.set("games." + name + ".rules." + ruleName, game.isRuleEnabled(rule));
         }
 

@@ -3,6 +3,8 @@ package me.matsubara.roulette.game;
 import me.matsubara.roulette.manager.ConfigManager;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Locale;
+
 public enum GameType {
     AMERICAN, // 0 & 00.
     EUROPEAN; // Single 0.
@@ -20,6 +22,6 @@ public enum GameType {
     }
 
     public @NotNull String getModelName() {
-        return (name() + "_roulette").toLowerCase();
+        return (name() + "_roulette").toLowerCase(Locale.ROOT);
     }
 }

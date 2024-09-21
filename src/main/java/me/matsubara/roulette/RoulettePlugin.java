@@ -419,7 +419,7 @@ public final class RoulettePlugin extends JavaPlugin {
             if (Strings.isNullOrEmpty(enchantmentString)) continue;
             String[] data = PluginUtils.splitData(enchantmentString);
 
-            Enchantment enchantment = Enchantment.getByKey(NamespacedKey.minecraft(data[0].toLowerCase()));
+            Enchantment enchantment = Enchantment.getByKey(NamespacedKey.minecraft(data[0].toLowerCase(Locale.ROOT)));
 
             int level;
             try {
@@ -432,7 +432,7 @@ public final class RoulettePlugin extends JavaPlugin {
         }
 
         for (String flag : config.getStringList(path + ".flags")) {
-            builder.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
+            builder.addItemFlags(ItemFlag.valueOf(flag.toUpperCase(Locale.ROOT)));
         }
 
         String tippedArrow = config.getString(path + ".tipped");

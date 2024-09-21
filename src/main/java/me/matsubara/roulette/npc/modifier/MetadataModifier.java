@@ -37,7 +37,16 @@ public class MetadataModifier extends NPCModifier {
         super.send(players);
     }
 
+    @SuppressWarnings("unused")
     public record EntityMetadata<I, O>(int index, EntityDataType<O> outputType, Function<I, O> mapper) {
+
+        private static final byte ALL = SkinSection.JACKET // Cape is excluded.
+                .combine(SkinSection.LEFT_SLEEVE)
+                .combine(SkinSection.RIGHT_SLEEVE)
+                .combine(SkinSection.LEFT_PANTS)
+                .combine(SkinSection.RIGHT_PANTS)
+                .combine(SkinSection.HAT)
+                .getMask();
 
         public static @NotNull EntityMetadata<Byte, Byte> ENTITY_DATA = new EntityMetadata<>(
                 0,
@@ -87,7 +96,7 @@ public class MetadataModifier extends NPCModifier {
         public static final EntityMetadata<Boolean, Byte> SKIN_LAYERS = new EntityMetadata<>(
                 17,
                 EntityDataTypes.BYTE,
-                input -> input ? SkinSection.ALL.getMask() : 0);
+                input -> input ? ALL : 0);
 
         public static final EntityMetadata<Object, NBTCompound> SHOULDER_ENTITY_LEFT = new EntityMetadata<>(
                 19,

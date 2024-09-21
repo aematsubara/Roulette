@@ -57,7 +57,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
         // No arguments provided.
         boolean noArgs = args.length == 0;
-        if (noArgs || args.length > 3 || (!COMMAND_ARGS.contains(args[0].toLowerCase()))) {
+        if (noArgs || args.length > 3 || (!COMMAND_ARGS.contains(args[0].toLowerCase(Locale.ROOT)))) {
             // Otherwise, send a help message.
             if (noArgs) HELP.forEach(sender::sendMessage);
             else messages.send(sender, MessageManager.Message.SINTAX);
@@ -65,7 +65,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 1) {
-            switch (args[0].toLowerCase()) {
+            switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "sessions" -> {
                     // This command can't be executed from the console.
                     Player player = getPlayerFromSender(sender);
@@ -191,7 +191,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         // Get the type of the roulette, or AMERICAN by default.
         GameType type;
         try {
-            type = GameType.valueOf(args[2].toUpperCase());
+            type = GameType.valueOf(args[2].toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             type = GameType.AMERICAN;
         }

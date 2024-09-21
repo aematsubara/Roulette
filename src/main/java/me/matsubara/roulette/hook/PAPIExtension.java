@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.stream.DoubleStream;
@@ -69,7 +70,7 @@ public final class PAPIExtension extends PlaceholderExpansion {
 
         // if parameter doesn't contain underscores.
         if (values.length == 1) {
-            switch (params.toLowerCase()) {
+            switch (params.toLowerCase(Locale.ROOT)) {
                 // %roulette_win% → returns the number of wins.
                 case "win" -> {
                     return String.valueOf(sessions.stream()
@@ -92,7 +93,7 @@ public final class PAPIExtension extends PlaceholderExpansion {
                 }
             }
         } else if (values[0].equalsIgnoreCase("win")) {
-            String type = values[1].toLowerCase();
+            String type = values[1].toLowerCase(Locale.ROOT);
             if (!WIN_TYPE.contains(type)) return NULL;
 
             // %roulette_win_{X=partage/prison/surrender}% → returns the number of @X wins.

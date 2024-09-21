@@ -91,7 +91,9 @@ public final class ConfigManager {
         DAB_ANIMATION_AMOUNT("dab-animation.settings.amount"),
         DAB_ANIMATION_RADIUS("dab-animation.settings.radius"),
         DAB_ANIMATION_RAINBOW_EFFECT_SPEED("dab-animation.rainbow-effect.speed"),
-        DAB_ANIMATION_RAINBOW_EFFECT_GLOWING("dab-animation.rainbow-effect.glowing");
+        DAB_ANIMATION_RAINBOW_EFFECT_GLOWING("dab-animation.rainbow-effect.glowing"),
+        NPC_LOOK_AND_INVITE_ENABLED("npc-look-and-invite.enabled"),
+        NPC_LOOK_AND_INVITE_RANGE("npc-look-and-invite.range");
 
         private final RoulettePlugin plugin = JavaPlugin.getPlugin(RoulettePlugin.class);
         private final String path;
@@ -126,6 +128,10 @@ public final class ConfigManager {
 
         public long asLong() {
             return plugin.getConfig().getLong(path);
+        }
+
+        public double asDouble() {
+            return plugin.getConfig().getDouble(path);
         }
     }
 }

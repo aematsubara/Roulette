@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Getter
@@ -153,7 +154,7 @@ public final class BetsGUI extends RouletteGUI {
     public void setGlowColorItem() {
         ChatColor color = game.getGlowColor(player);
 
-        String tempName = color.name().toLowerCase().replace("_", "-");
+        String tempName = color.name().toLowerCase(Locale.ROOT).replace("_", "-");
         String colorName = plugin.getConfig().getString("variable-text.glow-colors." + tempName, StringUtils.capitalize(tempName.replace("-", " ")));
 
         inventory.setItem(21, getItem("glow-color")
