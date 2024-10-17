@@ -1,13 +1,16 @@
 package me.matsubara.roulette.manager.data;
 
+import com.google.common.base.Predicates;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
+import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.sql.*;
@@ -34,7 +37,11 @@ public class DataManager {
     }
 
     private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getPath());
+        Connection connection = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getPath());
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("PRAGMA foreign_keys = ON;");
+        }
+        return connection;
     }
 
     private void initTables() {
@@ -72,11 +79,44 @@ public class DataManager {
     public RouletteSession saveSession(@NotNull UUID sessionUUID, String name, Collection<Map.Entry<Player, Bet>> bets, @NotNull Slot slot, long timestamp) {
         RouletteSession session = new RouletteSession(sessionUUID, name, slot, timestamp, bets);
         sessions.add(session);
+        sort();
+
+        List<RouletteSession> last = handleLimit();
 
         // Save session and results async.
-        CompletableFuture.runAsync(() -> saveSession(session), executor);
+        CompletableFuture.runAsync(() -> {
+            saveSession(session);
+            if (last != null) last.forEach(this::removeSession);
+        }, executor);
 
         return session;
+    }
+
+    private int getLimit() {
+        int limit = ConfigManager.Config.SESSIONS_LIMIT.asInt();
+        return limit == -1 ? -1 : Math.max(limit, 3);
+    }
+
+    private @Nullable List<RouletteSession> handleLimit() {
+        int limit = getLimit(), size = sessions.size(), excess = size - limit;
+        if (limit == -1 || sessions.isEmpty() || size <= limit) return null;
+
+        List<RouletteSession> last = new ArrayList<>(sessions.subList(Math.max(0, size - excess), size));
+        if (!ConfigManager.Config.SESSIONS_KEEP_VICTORIES.asBool()) {
+            sessions.removeAll(last);
+            return last;
+        }
+
+        // Ignore all-winning sessions.
+        last.removeIf(session -> session.results().stream()
+                .noneMatch(Predicates.not(PlayerResult::won)));
+
+        // Remove losing results.
+        last.forEach(session -> List.copyOf(session.results()).stream()
+                .filter(Predicates.not(PlayerResult::won))
+                .forEach(this::remove));
+
+        return null;
     }
 
     private void saveSession(@NotNull RouletteSession session) {
@@ -120,26 +160,24 @@ public class DataManager {
 
         // Remove result async.
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> removePlayerResult(result), executor);
-        if (!results.isEmpty()) return;
+        if (!results.isEmpty()) {
+            if (!ConfigManager.Config.MAP_IMAGE_ENABLED.asBool()) return;
+
+            List<PlayerResult> left = results.stream()
+                    .filter(temp -> temp.playerUUID().equals(result.playerUUID()))
+                    .toList();
+
+            if (left.stream().noneMatch(PlayerResult::won)) {
+                removeMap(new MapRecord(0, result.playerUUID(), result.sessionUUID()));
+            }
+            return;
+        }
 
         // If the session doesn't have any result, then we want to remove the whole session.
         sessions.remove(session);
 
         // Remove sesion async.
-        future.thenRunAsync(() -> {
-            removeSession(session);
-            removeMap(session);
-        }, executor);
-    }
-
-    private void removeMap(@NotNull RouletteSession session) {
-        String sql = "DELETE FROM roulette_maps WHERE roulette_session_uuid = ?;";
-        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setBytes(1, PluginUtils.toBytes(session.sessionUUID()));
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-        }
+        future.thenRunAsync(() -> removeSession(session), executor);
     }
 
     private void removeSession(@NotNull RouletteSession session) {
@@ -189,6 +227,13 @@ public class DataManager {
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
+
+        sort();
+    }
+
+    private void sort() {
+        // Sort from new to old.
+        sessions.sort((first, second) -> Long.compare(second.timestamp(), first.timestamp()));
     }
 
     private @NotNull List<PlayerResult> getPlayerResultsBySession(@NotNull RouletteSession session, Connection connection) {
@@ -220,7 +265,18 @@ public class DataManager {
         this.maps.addAll(maps);
 
         // Save maps async.
-        CompletableFuture.runAsync(() -> this.maps.forEach(this::saveMap), executor);
+        CompletableFuture.runAsync(() -> maps.forEach(this::saveMap), executor);
+    }
+
+    private void removeMap(@NotNull MapRecord record) {
+        String sql = "DELETE FROM roulette_maps WHERE player_uuid = ? AND roulette_session_uuid = ?;";
+        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setBytes(1, PluginUtils.toBytes(record.playerUUID()));
+            statement.setBytes(2, PluginUtils.toBytes(record.sessionUUID()));
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
     }
 
     private void saveMap(@NotNull MapRecord map) {

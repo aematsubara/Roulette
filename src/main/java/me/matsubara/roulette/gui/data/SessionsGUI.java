@@ -1,10 +1,12 @@
 package me.matsubara.roulette.gui.data;
 
+import com.google.common.base.Predicates;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.gui.RouletteGUI;
 import me.matsubara.roulette.manager.ConfigManager;
+import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.util.InventoryUpdate;
 import me.matsubara.roulette.util.ItemBuilder;
@@ -73,9 +75,6 @@ public final class SessionsGUI extends RouletteGUI {
         // Get the list of sessions.
         List<RouletteSession> sessions = plugin.getDataManager().getSessions();
 
-        // Sort from new to old.
-        sessions.sort((first, second) -> Long.compare(second.timestamp(), first.timestamp()));
-
         // Page formula.
         pages = (int) (Math.ceil((double) sessions.size() / SLOTS.length));
 
@@ -110,11 +109,20 @@ public final class SessionsGUI extends RouletteGUI {
 
         for (int index = 0, aux = startFrom; isLastPage ? (index < sessions.size() - startFrom) : (index < SLOTS.length); index++, aux++) {
             RouletteSession session = sessions.get(aux);
-            inventory.setItem(slotIndex.get(index), getItem("session")
+
+            ItemBuilder builder = getItem("session")
                     .replace("%name%", session.name())
                     .replace("%date%", format.format(new Date(session.timestamp())))
                     .replace("%slot%", PluginUtils.getSlotName(session.slot()))
-                    .setData(plugin.getSessionKey(), PluginUtils.UUID_TYPE, session.sessionUUID())
+                    .setData(plugin.getSessionKey(), PluginUtils.UUID_TYPE, session.sessionUUID());
+
+
+            if (session.results().stream()
+                    .noneMatch(Predicates.not(PlayerResult::won))) {
+                builder.addLore("", ConfigManager.Config.SESSIONS_ONLY_VICTORIES_TEXT.asString());
+            }
+
+            inventory.setItem(slotIndex.get(index), builder
                     .build());
         }
 

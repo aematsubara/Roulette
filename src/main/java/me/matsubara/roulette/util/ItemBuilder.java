@@ -165,7 +165,7 @@ public final class ItemBuilder {
         if (actual == null) return setLore(lore);
 
         actual.addAll(lore);
-        return setLore(lore);
+        return setLore(actual);
     }
 
     public List<String> getLore() {

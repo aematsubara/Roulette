@@ -62,6 +62,21 @@ config-version: 1
 # The render distance for the models. Default: 96.
 render-distance: 96
 
+# Here you will find some options about saving sessions.
+# NOTE: Victory sessions are used for statistics (used by PlaceholderAPI).
+# * If you use them and want to use a limit, you should leave @keep-victories = true.
+# * Additionally, wins are used for @map-image maps (vouchers).
+#
+# RECOMMEND: Set @limit to a moderately high value like 50 and set @keep-victories to true.
+sessions:
+  # The limit of sessions to keep saved; once exceeded, the oldest session will be deleted.
+  # NOTE: the minimum limit must be 3 or greater (-1 = no limit).
+  limit: -1
+  # Whether to delete only the losses (which usually take up the most space) and keep the victories.
+  keep-victories: true
+  # The text that will appear below a session that only contains winning results.
+  only-victories-text: "&aOnly victories!"
+
 # Whether to allow players to swap chairs before the game starts. If false, you can bypass this with 'roulette.swapchair' permission.
 # If false, players will be seated in the first empty chair.
 swap-chair: true

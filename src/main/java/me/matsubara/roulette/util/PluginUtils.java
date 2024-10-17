@@ -349,7 +349,7 @@ public final class PluginUtils {
 
     public static double getRenderDistance() {
         return Math.min(
-                Math.pow(PLUGIN.getConfigManager().getRenderDistance(), 2),
+                Math.pow(ConfigManager.Config.RENDER_DISTANCE.asInt(), 2),
                 BUKKIT_VIEW_DISTANCE);
     }
 

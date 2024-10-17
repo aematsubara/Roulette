@@ -6,8 +6,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
-public record PlayerResult(RouletteSession session, UUID playerUUID, UUID sessionUUID, @Nullable WinData.WinType win,
-                           double money, Slot slot) {
+public record PlayerResult(RouletteSession session,
+                           UUID playerUUID,
+                           UUID sessionUUID,
+                           @Nullable WinData.WinType win,
+                           double money,
+                           Slot slot) {
 
     public PlayerResult(RouletteSession session, UUID playerUUID, @Nullable WinData.WinType win, double money, Slot slot) {
         this(session, playerUUID, session.sessionUUID(), win, money, slot);

@@ -873,11 +873,15 @@ public final class Game {
             for (Player winner : winners) {
                 if (!winner.isValid() || !winner.isOnline()) continue;
 
-                Map.Entry<Integer, ItemStack> entry = plugin.getWinnerManager().render(winner.getUniqueId(), session);
+                UUID winnerUUID = winner.getUniqueId();
+
+                Map.Entry<Integer, ItemStack> entry = plugin.getWinnerManager().render(winnerUUID, session);
                 if (entry == null) continue;
 
                 winner.getInventory().addItem(entry.getValue());
-                maps.add(new MapRecord(entry.getKey(), winner.getUniqueId(), session.sessionUUID()));
+
+                // Even if the player won more than 1 bet, we need to save only 1 map.
+                maps.add(new MapRecord(entry.getKey(), winnerUUID, session.sessionUUID()));
             }
 
             if (!maps.isEmpty()) {

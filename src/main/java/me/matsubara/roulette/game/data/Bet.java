@@ -248,7 +248,7 @@ public final class Bet {
 
     public void hide() {
         removeStandGlow(owner);
-        hologram.hideTo(owner);
+        if (hasHologram()) hologram.hideTo(owner);
     }
 
     public void remove() {

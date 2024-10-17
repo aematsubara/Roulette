@@ -8,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Locale;
 
 public final class ConfigManager {
 
@@ -15,10 +16,6 @@ public final class ConfigManager {
 
     public ConfigManager(RoulettePlugin plugin) {
         this.plugin = plugin;
-    }
-
-    public int getRenderDistance() {
-        return plugin.getConfig().getInt("render-distance", 64);
     }
 
     public @NotNull ItemStack getBall() {
@@ -34,14 +31,18 @@ public final class ConfigManager {
     }
 
     public enum Config {
-        SWAP_CHAIR("swap-chair"),
-        INSTANT_EXPLODE("instant-explode"),
-        FIX_CHAIR_CAMERA("fix-chair-camera"),
-        HIT_ON_GAME("hit-on-game"),
-        KEEP_SEAT("keep-seat"),
-        DATE_FORMAT("date-format"),
-        MOVE_INTERVAL("move-interval"),
-        CROUPIER_BALL("croupier-ball"),
+        RENDER_DISTANCE,
+        SESSIONS_LIMIT("sessions.limit"),
+        SESSIONS_KEEP_VICTORIES("sessions.keep-victories"),
+        SESSIONS_ONLY_VICTORIES_TEXT("sessions.only-victories-text"),
+        SWAP_CHAIR,
+        INSTANT_EXPLODE,
+        FIX_CHAIR_CAMERA,
+        HIT_ON_GAME,
+        KEEP_SEAT,
+        DATE_FORMAT,
+        MOVE_INTERVAL,
+        CROUPIER_BALL,
         COUNTDOWN_WAITING("countdown.waiting"),
         COUNTDOWN_SELECTING("countdown.selecting.base"),
         COUNTDOWN_SELECTING_EXTRA("countdown.selecting.extra"),
@@ -54,9 +55,9 @@ public final class ConfigManager {
         SOUND_SPINNING("sounds.spinning"),
         SOUND_SWAP_CHAIR("sounds.swap-chair"),
         SOUND_SELECT("sounds.select"),
-        DISABLED_SLOTS("disabled-slots"),
+        DISABLED_SLOTS,
         MAP_IMAGE_ENABLED("map-image.enabled"),
-        CANCEL_WORD("cancel-word"),
+        CANCEL_WORD,
         SPINNING("spin-holograms.spinning"),
         WINNING_NUMBER("spin-holograms.winning-number"),
         SINGLE_ZERO("slots.single.zero"),
@@ -70,8 +71,8 @@ public final class ConfigManager {
         BLACK("slots.other.black"),
         TYPE_EUROPEAN("variable-text.types.european"),
         TYPE_AMERICAN("variable-text.types.american"),
-        JOIN_HOLOGRAM("join-hologram"),
-        SELECT_HOLOGRAM("select-hologram"),
+        JOIN_HOLOGRAM,
+        SELECT_HOLOGRAM,
         STATE_ENABLED("variable-text.state.enabled"),
         STATE_DISABLED("variable-text.state.disabled"),
         SESSION_RESULT_MENU_TITLE("session-result-menu.title"),
@@ -97,6 +98,10 @@ public final class ConfigManager {
 
         private final RoulettePlugin plugin = JavaPlugin.getPlugin(RoulettePlugin.class);
         private final String path;
+
+        Config() {
+            this.path = name().toLowerCase(Locale.ROOT).replace("_", "-");
+        }
 
         Config(String path) {
             this.path = path;
