@@ -39,7 +39,7 @@ public class NPCSpawn implements SpawnCustomizer {
         metadata.queue(MetadataModifier.EntityMetadata.SKIN_LAYERS, true);
 
         // Toggle parrot visibility.
-        npc.toggleParrotVisibility(player.getWorld(), metadata);
+        npc.toggleParrotVisibility(metadata);
 
         // Send metadata after creating the data.
         metadata.send(player);

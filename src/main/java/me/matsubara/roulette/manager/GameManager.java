@@ -1,15 +1,18 @@
 package me.matsubara.roulette.manager;
 
+import com.cryptomorin.xseries.reflection.XReflection;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameType;
+import me.matsubara.roulette.listener.protocol.SteerVehicle;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.util.ParrotUtils;
 import me.matsubara.roulette.util.PluginUtils;
+import me.matsubara.roulette.util.Reflection;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -23,6 +26,7 @@ import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,9 +34,10 @@ import org.spigotmc.event.entity.EntityDismountEvent;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.MethodHandle;
 import java.util.*;
 
-public final class GameManager implements Listener {
+public final class GameManager extends BukkitRunnable implements Listener {
 
     private final RoulettePlugin plugin;
     private final @Getter List<Game> games;
@@ -40,22 +45,58 @@ public final class GameManager implements Listener {
     private File file;
     private FileConfiguration configuration;
 
+    private static final Class<?> INPUT = Reflection.getUnversionedClass("org.bukkit.Input");
+    private static final MethodHandle GET_CURRENT_INPUT = Reflection.getMethod(Player.class, "getCurrentInput", false);
+    private static final MethodHandle IS_SNEAK = INPUT != null ? Reflection.getMethod(INPUT, "isSneak", false) : null;
+
+    public static final boolean MODERN_APPROACH = XReflection.supports(21, 2);
+
     public GameManager(RoulettePlugin plugin) {
         this.plugin = plugin;
         this.plugin.getServer().getPluginManager().registerEvents(this, plugin);
         this.games = new ArrayList<>();
         load();
+
+        if (MODERN_APPROACH) {
+            runTaskTimer(plugin, 1L, 1L);
+        }
+    }
+
+    @Override
+    public void run() {
+        // Since 1.21.2 we have to use a runnable to handle key input.
+        SteerVehicle steer = plugin.getSteerVehicle();
+        for (Game game : games) {
+            for (Player player : game.getPlayers()) {
+                steer.handle(player, game, steer.getInput(player), null);
+            }
+        }
     }
 
     // This is deprecated and removed in 1.20.6,
     // but as we are compiling with 1.20.1, the class will be changed on runtime.
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onPlayerDismount(@NotNull EntityDismountEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         if (!(event.getDismounted() instanceof ArmorStand)) return;
 
+        UUID playerUUID = player.getUniqueId();
+
         Game playing = getGameByPlayer(player);
-        if (playing == null || playing.getTransfers().remove(player.getUniqueId())) return;
+        if (playing == null || playing.getTransfers().remove(playerUUID)) return;
+
+        // Dummy fix for 1.21.2+ to prevent leaving the game.
+        if (MODERN_APPROACH && GET_CURRENT_INPUT != null && IS_SNEAK != null) {
+            try {
+                Object input = GET_CURRENT_INPUT.invoke(player);
+                if ((boolean) IS_SNEAK.invoke(input)) {
+                    event.setCancelled(true);
+                    return;
+                }
+            } catch (Throwable ignored) {
+
+            }
+        }
 
         // Remove player from game.
         plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
@@ -77,7 +118,7 @@ public final class GameManager implements Listener {
     }
 
     public void addFreshGame(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, null, false, false, null, null, null, null, null, null);
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, true, null, null, false, false, null, null, null, null, null, null);
     }
 
     public void add(
@@ -93,6 +134,7 @@ public final class GameManager implements Listener {
             UUID owner,
             int startTime,
             boolean betAll,
+            boolean invitePlayers,
             @Nullable UUID accountTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
             boolean parrotEnabled,
@@ -116,6 +158,7 @@ public final class GameManager implements Listener {
                 owner,
                 startTime,
                 betAll,
+                invitePlayers,
                 accountTo,
                 rules,
                 parrotEnabled,
@@ -162,6 +205,7 @@ public final class GameManager implements Listener {
 
         // Save settings.
         configuration.set("games." + name + ".settings.bet-all", game.isBetAllEnabled());
+        configuration.set("games." + name + ".settings.invite", game.isInvitePlayers());
         configuration.set("games." + name + ".settings.start-time", game.getStartTime());
         configuration.set("games." + name + ".settings.min-players", game.getMinPlayers());
         configuration.set("games." + name + ".settings.max-players", game.getMaxPlayers());
@@ -225,6 +269,7 @@ public final class GameManager implements Listener {
 
             // Load settings.
             boolean betAll = configuration.getBoolean("games." + path + ".settings.bet-all");
+            boolean invite = configuration.getBoolean("games." + path + ".settings.invite");
             int startTime = configuration.getInt("games." + path + ".settings.start-time");
             int minPlayers = configuration.getInt("games." + path + ".settings.min-players");
             int maxPlayers = configuration.getInt("games." + path + ".settings.max-players");
@@ -257,6 +302,7 @@ public final class GameManager implements Listener {
                     owner,
                     startTime,
                     betAll,
+                    invite,
                     accountTo,
                     rules,
                     parrotEnabled,

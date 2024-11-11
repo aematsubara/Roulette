@@ -2,8 +2,6 @@ package me.matsubara.roulette.util;
 
 import com.cryptomorin.xseries.XEntityType;
 import com.cryptomorin.xseries.XSound;
-import com.cryptomorin.xseries.reflection.XReflection;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import org.bukkit.Difficulty;
 import org.bukkit.Location;
@@ -11,38 +9,14 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Parrot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.invoke.MethodHandle;
 import java.util.*;
 
 public class ParrotUtils {
 
     private static final Map<EntityType, Sound> MOB_SOUND_MAP = new HashMap<>();
-
-    // Class.
-    private static final Class<?> PARROT_CLAZZ = Reflection.getNMSClass("world.entity.animal", "Parrot", "EntityParrot");
-    private static final Class<?> ENTITY_TYPE_CLAZZ = Reflection.getNMSClass("world.entity", "EntityType", "EntityTypes");
-    private static final Class<?> LEVEL_CLAZZ = Reflection.getNMSClass("world.level", "Level", "World");
-    private static final Class<?> COMPOUND_TAG_CLAZZ = Reflection.getNMSClass("nbt", "CompoundTag", "NBTTagCompound");
-    private static final @SuppressWarnings("deprecation") Class<?> ENTITY_CLAZZ = XReflection.getNMSClass("world.entity", "Entity");
-    private static final @SuppressWarnings("deprecation") Class<?> CRAFT_WORLD_CLAZZ = XReflection.getCraftClass("CraftWorld");
-    private static final @SuppressWarnings("deprecation") Class<?> CRAFT_ENTITY_CLAZZ = XReflection.getCraftClass("entity.CraftEntity");
-
-    // Method.
-    private static final MethodHandle GET_WORLD_HANDLE = Reflection.getMethod(CRAFT_WORLD_CLAZZ, "getHandle");
-    private static final MethodHandle GET_BUKKIT_ENTITY = Reflection.getMethod(ENTITY_CLAZZ, "getBukkitEntity");
-    private static final MethodHandle SAVE = Reflection.getMethod(CRAFT_ENTITY_CLAZZ, "save");
-
-    // Constructor.
-    private static final MethodHandle PARROT_CONSTRUCTOR = Reflection.getConstructor(PARROT_CLAZZ, ENTITY_TYPE_CLAZZ, LEVEL_CLAZZ);
-    private static final MethodHandle COMPOUND_TAG_CONSTRUCTOR = Reflection.getConstructor(COMPOUND_TAG_CLAZZ);
-
-    // Field.
-    private static final Object PARROT_TYPE;
-    public static final Object EMPTY_NBT;
 
     static {
         Map<XEntityType, XSound> tempMap = new HashMap<>();
@@ -88,53 +62,6 @@ public class ParrotUtils {
                 MOB_SOUND_MAP.put(type.get(), sound.parseSound());
             }
         });
-
-        String parrotType;
-        if (XReflection.supports(20, 6)) {
-            parrotType = "ax";
-        } else if (XReflection.supports(20, 3)) {
-            parrotType = "au";
-        } else if (XReflection.supports(19, 4)) {
-            parrotType = "at";
-        } else if (XReflection.supports(19, 3)) {
-            parrotType = "ap";
-        } else if (XReflection.supports(19)) {
-            parrotType = "ao";
-        } else if (XReflection.supports(17)) {
-            parrotType = "al";
-        } else parrotType = null;
-
-        PARROT_TYPE = parrotType != null ? Reflection.getFieldValue(Reflection.getField(ENTITY_TYPE_CLAZZ, ENTITY_TYPE_CLAZZ, parrotType, true, "PARROT")) : null;
-
-        Object temp;
-        try {
-            temp = COMPOUND_TAG_CONSTRUCTOR != null ? COMPOUND_TAG_CONSTRUCTOR.invoke() : null;
-        } catch (Throwable throwable) {
-            temp = null;
-        }
-        EMPTY_NBT = temp;
-    }
-
-    public static @Nullable Object createParrot(World world, Parrot.Variant variant) {
-        Preconditions.checkNotNull(PARROT_TYPE);
-        Preconditions.checkNotNull(PARROT_CONSTRUCTOR);
-        Preconditions.checkNotNull(GET_WORLD_HANDLE);
-        Preconditions.checkNotNull(GET_BUKKIT_ENTITY);
-        Preconditions.checkNotNull(SAVE);
-
-        try {
-            Object craftWorld = CRAFT_WORLD_CLAZZ.cast(world);
-
-            Object parrot = PARROT_CONSTRUCTOR.invoke(PARROT_TYPE, GET_WORLD_HANDLE.invoke(craftWorld));
-
-            Entity invoke = (Entity) GET_BUKKIT_ENTITY.invoke(parrot);
-            if (invoke instanceof Parrot temp) temp.setVariant(variant);
-
-            return SAVE.invoke(invoke);
-        } catch (Throwable throwable) {
-            throwable.printStackTrace();
-            return null;
-        }
     }
 
     public static Sound getAmbient(@NotNull World world) {

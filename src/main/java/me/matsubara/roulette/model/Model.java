@@ -1,5 +1,10 @@
 package me.matsubara.roulette.model;
 
+import com.github.retrooper.packetevents.protocol.item.ItemStack;
+import com.github.retrooper.packetevents.protocol.item.type.ItemTypes;
+import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
+import com.github.retrooper.packetevents.util.Vector3f;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
@@ -15,17 +20,13 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.IntStream;
 
 @Getter
@@ -46,6 +47,9 @@ public final class Model {
 
     // List with all stands associated with a name.
     private final List<PacketStand> stands = new ArrayList<>();
+
+    // Set with the unique id of the players who aren't seeing the entity due to the distance.
+    private final Set<UUID> outOfRange = new HashSet<>();
 
     // Type of the carpets.
     private Material carpetsType;
@@ -102,14 +106,6 @@ public final class Model {
         loadModel();
     }
 
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public boolean isModelSpawned() {
-        if (section == null) return false;
-        return stands.size() == section.getKeys(false).size();
-    }
-
-    private ConfigurationSection section;
-
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void loadFile() {
         File file = new File(plugin.getDataFolder() + File.separator + "models", name + ".yml");
@@ -128,7 +124,6 @@ public final class Model {
         configuration = new YamlConfiguration();
         try {
             configuration.load(file);
-            section = configuration.getConfigurationSection("parts");
         } catch (IOException | InvalidConfigurationException exception) {
             exception.printStackTrace();
         }
@@ -151,7 +146,10 @@ public final class Model {
         // Save the name of the current part.
         settings.setPartName(name);
 
-        stands.add(new PacketStand(finalLocation, settings, true));
+        PacketStand stand = new PacketStand(plugin, finalLocation, settings);
+        stand.spawn();
+
+        stands.add(stand);
     }
 
     private @Nullable String getDecoURL(@NotNull String name) {
@@ -205,9 +203,7 @@ public final class Model {
             Location location = this.location.clone().add(PluginUtils.offsetVector(offset, this.location.getYaw(), this.location.getPitch()));
 
             StandSettings settings = new StandSettings();
-            settings.setXOffset(xOffset);
-            settings.setYOffset(yOffset);
-            settings.setZOffset(zOffset);
+            settings.setOffset(offset);
             settings.setExtraYaw(yaw);
 
             String settingPath = defaultPath + "settings.";
@@ -230,7 +226,7 @@ public final class Model {
 
             // Set equipment.
             for (PacketStand.ItemSlot slot : PacketStand.ItemSlot.values()) {
-                settings.getEquipment().put(slot, loadEquipment(path, slot.getConfigPathName()));
+                settings.getEquipment().put(slot.getSlot(), loadEquipment(path, slot.getPath()));
             }
 
             settings.getTags().addAll(configuration.getStringList("parts." + path + ".tags"));
@@ -269,17 +265,23 @@ public final class Model {
             }
 
             if (helmet != null) {
-                settings.getEquipment().put(PacketStand.ItemSlot.HEAD, new ItemStack(helmet));
+                ItemStack temp = SpigotConversionUtil.fromBukkitItemStack(new org.bukkit.inventory.ItemStack(helmet));
+                settings.getEquipment().put(EquipmentSlot.HELMET, temp);
             }
 
             // Spawn random decoration.
             if (name.startsWith("DECO")) {
                 String url = getDecoURL(name);
-                settings.getEquipment().put(PacketStand.ItemSlot.MAINHAND, url != null ? PluginUtils.createHead(url) : new ItemStack(Material.AIR));
+
+                ItemStack temp = url != null ?
+                        SpigotConversionUtil.fromBukkitItemStack(PluginUtils.createHead(url)) :
+                        ItemStack.EMPTY;
+
+                settings.getEquipment().put(EquipmentSlot.MAIN_HAND, temp);
             }
 
-            stand.updateMetadata();
-            stand.updateEquipment(null);
+            stand.sendMetadata();
+            stand.sendEquipment();
         }
     }
 
@@ -290,27 +292,30 @@ public final class Model {
         ItemStack item = null;
         if (configuration.get(defaultPath + ".material") != null) {
             Material material = PluginUtils.getOrDefault(Material.class, configuration.getString(defaultPath + ".material", "STONE"), Material.STONE);
-            item = new ItemStack(material);
+            item = SpigotConversionUtil.fromBukkitItemStack(new org.bukkit.inventory.ItemStack(material));
         }
 
-        if (item != null && item.getType() == Material.PLAYER_HEAD && configuration.get(defaultPath + ".url") != null) {
-            item = PluginUtils.createHead(configuration.getString(defaultPath + ".url"), true);
+        if (item != null && item.getType() == ItemTypes.PLAYER_HEAD && configuration.get(defaultPath + ".url") != null) {
+            item = SpigotConversionUtil.fromBukkitItemStack(PluginUtils.createHead(configuration.getString(defaultPath + ".url"), true));
         }
 
         return item;
     }
 
-    private EulerAngle loadAngle(String path, String pose) {
+    private @NotNull Vector3f loadAngle(String path, String pose) {
         String defaultPath = "parts." + path + ".pose." + pose;
 
         if (configuration.get(defaultPath) != null) {
             double x = configuration.getDouble(defaultPath + ".x");
             double y = configuration.getDouble(defaultPath + ".y");
             double z = configuration.getDouble(defaultPath + ".z");
-            return new EulerAngle(Math.toRadians(x), Math.toRadians(y), Math.toRadians(z));
+            return new Vector3f(
+                    (float) Math.toRadians(x),
+                    (float) Math.toRadians(y),
+                    (float) Math.toRadians(z));
         }
 
-        return EulerAngle.ZERO;
+        return Vector3f.zero();
     }
 
     public @Nullable PacketStand getByName(String name) {

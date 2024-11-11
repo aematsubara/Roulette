@@ -53,6 +53,11 @@ command:
   not-permission: "&cYou don't have permission to execute this command!"
   reloading: "&6The plugin is being reloaded in another thread, wait a few seconds..."
   reload: "&6The configuration files have been reloaded!"
+  force:
+    not-playing: "&cYou must be sitting in a game to use this command!"
+    not-spinning: "&cThis command can only be used when the wheel is spinning!"
+    unknown-slot: "&cThe specified slot could not be found."
+    slot-changed: "&6The winning slot has been set to &e%slot%&6!"
 
 # Game related messages.
 game:
@@ -182,7 +187,6 @@ other:
   vanish: "&cYou can't join the game in vanish mode."
   full: "&cThis game is full!"
   restarting: "&cThe game is being restarted!"
-  model-not-loaded: "&cPlease, wait for the model to be loaded!"
   only-american: "&cThis rule can only be applied in american roulette!"
   prison-error: "&cTo apply this rule, the minimum amount of players must be 1."
   can-not-hit: "&cYou can't hit players on a game!"

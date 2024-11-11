@@ -67,6 +67,7 @@ public class CroupierGUI extends RouletteGUI {
         if (url != null) croupierTexture.setHead(url, true);
 
         inventory.setItem(11, croupierTexture.build());
+        setInviteItem();
         setParrotItem();
         setParrotSoundsItem();
         setParrotVariantItem();
@@ -83,6 +84,12 @@ public class CroupierGUI extends RouletteGUI {
         }
 
         player.openInventory(inventory);
+    }
+
+    public void setInviteItem() {
+        inventory.setItem(12, getItem("invite")
+                .replace("%state%", getState(Game::isInvitePlayers))
+                .build());
     }
 
     public void setParrotItem() {

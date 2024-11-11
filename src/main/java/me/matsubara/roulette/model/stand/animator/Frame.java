@@ -1,9 +1,8 @@
 package me.matsubara.roulette.model.stand.animator;
 
+import com.github.retrooper.packetevents.util.Vector3f;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.util.EulerAngle;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 @Getter
@@ -16,11 +15,11 @@ public class Frame {
     private float z;
     private float rotation;
 
-    private EulerAngle head;
-    private EulerAngle leftArm;
-    private EulerAngle rightArm;
-    private EulerAngle leftLeg;
-    private EulerAngle rightLeg;
+    private Vector3f head;
+    private Vector3f leftArm;
+    private Vector3f rightArm;
+    private Vector3f leftLeg;
+    private Vector3f rightLeg;
 
     public Frame multiply(float multiplier, int id) {
         Frame frame = new Frame();
@@ -31,18 +30,13 @@ public class Frame {
         frame.z *= multiplier;
         frame.rotation *= multiplier;
 
-        frame.head = multiply(head, multiplier);
-        frame.leftArm = multiply(leftArm, multiplier);
-        frame.rightArm = multiply(rightArm, multiplier);
-        frame.leftLeg = multiply(leftLeg, multiplier);
-        frame.rightLeg = multiply(rightLeg, multiplier);
+        frame.head = head.multiply(multiplier);
+        frame.leftArm = leftArm.multiply(multiplier);
+        frame.rightArm = rightArm.multiply(multiplier);
+        frame.leftLeg = leftLeg.multiply(multiplier);
+        frame.rightLeg = rightLeg.multiply(multiplier);
 
         return frame;
-    }
-
-    @Contract("_, _ -> new")
-    private @NotNull EulerAngle multiply(@NotNull EulerAngle angle, float multiplier) {
-        return new EulerAngle(angle.getX() * multiplier, angle.getY() * multiplier, angle.getZ() * multiplier);
     }
 
     public Frame add(@NotNull Frame add, int id) {
@@ -54,17 +48,12 @@ public class Frame {
         frame.z += add.z;
         frame.rotation += add.rotation;
 
-        frame.head = add(head, add.head);
-        frame.leftArm = add(leftArm, add.leftArm);
-        frame.rightArm = add(rightArm, add.rightArm);
-        frame.leftLeg = add(leftLeg, add.leftLeg);
-        frame.rightLeg = add(rightLeg, add.rightLeg);
+        frame.head = head.add(add.head);
+        frame.leftArm = leftArm.add(add.leftArm);
+        frame.rightArm = rightArm.add(add.rightArm);
+        frame.leftLeg = leftLeg.add(add.leftLeg);
+        frame.rightLeg = rightLeg.add(add.rightLeg);
 
         return frame;
-    }
-
-    @Contract("_, _ -> new")
-    private @NotNull EulerAngle add(@NotNull EulerAngle angle, @NotNull EulerAngle add) {
-        return new EulerAngle(angle.getX() + add.getX(), angle.getY() + add.getY(), angle.getZ() + add.getZ());
     }
 }

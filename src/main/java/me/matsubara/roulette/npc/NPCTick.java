@@ -48,7 +48,7 @@ public class NPCTick implements Runnable {
                     continue;
                 }
 
-                boolean inRange = PluginUtils.isInRange(npcLocation, playerLocation);
+                boolean inRange = plugin.getStandManager().isInRange(npcLocation, playerLocation);
 
                 if (!inRange && npc.isShownFor(player)) {
                     npc.hide(player);
@@ -113,11 +113,12 @@ public class NPCTick implements Runnable {
 
         // The player must be around X blocks from the table (not the NPC).
         double range = ConfigManager.Config.NPC_LOOK_AND_INVITE_RANGE.asDouble();
-        if (game.getLocation().distanceSquared(target)
-                > Math.min(range * range, PluginUtils.getRenderDistance())) return false;
+        double renderDistance = Math.min(range * range, plugin.getStandManager().getRenderDistance());
+
+        if (game.getLocation().distanceSquared(target) > renderDistance) return false;
 
         // Send an invitation message to the player the first time they enter the FOV.
-        if (!npc.isInsideFOV(player) && notInvitedYet(player)) {
+        if (game.isInvitePlayers() && !npc.isInsideFOV(player) && notInvitedYet(player)) {
             plugin.getMessageManager().sendNPCMessage(player, game, MessageManager.Message.INVITE);
         }
 

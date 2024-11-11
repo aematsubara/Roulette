@@ -8,7 +8,6 @@ import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
 import com.github.retrooper.packetevents.protocol.player.SkinSection;
 import com.github.retrooper.packetevents.util.Vector3i;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
-import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
 import me.matsubara.roulette.npc.NPC;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -98,15 +97,15 @@ public class MetadataModifier extends NPCModifier {
                 EntityDataTypes.BYTE,
                 input -> input ? ALL : 0);
 
-        public static final EntityMetadata<Object, NBTCompound> SHOULDER_ENTITY_LEFT = new EntityMetadata<>(
+        public static final EntityMetadata<NBTCompound, NBTCompound> SHOULDER_ENTITY_LEFT = new EntityMetadata<>(
                 19,
                 EntityDataTypes.NBT,
-                SpigotReflectionUtil::fromMinecraftNBT);
+                nbt -> nbt);
 
-        public static final EntityMetadata<Object, NBTCompound> SHOULDER_ENTITY_RIGHT = new EntityMetadata<>(
+        public static final EntityMetadata<NBTCompound, NBTCompound> SHOULDER_ENTITY_RIGHT = new EntityMetadata<>(
                 20,
                 EntityDataTypes.NBT,
-                SpigotReflectionUtil::fromMinecraftNBT);
+                nbt -> nbt);
 
     }
 }

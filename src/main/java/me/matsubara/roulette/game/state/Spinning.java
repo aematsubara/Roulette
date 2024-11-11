@@ -1,8 +1,11 @@
 package me.matsubara.roulette.game.state;
 
+import com.cryptomorin.xseries.XSound;
 import com.github.retrooper.packetevents.protocol.entity.pose.EntityPose;
 import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityAnimation;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.LastRouletteSpinEvent;
 import me.matsubara.roulette.game.Game;
@@ -18,8 +21,6 @@ import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -38,6 +39,7 @@ public final class Spinning extends BukkitRunnable {
 
     private int time;
     private boolean shouldStart;
+    private @Setter Slot force;
 
     public Spinning(@NotNull RoulettePlugin plugin, @NotNull Game game) {
         this.plugin = plugin;
@@ -82,7 +84,10 @@ public final class Spinning extends BukkitRunnable {
         npc.equipment().queue(EquipmentSlot.MAIN_HAND, new ItemStack(Material.AIR)).send();
 
         // Show ball, shouldn't be null.
-        if (ball != null) ball.setEquipment(new ItemStack(Material.END_ROD), PacketStand.ItemSlot.HEAD);
+        if (ball == null) return;
+
+        ball.getSettings().getEquipment().put(EquipmentSlot.HELMET, SpigotConversionUtil.fromBukkitItemStack(new ItemStack(Material.END_ROD)));
+        ball.sendEquipment();
     }
 
     @Override
@@ -116,10 +121,14 @@ public final class Spinning extends BukkitRunnable {
         game.setWinner(slots[which]);
 
         if (time == 1) {
-            LastRouletteSpinEvent lastSpinEvent = new LastRouletteSpinEvent(game, game.getWinner());
-            plugin.getServer().getPluginManager().callEvent(lastSpinEvent);
+            if (force != null) {
+                game.setWinner(force);
+            } else {
+                LastRouletteSpinEvent lastSpinEvent = new LastRouletteSpinEvent(game, game.getWinner());
+                plugin.getServer().getPluginManager().callEvent(lastSpinEvent);
 
-            game.setWinner(lastSpinEvent.getWinnerSlot());
+                game.setWinner(lastSpinEvent.getWinnerSlot());
+            }
         }
 
         String slotName = PluginUtils.getSlotName(game.getWinner());
@@ -137,20 +146,11 @@ public final class Spinning extends BukkitRunnable {
             spinHologram.addLines(slotName);
         } else {
             spinHologram.setLine(1, slotName);
-            playSpinningSound();
+            // Play spinning sound at spin hologram location, this sound can be heard by every player (even those outside the game).
+            XSound.play(ConfigManager.Config.SOUND_SPINNING.asString(),
+                    temp -> temp.atLocation(game.getSpinHologram().getLocation()).play());
         }
 
         time--;
-    }
-
-    private void playSpinningSound() {
-        Location soundAt = game.getSpinHologram().getLocation();
-        World world = soundAt.getWorld();
-
-        // Play spinning sound at spin hologram location, this sound can be heard by every player (even those outside the game).
-        Sound spinningSound;
-        if (world != null && (spinningSound = PluginUtils.getOrNull(Sound.class, ConfigManager.Config.SOUND_SPINNING.asString())) != null) {
-            world.playSound(soundAt, spinningSound, 1.0f, 1.0f);
-        }
     }
 }

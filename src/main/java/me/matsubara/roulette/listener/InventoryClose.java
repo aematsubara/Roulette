@@ -53,7 +53,10 @@ public final class InventoryClose implements Listener {
             if (game.getState().isSpinning()) return;
 
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (player.getOpenInventory().getTopInventory().getHolder() instanceof ConfirmGUI) return;
+                // Ignore bet-all inventory.
+                if (player.getOpenInventory().getTopInventory().getHolder() instanceof ConfirmGUI confirm) {
+                    if (confirm.getType() == ConfirmGUI.ConfirmType.BET_ALL) return;
+                }
 
                 int page = chip.getCurrentPage();
                 runTask(() -> new ChipGUI(game, player, page, false));

@@ -60,16 +60,9 @@ public final class UseEntity extends SimplePacketListenerAbstract {
     }
 
     private boolean handle(Game game, Player player, int entityId, @NotNull PacketStand stand) {
-        if (stand.getEntityId() != entityId) return false;
+        if (stand.getId() != entityId) return false;
 
-        Model model = game.getModel();
         MessageManager messages = plugin.getMessageManager();
-
-        // Can happen when the game is created.
-        if (!model.isModelSpawned()) {
-            messages.send(player, MessageManager.Message.MODEL_NOT_LOADED);
-            return true;
-        }
 
         // Joining while shifting will remove the player from the chair.
         if (player.isSneaking()) return true;

@@ -1,15 +1,17 @@
 package me.matsubara.roulette.game;
 
+import com.cryptomorin.xseries.XSound;
 import com.cryptomorin.xseries.reflection.XReflection;
 import com.github.retrooper.packetevents.protocol.entity.pose.EntityPose;
 import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
 import com.github.retrooper.packetevents.protocol.player.TextureProperty;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
+import com.github.retrooper.packetevents.util.Vector3f;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -58,7 +60,6 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -68,7 +69,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -149,12 +149,14 @@ public final class Game {
     // If bet-all is allowed in this game.
     private boolean betAllEnabled;
 
+    // Whether the croupier invites nearby players.
+    private boolean invitePlayers;
+
     // Parrot data.
     private boolean parrotEnabled;
     private boolean parrotSounds;
     private Parrot.Variant parrotVariant;
     private ParrotUtils.ParrotShoulder parrotShoulder;
-    private Object parrotNBT;
 
     // Tasks.
     private Starting starting;
@@ -250,6 +252,7 @@ public final class Game {
             UUID owner,
             int startTime,
             boolean betAllEnabled,
+            boolean invitePlayers,
             @Nullable UUID accountGiveTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
             boolean parrotEnabled,
@@ -290,9 +293,10 @@ public final class Game {
         this.startTime = startTime;
         this.betAllEnabled = betAllEnabled;
         this.accountGiveTo = accountGiveTo;
+        this.invitePlayers = invitePlayers;
 
         // Spawn join hologram.
-        this.joinHologram = new Hologram(plugin, model
+        this.joinHologram = new Hologram(this, model
                 .getLocation()
                 .clone()
                 .add(0.0d, 1.25d, 0.0d));
@@ -301,7 +305,7 @@ public final class Game {
         updateJoinHologram(true);
 
         // Spawn spin hologram.
-        this.spinHologram = new Hologram(plugin, model
+        this.spinHologram = new Hologram(this, model
                 .getLocation()
                 .clone());
 
@@ -359,14 +363,6 @@ public final class Game {
             bukkit.setMarker(settings.isMarker());
             bukkit.setPersistent(false);
             bukkit.setGravity(false);
-
-            // Set poses.
-            bukkit.setHeadPose(settings.getHeadPose());
-            bukkit.setBodyPose(settings.getBodyPose());
-            bukkit.setLeftArmPose(settings.getLeftArmPose());
-            bukkit.setRightArmPose(settings.getRightArmPose());
-            bukkit.setLeftLegPose(settings.getLeftLegPose());
-            bukkit.setRightLegPose(settings.getRightLegPose());
 
             // Hide hearts.
             AttributeInstance attribute = bukkit.getAttribute(Attribute.GENERIC_MAX_HEALTH);
@@ -447,14 +443,7 @@ public final class Game {
     }
 
     public void playSound(String sound) {
-        for (Player player : getPlayers()) {
-            playSound(sound, player);
-        }
-    }
-
-    public void playSound(String sound, Player player) {
-        Sound toPlay = PluginUtils.getOrNull(Sound.class, sound);
-        if (toPlay != null) player.playSound(player.getLocation(), toPlay, 1.0f, 1.0f);
+        XSound.play(sound, temp -> temp.forPlayers(getPlayers()).play());
     }
 
     public void broadcast(MessageManager.Message message) {
@@ -599,6 +588,7 @@ public final class Game {
         if (isSittingOn(player)
                 && player.getVehicle() instanceof ArmorStand chair
                 && chairs.containsValue(chair)) {
+            plugin.getSteerVehicle().removeInput(player);
             player.leaveVehicle();
         }
 
@@ -721,10 +711,8 @@ public final class Game {
         }
 
         // Play move from chair sound at player location.
-        Sound swapChairSound = PluginUtils.getOrNull(Sound.class, ConfigManager.Config.SOUND_SWAP_CHAIR.asString());
-        if (swapChairSound != null) {
-            player.getWorld().playSound(player.getLocation(), swapChairSound, 1.0f, 1.0f);
-        }
+        XSound.play(ConfigManager.Config.SOUND_SWAP_CHAIR.asString(),
+                temp -> temp.atLocation(player.getLocation()).play());
 
         stand.addPassenger(player);
     }
@@ -1105,16 +1093,16 @@ public final class Game {
         // Where to spawn the bottle.
         Location baseLocation = npc.getLocation().clone();
 
-        double angle = Math.toRadians(90.0d);
+        float angle = (float) Math.toRadians(90.0d);
 
         StandSettings oneSettings = new StandSettings();
         oneSettings.setSmall(true);
         oneSettings.setInvisible(true);
-        oneSettings.getEquipment().put(PacketStand.ItemSlot.MAINHAND, new ItemStack(Material.EXPERIENCE_BOTTLE));
-        oneSettings.setRightArmPose(new EulerAngle(angle, 0.0d, 0.0d));
+        oneSettings.getEquipment().put(EquipmentSlot.MAIN_HAND, SpigotConversionUtil.fromBukkitItemStack(new ItemStack(Material.EXPERIENCE_BOTTLE)));
+        oneSettings.setRightArmPose(new Vector3f(angle, 0.0f, 0.0f));
 
         // First part.
-        selectedOne = new PacketStand(baseLocation, oneSettings, true);
+        (selectedOne = new PacketStand(plugin, baseLocation, oneSettings)).spawn();
 
         Location modelLocation = getLocation();
         float yaw = modelLocation.getYaw(), pitch = modelLocation.getPitch();
@@ -1123,10 +1111,10 @@ public final class Game {
         Vector offset = PluginUtils.offsetVector(new Vector(-0.32d, 0.0d, -0.24d), yaw, pitch);
 
         StandSettings twoSettings = oneSettings.clone();
-        twoSettings.setRightArmPose(new EulerAngle(angle, angle, 0.0d));
+        twoSettings.setRightArmPose(new Vector3f(angle, angle, 0.0f));
 
         // Second part.
-        selectedTwo = new PacketStand(baseLocation.clone().add(offset), twoSettings, true);
+        (selectedTwo = new PacketStand(plugin, baseLocation.clone().add(offset), twoSettings)).spawn();
 
         // Where to teleport the bottle.
         PacketStand temp = model.getByName(winner.name());
@@ -1229,7 +1217,10 @@ public final class Game {
 
         // Hide the ball.
         PacketStand ball = model.getByName("BALL");
-        if (ball != null) ball.setEquipment(new ItemStack(Material.AIR), PacketStand.ItemSlot.HEAD);
+        if (ball != null) {
+            ball.getSettings().getEquipment().put(EquipmentSlot.HELMET, com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY);
+            ball.sendEquipment();
+        }
 
         // Stand the NPC.
         npc.metadata().queue(MetadataModifier.EntityMetadata.POSE, EntityPose.STANDING).send();
@@ -1310,9 +1301,8 @@ public final class Game {
         // Show join hologram to every player if hidden and update.
         joinHologram.setVisibleByDefault(true);
         if (plugin.isEnabled()) {
-            Predicate<Player> showAgain = Predicates.not(joinHologram::isVisibleTo).and(Predicates.not(this::isSittingOn));
             Bukkit.getOnlinePlayers().stream()
-                    .filter(showAgain)
+                    .filter(player -> !joinHologram.isVisibleTo(player) && !isPlaying(player))
                     .forEach(joinHologram::showTo);
             updateJoinHologram(false);
         }
@@ -1580,10 +1570,9 @@ public final class Game {
     }
 
     private void sendBets(Player player, List<String> lore, int indexOf, MessageManager.Message hover, boolean winOnly) {
-        List<Bet> bets = winOnly ? getBets(player)
-                .stream()
-                .filter(Bet::isWon)
-                .toList() : getBets(player);
+        List<Bet> bets = getBets(player).stream()
+                .filter(bet -> winOnly ? bet.isWon() : bet.hasSlot())
+                .toList();
 
         if (bets.isEmpty()) {
             player.sendMessage(lore.get(indexOf).replace("%bet%", MessageManager.Message.NO_WINNING_BETS.asString()));

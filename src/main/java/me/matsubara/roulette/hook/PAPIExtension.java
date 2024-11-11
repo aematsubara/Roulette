@@ -88,8 +88,9 @@ public final class PAPIExtension extends PlaceholderExpansion {
                 // %roulette_max% → returns the highest amount of money earned.
                 case "max" -> {
                     return String.valueOf(sessions.stream()
-                            .mapToDouble(session -> mapToWinningDouble(player, session).max().orElse(0))
-                            .max());
+                            .mapToDouble(session -> mapToWinningDouble(player, session).max().orElse(0.0d))
+                            .max()
+                            .orElse(0.0d));
                 }
             }
         } else if (values[0].equalsIgnoreCase("win")) {

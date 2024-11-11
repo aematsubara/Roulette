@@ -36,6 +36,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.*;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
@@ -59,6 +60,7 @@ import java.util.*;
 public final class RoulettePlugin extends JavaPlugin {
 
     // Managers.
+    private SteerVehicle steerVehicle;
     private ChipManager chipManager;
     private ConfigManager configManager;
     private GameManager gameManager;
@@ -156,7 +158,7 @@ public final class RoulettePlugin extends JavaPlugin {
         // Register protocol events.
         EventManager eventManager = PacketEvents.getAPI().getEventManager();
         eventManager.registerListener(new PlayerNPCInteract(this));
-        eventManager.registerListener(new SteerVehicle(this));
+        eventManager.registerListener(steerVehicle = new SteerVehicle(this));
         eventManager.registerListener(new UseEntity(this));
 
         // Register bukkit events.
@@ -303,6 +305,14 @@ public final class RoulettePlugin extends JavaPlugin {
                 file -> saveResource("messages.yml"),
                 config -> Collections.emptyList(),
                 Collections.emptyList());
+    }
+
+    @Override
+    public void reloadConfig() {
+        super.reloadConfig();
+
+        // We don't want to use default values.
+        getConfig().setDefaults(new MemoryConfiguration());
     }
 
     public void saveResource(String name) {

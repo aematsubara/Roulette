@@ -11,38 +11,38 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Getter
 public final class Hologram {
 
+    // The game this hologram belongs to.
+    private final Game game;
+
     // Plugin instance.
     private final RoulettePlugin plugin;
 
     // Text of this hologram.
-    private final List<String> lines;
+    private final List<String> lines = new ArrayList<>();
 
     // Stands of this hologram.
     private final List<PacketStand> stands = new ArrayList<>();
 
+    // Players seeing this hologram.
+    private final Map<UUID, Boolean> visibility = new HashMap<>();
+
     // Location of this hologram.
     private Location location;
 
-    // Players seeing this hologram.
-    private Map<String, Boolean> visibility;
-
     // If this hologram is visible by default.
-    private boolean visibleByDefault;
+    private boolean visibleByDefault = true;
 
     // Task used for rainbow color.
-    private int taskId;
+    private int taskId = -1;
 
     // Space between lines.
     private static final double LINE_DISTANCE = 0.23d;
@@ -58,31 +58,27 @@ public final class Hologram {
             .map(ChatColor::toString)
             .toArray(String[]::new);
 
-    public Hologram(RoulettePlugin plugin, Location location) {
-        this.plugin = plugin;
-        this.lines = new ArrayList<>();
+    public Hologram(@NotNull Game game, Location location) {
+        this.game = game;
+        this.plugin = game.getPlugin();
         this.location = location;
-        this.visibleByDefault = true;
     }
 
     public void setVisibleByDefault(boolean visibleByDefault) {
         if (this.visibleByDefault == visibleByDefault) return;
+
         this.visibleByDefault = visibleByDefault;
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (skipUpdate(player)) continue;
-            if (visibleByDefault) showPackets(player);
-            else destroyPackets(player);
+            if (game.equals(plugin.getGameManager().getGameByPlayer(player))) continue;
+            if (game.getModel().getOutOfRange().contains(player.getUniqueId())) continue;
+
+            if (visibleByDefault) {
+                if (isVisibleTo(player, false)) showPackets(player);
+            } else {
+                destroyPackets(player);
+            }
         }
-    }
-
-    @SuppressWarnings("all")
-    private boolean skipUpdate(Player player) {
-        Boolean playerState;
-        if (visibility == null || (playerState = visibility.get(player.getName())) == null) return false;
-
-        Game gameByPlayer = plugin.getGameManager().getGameByPlayer(player);
-        return gameByPlayer != null && gameByPlayer.getJoinHologram().equals(this);
     }
 
     private void showPackets(Player player) {
@@ -93,34 +89,29 @@ public final class Hologram {
 
     private void destroyPackets(Player player) {
         for (PacketStand stand : stands) {
-            stand.destroy(player, PacketStand.IgnoreReason.HOLOGRAM);
+            stand.destroy(player);
         }
     }
 
     public void showTo(Player player) {
-        boolean wasVisible = isVisibleTo(player);
-
-        if (visibility == null) visibility = new ConcurrentHashMap<>();
-        visibility.put(player.getName(), true);
-
-        if (!wasVisible) showPackets(player);
+        boolean visible = isVisibleTo(player);
+        visibility.put(player.getUniqueId(), true);
+        if (!visible) showPackets(player);
     }
 
     public void hideTo(Player player) {
-        boolean wasVisible = isVisibleTo(player);
-
-        if (visibility == null) visibility = new ConcurrentHashMap<>();
-        visibility.put(player.getName(), false);
-
-        if (wasVisible || visibleByDefault) destroyPackets(player);
+        boolean visible = isVisibleTo(player);
+        visibility.put(player.getUniqueId(), false);
+        if (visible) destroyPackets(player);
     }
 
-    public boolean isVisibleTo(Player player) {
-        if (visibility != null) {
-            Boolean value = visibility.get(player.getName());
-            if (value != null) return value;
-        }
-        return visibleByDefault;
+    public boolean isVisibleTo(@NotNull Player player) {
+        return isVisibleTo(player, visibleByDefault);
+    }
+
+    public boolean isVisibleTo(@NotNull Player player, boolean visibleByDefault) {
+        Boolean shown = visibility.get(player.getUniqueId());
+        return visibleByDefault ? (shown == null || shown) : (shown != null && shown);
     }
 
     public void update(List<String> lines) {
@@ -145,7 +136,7 @@ public final class Hologram {
                 settings.setInvisible(true);
 
                 // Create packet stand, but don't show to all players.
-                PacketStand stand = new PacketStand(current, settings, false);
+                PacketStand stand = new PacketStand(plugin, current, settings);
 
                 // Spawn packet stand to players who can see this hologram.
                 for (Player player : Bukkit.getOnlinePlayers()) {
@@ -159,8 +150,9 @@ public final class Hologram {
                 if (stand == null) continue;
 
                 stand.teleport(current);
+
                 stand.getSettings().setCustomName(text);
-                stand.updateMetadata();
+                stand.sendMetadata();
             }
 
             current.subtract(0.0d, LINE_DISTANCE, 0.0d);
@@ -204,14 +196,12 @@ public final class Hologram {
 
     public void destroy() {
         cancelTask();
+
         stands.forEach(PacketStand::destroy);
         stands.clear();
-        lines.clear();
 
-        if (visibility != null) {
-            visibility.clear();
-            visibility = null;
-        }
+        lines.clear();
+        visibility.clear();
     }
 
     public int size() {
@@ -219,17 +209,11 @@ public final class Hologram {
     }
 
     private void checkForTask() {
-        // Check if the task should be started.
-        boolean startTask = false;
-        for (String line : lines) {
-            if (line.contains("&u")) {
-                startTask = true;
-                break;
-            }
-        }
+        // The plugin is disabled.
+        if (!plugin.isEnabled()) return;
 
-        if (!startTask) {
-            // Update normally.
+        // Update normally.
+        if (lines.stream().noneMatch(line -> line.contains("&u"))) {
             update(lines);
             return;
         }
@@ -242,20 +226,20 @@ public final class Hologram {
             public void run() {
                 String result = RAINBOW[index];
 
-                index++;
-                if (index == RAINBOW.length) index = 0;
+                if (++index == RAINBOW.length) index = 0;
 
                 List<String> copy = new ArrayList<>(lines);
                 copy.replaceAll(line -> line.replace("&u", result));
+
                 update(copy);
             }
-        }.runTaskTimer(plugin, 0L, 5L).getTaskId();
+        }.runTaskTimer(plugin, 10L, 10L).getTaskId();
     }
 
     private void cancelTask() {
-        if (taskId != -1) {
-            Bukkit.getScheduler().cancelTask(taskId);
-            taskId = -1;
-        }
+        if (taskId == -1) return;
+
+        Bukkit.getScheduler().cancelTask(taskId);
+        taskId = -1;
     }
 }

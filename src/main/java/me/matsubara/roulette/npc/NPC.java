@@ -1,22 +1,21 @@
 package me.matsubara.roulette.npc;
 
-import com.github.retrooper.packetevents.protocol.nbt.NBTNumber;
+import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
+import com.github.retrooper.packetevents.protocol.nbt.NBTInt;
+import com.github.retrooper.packetevents.protocol.nbt.NBTIntArray;
+import com.github.retrooper.packetevents.protocol.nbt.NBTString;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.google.common.base.Preconditions;
-import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.npc.modifier.*;
-import me.matsubara.roulette.util.ParrotUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.entity.Parrot;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -128,35 +127,34 @@ public class NPC {
         return new TeleportModifier(this);
     }
 
-    public void toggleParrotVisibility(World world, @NotNull MetadataModifier metadata) {
+    public void toggleParrotVisibility(@NotNull MetadataModifier metadata) {
         boolean left = game.getParrotShoulder().isLeft();
 
-        Object parrot = getOrCreateParrot(world);
+        NBTCompound parrot = new NBTCompound();
+        if (game.isParrotEnabled()) {
+            parrot.setTag("id", new NBTString(EntityType.PARROT.getKey().toString()));
+            parrot.setTag("UUID", new NBTIntArray(randomUUID()));
+            parrot.setTag("Variant", new NBTInt(game.getParrotVariant().ordinal()));
+        }
+
         metadata.queue(left ?
                 MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT :
                 MetadataModifier.EntityMetadata.SHOULDER_ENTITY_RIGHT, parrot);
     }
 
-    private @Nullable Object getOrCreateParrot(World world) {
-        if (!game.isParrotEnabled()) return ParrotUtils.EMPTY_NBT;
+    private int[] randomUUID() {
+        UUID uuid = UUID.randomUUID();
 
-        Object parrotNBT = game.getParrotNBT();
-        if (parrotNBT != null) {
-            NBTNumber variantId = SpigotReflectionUtil
-                    .fromMinecraftNBT(parrotNBT)
-                    .getNumberTagOrNull("Variant");
-            if (variantId != null && game.getParrotVariant() == Parrot.Variant.values()[variantId.getAsInt()]) {
-                return parrotNBT;
-            }
-        }
+        long most = uuid.getMostSignificantBits();
+        long least = uuid.getLeastSignificantBits();
 
-        Object temp = ParrotUtils.createParrot(world, game.getParrotVariant());
-        if (temp != null) {
-            game.setParrotNBT(temp);
-            return temp;
-        }
+        int[] array = new int[4];
+        array[0] = (int) (most >>> 32);
+        array[1] = (int) most;
+        array[2] = (int) (least >>> 32);
+        array[3] = (int) least;
 
-        return ParrotUtils.EMPTY_NBT;
+        return array;
     }
 
     public static class Builder {

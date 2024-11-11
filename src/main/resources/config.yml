@@ -475,6 +475,13 @@ croupier-menu:
         - "&7"
         - "&6Left click to change the texture."
         - "&6Right click to reset the texture."
+    invite:
+      material: WRITABLE_BOOK
+      display-name: "&eInvite players: %state%"
+      lore:
+        - "&7Toggles the invitation status."
+        - "&7"
+        - "&6Click to enable/disable."
     # %state% - the state of the parrot option.
     parrot:
       material: FEATHER

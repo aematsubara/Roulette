@@ -4,109 +4,143 @@ import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.SimplePacketListenerAbstract;
 import com.github.retrooper.packetevents.event.simple.PacketPlayReceiveEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerInput;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSteerVehicle;
+import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.game.data.Bet;
+import me.matsubara.roulette.game.data.PlayerInput;
 import me.matsubara.roulette.gui.BetsGUI;
 import me.matsubara.roulette.gui.ConfirmGUI;
 import me.matsubara.roulette.manager.ConfigManager;
-import org.bukkit.entity.ArmorStand;
+import me.matsubara.roulette.manager.GameManager;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class SteerVehicle extends SimplePacketListenerAbstract {
 
     private final RoulettePlugin plugin;
-    private final Map<UUID, Long> steerCooldown = new HashMap<>();
+    private final Map<UUID, Long> cooldown = new HashMap<>();
+    private final @Getter Map<UUID, PlayerInput> input = new ConcurrentHashMap<>();
 
     public SteerVehicle(RoulettePlugin plugin) {
         super(PacketListenerPriority.HIGHEST);
         this.plugin = plugin;
     }
 
-    @Override
-    public void onPacketPlayReceive(@NotNull PacketPlayReceiveEvent event) {
-        if (event.getPacketType() != PacketType.Play.Client.STEER_VEHICLE) return;
-        if (!(event.getPlayer() instanceof Player player)) return;
-
-        WrapperPlayClientSteerVehicle wrapper = new WrapperPlayClientSteerVehicle(event);
-
-        // Get required values from the packet.
-        float forward = wrapper.getForward();
-        float sideways = wrapper.getSideways();
-        boolean jump = wrapper.isJump(), dismount = wrapper.isUnmount();
-
-        // Nothing changed?
-        if (forward == 0.0f && sideways == 0.0f && !jump && !dismount) return;
-
-        // Let player dismount if is a passenger of a packet stand.
-        models:
-        for (Game game : plugin.getGameManager().getGames()) {
-            for (ArmorStand stand : game.getChairs().values()) {
-                if (handle(player, stand, game, forward, sideways, jump, dismount, event)) break models;
-            }
-        }
+    public PlayerInput getInput(@NotNull Player player) {
+        return input.getOrDefault(player.getUniqueId(), PlayerInput.ZERO);
     }
 
-    private boolean handle(Player player, @NotNull ArmorStand stand, @NotNull Game game, float forward, float sideways, boolean jump, boolean dismount, PacketPlayReceiveEvent event) {
-        if (!stand.getPassengers().contains(player)) return false;
+    public void removeInput(@NotNull Player player) {
+        input.remove(player.getUniqueId());
+    }
 
-        // Prevent player dismounting.
-        if (dismount) event.setCancelled(true);
+    @Override
+    public void onPacketPlayReceive(@NotNull PacketPlayReceiveEvent event) {
+        PacketType.Play.Client type = event.getPacketType();
 
-        // If the player is in cooldown, return.
-        if (steerCooldown.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis()) return true;
+        if (type != PacketType.Play.Client.STEER_VEHICLE
+                && (!GameManager.MODERN_APPROACH || type != PacketType.Play.Client.PLAYER_INPUT)) return;
 
-        List<Bet> bets = game.getBets(player);
-        if (bets.isEmpty()) return true;
+        if (!(event.getPlayer() instanceof Player player)) return;
 
-        GameState state = game.getState();
+        PlayerInput input = createInput(event, type);
+        this.input.put(player.getUniqueId(), input);
+
+        if (GameManager.MODERN_APPROACH) return;
+
+        handle(player, null, input, event);
+    }
+
+    private @NotNull PlayerInput createInput(@NotNull PacketPlayReceiveEvent event, PacketType.Play.Client type) {
+        if (type == PacketType.Play.Client.STEER_VEHICLE) {
+            WrapperPlayClientSteerVehicle wrapper = new WrapperPlayClientSteerVehicle(event);
+            return new PlayerInput(
+                    wrapper.getSideways(),
+                    wrapper.getForward(),
+                    wrapper.isJump(),
+                    wrapper.isUnmount());
+        }
+
+        WrapperPlayClientPlayerInput wrapper = new WrapperPlayClientPlayerInput(event);
+        return new PlayerInput(
+                wrapper.isLeft() ? 0.98f : wrapper.isRight() ? -0.98f : 0.0f,
+                wrapper.isForward() ? 0.98f : wrapper.isBackward() ? -0.98f : 0.0f,
+                wrapper.isJump(),
+                wrapper.isShift());
+    }
+
+    public void handle(Player player, @Nullable Game game, @NotNull PlayerInput input, @Nullable PacketPlayReceiveEvent event) {
+        // Nothing changed?
+        if (input.forward() == 0.0f
+                && input.sideways() == 0.0f
+                && !input.jump()
+                && !input.dismount()) return;
+
+        Game temp = game != null ? game : plugin.getGameManager().getGameByPlayer(player);
+        if (temp == null) return;
+
+        float forward = input.forward(), sideways = input.sideways();
+        boolean jump = input.jump(), dismount = input.dismount();
+
+        if (dismount && !GameManager.MODERN_APPROACH && event != null) {
+            event.setCancelled(true);
+        }
+
+        boolean cooldown = this.cooldown.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis();
+        if (cooldown) return;
+
+        List<Bet> bets = temp.getBets(player);
+        if (bets.isEmpty()) return;
+
+        GameState state = temp.getState();
         boolean prison = bets.stream().anyMatch(Bet::isEnPrison);
 
         // Move the current bet.
-        Bet bet = game.getSelectedBet(player);
-        if (bet == null) return true;
+        Bet bet = temp.getSelectedBet(player);
+        if (bet == null) return;
 
         // Handle chip movement (up/down/left/right).
-        if ((forward != 0.0f || sideways != 0.0f) && canMoveChip(player, game, bet)) {
-            game.moveDirectionalChip(player, forward, sideways);
+        if ((forward != 0.0f || sideways != 0.0f) && canMoveChip(player, temp, bet)) {
+            temp.moveDirectionalChip(player, forward, sideways);
         }
 
         // Handle chair movement (left/right).
-        if (sideways != 0.0f && canSwapChair(player, game, prison)) {
-            runTask(() -> game.sitPlayer(player, sideways < 0.0f));
+        if (sideways != 0.0f && canSwapChair(player, temp, prison)) {
+            runTask(() -> temp.sitPlayer(player, sideways < 0.0f));
         }
 
         // Handle shift.
         if (dismount) {
             // Open leave confirms gui to the player sync.
-            runTask(() -> new ConfirmGUI(game, player, ConfirmGUI.ConfirmType.LEAVE));
+            runTask(() -> new ConfirmGUI(temp, player, ConfirmGUI.ConfirmType.LEAVE));
         }
 
         // Handle jump.
         if (jump
                 && state.isSelecting()
-                && !game.isDone(player)
+                && !temp.isDone(player)
                 && !bets.isEmpty()
                 && (bets.size() > 1 || bets.get(0).hasChip())) {
             // Only allow opening the bet GUI if the player doesn't have any bet in prison
             // and already has a bet with a chip.
-            runTask(() -> new BetsGUI(game, player));
+            runTask(() -> new BetsGUI(temp, player));
         }
 
         // Put player in cooldown.
         long interval = Math.max(200L, ConfigManager.Config.MOVE_INTERVAL.asLong());
-        steerCooldown.put(player.getUniqueId(), System.currentTimeMillis() + interval);
-
-        return true;
+        this.cooldown.put(player.getUniqueId(), System.currentTimeMillis() + interval);
     }
 
     private void runTask(Runnable runnable) {

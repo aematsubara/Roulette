@@ -5,12 +5,14 @@ import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
+import me.matsubara.roulette.game.state.Spinning;
 import me.matsubara.roulette.gui.data.SessionsGUI;
 import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.util.PluginUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -31,7 +33,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
     private final RoulettePlugin plugin;
 
-    private static final List<String> COMMAND_ARGS = List.of("create", "delete", "reload", "sessions", "map");
+    private static final List<String> COMMAND_ARGS = List.of("create", "delete", "reload", "sessions", "map", "force");
     private static final List<String> TABLE_NAME_ARG = List.of("<name>");
     private static final List<String> TYPES = List.of("american", "european");
     private static final List<String> HELP = Stream.of(
@@ -42,6 +44,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             "&e/roulette sessions &f- &7Open the sessions menu.",
             "&e/roulette reload &f- &7Reload configuration files.",
             "&e/roulette map &f- &7Gives a win voucher.",
+            "&e/roulette force <slot> &f- &7Force the winning slot.",
             "&8&m--------------------------------------------------").map(PluginUtils::translate).toList();
 
     public MainCommand(RoulettePlugin plugin) {
@@ -145,23 +148,56 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                 if (!hasPermission(sender, "roulette.delete")) return true;
 
                 Game game = plugin.getGameManager().getGame(args[1]);
-                if (game != null) {
-                    // If the sender is a player and doesn't have permission to delete games from other players,
-                    // send (@no-permission) message.
-                    if (sender instanceof Player player
-                            && !game.getOwner().equals(player.getUniqueId())
-                            && !hasPermission(player, "roulette.delete.others")) {
-                        return true;
-                    }
-
-                    plugin.getGameManager().deleteGame(game);
-                    messages.send(sender, MessageManager.Message.DELETE, message -> message.replace("%name%", game.getName()));
-                } else {
+                if (game == null) {
                     messages.send(sender, MessageManager.Message.UNKNOWN, message -> message.replace("%name%", args[1]));
+                    return true;
                 }
-            } else {
-                messages.send(sender, MessageManager.Message.SINTAX);
+
+                // If the sender is a player and doesn't have permission to delete games from other players,
+                // send (@no-permission) message.
+                if (sender instanceof Player player
+                        && !game.getOwner().equals(player.getUniqueId())
+                        && !hasPermission(player, "roulette.delete.others")) {
+                    return true;
+                }
+
+                plugin.getGameManager().deleteGame(game);
+                messages.send(sender, MessageManager.Message.DELETE, message -> message.replace("%name%", game.getName()));
+                return true;
             }
+
+            if (!args[0].equalsIgnoreCase("force")) {
+                messages.send(sender, MessageManager.Message.SINTAX);
+                return true;
+            }
+
+            // If the player doesn't have permission to force, send (@no-permission) message.
+            if (!hasPermission(sender, "roulette.force")) return true;
+
+            Player player = getPlayerFromSender(sender);
+            if (player == null) return true;
+
+            Game game = plugin.getGameManager().getGameByPlayer(player);
+            if (game == null) {
+                messages.send(sender, MessageManager.Message.FORCE_NOT_PLAYING);
+                return true;
+            }
+
+            Spinning spinning = game.getSpinning();
+            if (spinning == null || spinning.isCancelled()) {
+                messages.send(player, MessageManager.Message.FORCE_NOT_SPINNING);
+                return true;
+            }
+
+            Slot slot = PluginUtils.getOrNull(Slot.class, args[1]);
+            if (!ArrayUtils.contains(Slot.values(game), slot)) {
+                messages.send(player, MessageManager.Message.FORCE_UNKNOWN_SLOT);
+                return true;
+            }
+
+            spinning.setForce(slot);
+
+            messages.send(player, MessageManager.Message.FORCE_SLOT_CHANGED, message -> message.replace("%slot%", PluginUtils.getSlotName(slot)));
             return true;
         }
 
@@ -224,6 +260,14 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
             return StringUtil.copyPartialMatches(args[1], TABLE_NAME_ARG, new ArrayList<>());
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("force") && sender instanceof Player player) {
+            Game game = plugin.getGameManager().getGameByPlayer(player);
+            if (game != null) {
+                List<String> slots = Arrays.stream(Slot.values(game)).map(Enum::name).toList();
+                return StringUtil.copyPartialMatches(args[1], slots, new ArrayList<>());
+            }
         }
 
         if (args.length == 2 && args[0].equalsIgnoreCase("delete")) {

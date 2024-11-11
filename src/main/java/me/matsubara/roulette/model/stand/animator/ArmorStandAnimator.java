@@ -1,13 +1,14 @@
 package me.matsubara.roulette.model.stand.animator;
 
+import com.github.retrooper.packetevents.util.Vector3f;
 import lombok.Getter;
 import lombok.Setter;
+import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Location;
 import org.bukkit.util.Consumer;
-import org.bukkit.util.EulerAngle;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
@@ -33,8 +34,8 @@ public final class ArmorStandAnimator {
 
     private static final Map<String, AnimatorCache> CACHE = new HashMap<>();
 
-    public ArmorStandAnimator(@NotNull File file, StandSettings settings, Location location) {
-        this.stand = new PacketStand(location, settings, true);
+    public ArmorStandAnimator(RoulettePlugin plugin, @NotNull File file, StandSettings settings, Location location) {
+        (this.stand = new PacketStand(plugin, location, settings)).spawn();
         this.location = stand.getLocation();
 
         String path = file.getAbsolutePath();
@@ -98,14 +99,14 @@ public final class ArmorStandAnimator {
         CACHE.put(path, new AnimatorCache(ArrayUtils.clone(this.frames), length, interpolate));
     }
 
-    private boolean setAngle(@NotNull String line, String part, Consumer<EulerAngle> setter) {
+    private boolean setAngle(@NotNull String line, String part, Consumer<Vector3f> setter) {
         if (!line.contains(part)) return false;
         try {
             String[] split = line.split(" ");
             float x = toRadians(split[1]);
             float y = toRadians(split[2]);
             float z = toRadians(split[3]);
-            setter.accept(new EulerAngle(x, y, z));
+            setter.accept(new Vector3f(x, y, z));
             return true;
         } catch (IndexOutOfBoundsException exception) {
             return false;
@@ -150,7 +151,7 @@ public final class ArmorStandAnimator {
             settings.setRightArmPose(frame.getRightArm());
             settings.setHeadPose(frame.getHead());
 
-            stand.updateMetadata();
+            stand.sendMetadata();
         }
 
         this.currentFrame++;

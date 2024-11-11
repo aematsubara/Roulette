@@ -1,5 +1,8 @@
 package me.matsubara.roulette.game.data;
 
+import com.cryptomorin.xseries.XSound;
+import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
@@ -15,7 +18,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Axis;
 import org.bukkit.Location;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -167,15 +169,14 @@ public final class Bet {
                 modelLocation.getPitch()));
 
         // Play move chip sound at hologram location (sync to prevent issues).
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Sound selectSound = PluginUtils.getOrNull(Sound.class, ConfigManager.Config.SOUND_SELECT.asString());
-            if (selectSound != null) owner.getWorld().playSound(finalWhere, selectSound, 1.0f, 1.0f);
-        });
+        plugin.getServer().getScheduler().runTask(plugin,
+                () -> XSound.play(ConfigManager.Config.SOUND_SELECT.asString(),
+                        temp -> temp.atLocation(finalWhere).play()));
 
         // No need to create another hologram.
         if (!hasHologram()) {
             // Creates a personal hologram at the location of the selected slot.
-            this.hologram = new Hologram(plugin, finalWhere);
+            this.hologram = new Hologram(game, finalWhere);
             this.hologram.setVisibleByDefault(false);
             this.hologram.showTo(owner);
 
@@ -206,10 +207,9 @@ public final class Bet {
 
             StandSettings settings = stand.getSettings().clone();
             settings.setMarker(true);
-            settings.getEquipment().put(PacketStand.ItemSlot.MAINHAND, PluginUtils.createHead(chip.url()));
+            settings.getEquipment().put(EquipmentSlot.MAIN_HAND, SpigotConversionUtil.fromBukkitItemStack(PluginUtils.createHead(chip.url())));
 
-            this.stand = new PacketStand(where, settings, true);
-
+            (this.stand = new PacketStand(plugin, where, settings)).spawn();
         } else {
             // Teleport.
             stand.teleport(where);
@@ -224,11 +224,12 @@ public final class Bet {
 
         try {
             glowing.setGlowing(
-                    stand.getEntityId(),
-                    stand.getEntityUniqueId().toString(),
+                    stand.getId(),
+                    stand.getUniqueId().toString(),
                     player,
                     game.getGlowColor(player));
-            stand.updateMetadata(player);
+            stand.getSettings().setGlow(true);
+            stand.sendMetadata(player, true);
         } catch (ReflectiveOperationException exception) {
             exception.printStackTrace();
         }
@@ -239,8 +240,9 @@ public final class Bet {
         if (glowing == null || !hasStand()) return;
 
         try {
-            glowing.unsetGlowing(stand.getEntityId(), player);
-            stand.updateMetadata(player);
+            glowing.unsetGlowing(stand.getId(), player);
+            stand.getSettings().setGlow(false);
+            stand.sendMetadata(player, true);
         } catch (ReflectiveOperationException exception) {
             exception.printStackTrace();
         }

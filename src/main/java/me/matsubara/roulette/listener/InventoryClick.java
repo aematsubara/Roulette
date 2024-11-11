@@ -1,5 +1,7 @@
 package me.matsubara.roulette.listener;
 
+import com.cryptomorin.xseries.XSound;
+import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
 import com.google.common.base.Predicates;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.animation.MoneyAnimation;
@@ -23,10 +25,12 @@ import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.npc.modifier.MetadataModifier;
-import me.matsubara.roulette.util.ParrotUtils;
 import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -98,8 +102,8 @@ public final class InventoryClick implements Listener {
         if (item == null || !item.hasItemMeta()) return;
 
         // Play click sound.
-        Sound clickSound = PluginUtils.getOrNull(Sound.class, ConfigManager.Config.SOUND_CLICK.asString());
-        if (clickSound != null) player.playSound(player.getLocation(), clickSound, 1.0f, 1.0f);
+        XSound.play(ConfigManager.Config.SOUND_CLICK.asString(),
+                temp -> temp.forPlayers(player).play());
 
         if (holder instanceof BetsGUI gui) {
             handleBetsGUI(event, gui);
@@ -482,6 +486,13 @@ public final class InventoryClick implements Listener {
                     messages.send(player, MessageManager.Message.NPC_ALREADY_TEXTURIZED);
                 }
             }
+        } else if (isCustomItem(current, "invite")) {
+            handleGameChange(
+                    gui,
+                    temp -> temp.setInvitePlayers(!temp.isInvitePlayers()),
+                    CroupierGUI::setInviteItem,
+                    false);
+            return;
         } else if (isCustomItem(current, "parrot")) {
             handleGameChange(
                     gui,
@@ -515,7 +526,7 @@ public final class InventoryClick implements Listener {
             MetadataModifier metadata = npc.metadata();
             metadata.queue(game.getParrotShoulder().isLeft() ?
                     MetadataModifier.EntityMetadata.SHOULDER_ENTITY_RIGHT :
-                    MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT, ParrotUtils.EMPTY_NBT);
+                    MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT, new NBTCompound());
             metadata.send(player.getWorld().getPlayers());
             return;
         } else return;
@@ -536,14 +547,14 @@ public final class InventoryClick implements Listener {
 
         if (refreshParrot) {
             World world = game.getNpc().getLocation().getWorld();
-            refreshParrotChange(game, world);
+            if (world != null) refreshParrotChange(game, world);
         }
     }
 
-    private void refreshParrotChange(@NotNull Game game, World world) {
+    private void refreshParrotChange(@NotNull Game game, @NotNull World world) {
         NPC npc = game.getNpc();
         MetadataModifier metadata = npc.metadata();
-        npc.toggleParrotVisibility(world, metadata);
+        npc.toggleParrotVisibility(metadata);
         metadata.send(world.getPlayers());
     }
 

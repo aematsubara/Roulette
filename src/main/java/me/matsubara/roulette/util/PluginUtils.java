@@ -15,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -48,7 +47,6 @@ public final class PluginUtils {
     public static final Pattern PATTERN = Pattern.compile("&(#[\\da-fA-F]{6})");
 
     private static final RoulettePlugin PLUGIN = JavaPlugin.getPlugin(RoulettePlugin.class);
-    private static final double BUKKIT_VIEW_DISTANCE = Math.pow(Bukkit.getViewDistance() << 4, 2);
 
     private static final Slot[][] TABLE_GRID = {
             {Slot.SLOT_3, Slot.SLOT_6, Slot.SLOT_9, Slot.SLOT_12, Slot.SLOT_15, Slot.SLOT_18, Slot.SLOT_21, Slot.SLOT_24, Slot.SLOT_27, Slot.SLOT_30, Slot.SLOT_33, Slot.SLOT_36, Slot.SLOT_COLUMN_3},
@@ -345,17 +343,6 @@ public final class PluginUtils {
             object = getNextOrPrevious(array, ArrayUtils.indexOf(array, object), right);
         } while (keepLookingWhile.test(player, object));
         return converter.apply(object);
-    }
-
-    public static double getRenderDistance() {
-        return Math.min(
-                Math.pow(ConfigManager.Config.RENDER_DISTANCE.asInt(), 2),
-                BUKKIT_VIEW_DISTANCE);
-    }
-
-    public static boolean isInRange(@NotNull Location first, @NotNull Location second) {
-        if (!Objects.equals(first.getWorld(), second.getWorld())) return false;
-        return first.distanceSquared(second) <= getRenderDistance();
     }
 
     public static byte @NotNull [] toBytes(@NotNull UUID uuid) {

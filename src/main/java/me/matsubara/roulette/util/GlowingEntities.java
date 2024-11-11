@@ -215,6 +215,22 @@ public class GlowingEntities implements Listener {
         unsetGlowing(entity.getEntityId(), receiver);
     }
 
+    public void unsetGlowing(Entity entity) throws ReflectiveOperationException {
+        ensureEnabled();
+
+        for (Map.Entry<Player, PlayerData> entry : glowing.entrySet()) {
+            PlayerData playerData = entry.getValue();
+
+            GlowingData glowingData = playerData.glowingDatas.remove(entity.getEntityId());
+            if (glowingData == null) continue;
+
+            Packets.removeGlowing(glowingData);
+
+            if (glowingData.color != null)
+                Packets.removeGlowingColor(glowingData);
+        }
+    }
+
     /**
      * Make the entity with specified entity ID passed as a parameter loose its custom glowing effect.
      * <p>
@@ -875,6 +891,22 @@ public class GlowingEntities implements Listener {
                     18,
                     0,
                     false,
+                    "aa",
+                    "Y",
+                    "ai",
+                    "a",
+                    "b",
+                    "a",
+                    "a",
+                    "k",
+                    "a",
+                    "a",
+                    "a",
+                    "b"),
+            V1_18_2(
+                    18,
+                    2,
+                    false,
                     "Z",
                     "Y",
                     "ai",
@@ -1033,7 +1065,23 @@ public class GlowingEntities implements Listener {
                     null,
                     null,
                     null
-            );
+            ),
+            V1_21_2(
+                    21,
+                    2,
+                    false,
+                    "am",
+                    "aD",
+                    "au",
+                    null,
+                    "f",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
 
             private final int major, minor;
             private final boolean remapped;

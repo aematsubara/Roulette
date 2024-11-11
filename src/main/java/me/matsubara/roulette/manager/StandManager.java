@@ -4,9 +4,11 @@ import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.animation.DabAnimation;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Bet;
+import me.matsubara.roulette.hologram.Hologram;
+import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.animator.ArmorStandAnimator;
-import me.matsubara.roulette.util.PluginUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -18,10 +20,15 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 public final class StandManager implements Listener {
 
     private final RoulettePlugin plugin;
+
+    private static final double BUKKIT_VIEW_DISTANCE = Math.pow(Bukkit.getViewDistance() << 4, 2);
 
     public StandManager(RoulettePlugin plugin) {
         this.plugin = plugin;
@@ -31,20 +38,20 @@ public final class StandManager implements Listener {
     @EventHandler
     public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        handleStandRender(player, player.getLocation(), true);
+        handleStandRender(player, player.getLocation(), HandleCause.SPAWN);
     }
 
     @EventHandler
     public void onPlayerTeleport(@NotNull PlayerTeleportEvent event) {
-        handleMovement(event, true);
+        handleMovementEvent(event, HandleCause.TELEPORT);
     }
 
     @EventHandler
     public void onPlayerMove(@NotNull PlayerMoveEvent event) {
-        handleMovement(event, false);
+        handleMovementEvent(event, HandleCause.OTHER);
     }
 
-    private void handleMovement(@NotNull PlayerMoveEvent event, boolean isSpawn) {
+    private void handleMovementEvent(@NotNull PlayerMoveEvent event, HandleCause cause) {
         Location to = event.getTo();
         if (to == null) return;
 
@@ -55,76 +62,94 @@ public final class StandManager implements Listener {
                 && to.getBlockZ() == from.getBlockZ()) return;
 
         Player player = event.getPlayer();
-        handleStandRender(player, to, isSpawn);
+        handleStandRender(player, to, cause);
     }
 
     @EventHandler
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
-        handleStandRender(player, player.getLocation(), true);
+        handleStandRender(player, player.getLocation(), HandleCause.SPAWN);
     }
 
-    private void handleStandRender(Player player, Location location, boolean isSpawn) {
+    public double getRenderDistance() {
+        double distance = ConfigManager.Config.RENDER_DISTANCE.asDouble();
+        return Math.min(distance * distance, BUKKIT_VIEW_DISTANCE);
+    }
+
+    public boolean isInRange(@NotNull Location location, @NotNull Location check) {
+        return Objects.equals(location.getWorld(), check.getWorld())
+                && location.distanceSquared(check) <= getRenderDistance();
+    }
+
+    private void handleStandRender(Player player, Location location, HandleCause cause) {
         for (Game game : plugin.getGameManager().getGames()) {
-            if (!game.getModel().isModelSpawned()) continue;
+            Model model = game.getModel();
 
-            boolean shouldShow = true;
+            Set<UUID> outOfRange = model.getOutOfRange();
 
-            for (PacketStand stand : game.getModel().getStands()) {
-                if (!PluginUtils.isInRange(stand.getLocation(), location)) shouldShow = false;
+            boolean ignored = outOfRange.contains(player.getUniqueId());
+            boolean show = isInRange(model.getLocation(), location);
+            boolean spawn = cause == HandleCause.SPAWN || (cause == HandleCause.TELEPORT && !show);
+
+            if (show && (ignored || spawn)) {
+                outOfRange.remove(player.getUniqueId());
+            } else if (!show) {
+                outOfRange.add(player.getUniqueId());
             }
 
             // Show/hide model stands.
-            handleStandRender(player, game.getModel().getStands(), shouldShow, isSpawn);
+            handleStandRender(player, model.getStands(), show, spawn, ignored);
 
             // Show/hide holograms stands.
             for (Bet bet : game.getAllBets()) {
 
                 // Show/hide chip stand.
                 if (bet.hasStand()) {
-                    handleStandRender(player, bet.getStand(), shouldShow, isSpawn);
+                    handleStandRender(player, bet.getStand(), show, spawn, ignored);
                 }
 
                 // Show/hide hologram.
                 if (bet.hasHologram() && bet.getHologram().isVisibleTo(player)) {
-                    handleStandRender(player, bet.getHologram().getStands(), shouldShow, isSpawn);
+                    handleStandRender(player, bet.getHologram().getStands(), show, spawn, ignored);
                 }
             }
 
             // Show/hide join hologram stands.
-            if (game.getJoinHologram().isVisibleTo(player)) {
-                handleStandRender(player, game.getJoinHologram().getStands(), shouldShow, isSpawn);
-            }
+            Hologram join = game.getJoinHologram();
+            handleStandRender(player, join.getStands(), show && join.isVisibleTo(player), spawn, ignored);
 
             // Show/hide spin hologram stands (only if the player is playing this game).
             if (game.isPlaying(player)) {
-                handleStandRender(player, game.getSpinHologram().getStands(), shouldShow, isSpawn);
+                handleStandRender(player, game.getSpinHologram().getStands(), show, spawn, ignored);
             }
 
             // Show/hide dab animation stands.
             DabAnimation animation = game.getDabAnimation();
-            if (animation != null) {
-                for (ArmorStandAnimator animator : animation.getAnimators().keySet()) {
-                    handleStandRender(player, animator.getStand(), shouldShow, isSpawn);
-                }
+            if (animation == null) continue;
+
+            for (ArmorStandAnimator animator : animation.getAnimators().keySet()) {
+                handleStandRender(player, animator.getStand(), show, spawn, ignored);
             }
         }
     }
 
-    private void handleStandRender(Player player, @NotNull Collection<PacketStand> stands, boolean shouldShow, boolean isSpawn) {
+    private void handleStandRender(Player player, @NotNull Collection<PacketStand> stands, boolean show, boolean spawn, boolean ignored) {
         for (PacketStand stand : stands) {
-            handleStandRender(player, stand, shouldShow, isSpawn);
+            handleStandRender(player, stand, show, spawn, ignored);
         }
     }
 
-    private void handleStandRender(Player player, PacketStand stand, boolean shouldShow, boolean isSpawn) {
-        if (shouldShow) {
-            boolean temp = true;
-            if ((stand.isIgnored(player) && (temp = stand.getIgnored().get(player.getUniqueId()) != PacketStand.IgnoreReason.HOLOGRAM)) || (isSpawn && temp)) {
-                stand.spawn(player, true);
-            }
-        } else {
-            if (!stand.isIgnored(player)) stand.destroy(player);
+    private void handleStandRender(Player player, PacketStand stand, boolean show, boolean spawn, boolean ignored) {
+        if (show && (ignored || spawn)) {
+            stand.spawn(player, true);
+        } else if (!show) {
+            stand.destroy(player);
         }
+    }
+
+    public enum HandleCause {
+        SPAWN,
+        TELEPORT,
+        OTHER
     }
 }
