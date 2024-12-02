@@ -3,8 +3,8 @@ package me.matsubara.roulette.gui;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -35,7 +35,7 @@ public final class ConfirmGUI extends RouletteGUI {
         super("confirmation-menu");
         this.plugin = game.getPlugin();
         this.game = game;
-        this.inventory = plugin.getServer().createInventory(this, 9, ConfigManager.Config.CONFIRM_MENU_TITLE.asString());
+        this.inventory = plugin.getServer().createInventory(this, 9, Config.CONFIRM_MENU_TITLE.asStringTranslated());
         this.type = type;
         this.previousPage = 0;
 

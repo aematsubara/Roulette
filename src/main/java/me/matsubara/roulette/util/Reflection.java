@@ -1,6 +1,7 @@
 package me.matsubara.roulette.util;
 
 import com.cryptomorin.xseries.reflection.XReflection;
+import com.cryptomorin.xseries.reflection.minecraft.MinecraftClassHandle;
 import com.cryptomorin.xseries.reflection.minecraft.MinecraftMapping;
 import com.cryptomorin.xseries.reflection.minecraft.MinecraftPackage;
 import org.apache.commons.lang3.ArrayUtils;
@@ -36,7 +37,7 @@ public final class Reflection {
         return getField(clazz, name, false);
     }
 
-    public static @Nullable MethodHandle getField(@NotNull Class<?> clazz, String name, boolean isGetter) {
+    private static @Nullable MethodHandle getField(@NotNull Class<?> clazz, String name, boolean isGetter) {
         try {
             Field field = clazz.getDeclaredField(name);
             field.setAccessible(true);
@@ -97,14 +98,11 @@ public final class Reflection {
     public static @Nullable MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic, boolean printStackTrace, String... extraNames) {
         try {
             if (isStatic) return LOOKUP.findStatic(refc, name, type);
-            if (XReflection.MINOR_NUMBER > 17) {
-                Method method = refc.getMethod(name, type.parameterArray());
-                if (!method.getReturnType().isAssignableFrom(type.returnType())) {
-                    throw new NoSuchMethodException();
-                }
-                return LOOKUP.unreflect(method);
-            }
-            return LOOKUP.findVirtual(refc, name, type);
+
+            Method method = refc.getMethod(name, type.parameterArray());
+            if (!method.getReturnType().isAssignableFrom(type.returnType())) return null;
+
+            return LOOKUP.unreflect(method);
         } catch (ReflectiveOperationException exception) {
             if (extraNames != null && extraNames.length > 0) {
                 if (extraNames.length == 1) {
@@ -156,6 +154,7 @@ public final class Reflection {
         return result;
     }
 
+    @SuppressWarnings("unused")
     public static @Nullable Field getFieldRaw(Class<?> refc, Class<?> instc, String name, String... extraNames) {
         Field handle = getFieldHandleRaw(refc, instc, name);
         if (handle != null) return handle;
@@ -182,10 +181,35 @@ public final class Reflection {
     }
 
     @SuppressWarnings("PatternValidation")
-    public static @NotNull Class<?> getNMSClass(String packageName, String mojangName, String spigotName) {
-        return XReflection.ofMinecraft()
-                .inPackage(MinecraftPackage.NMS, packageName)
+    public static @NotNull Class<?> getCraftClass(@Nullable String packageName, String className) {
+        MinecraftClassHandle handle = XReflection.ofMinecraft();
+
+        if (packageName != null) {
+            handle.inPackage(MinecraftPackage.CB, packageName);
+        } else {
+            handle.inPackage(MinecraftPackage.CB);
+        }
+
+        return handle.named(className).unreflect();
+    }
+
+    @SuppressWarnings("PatternValidation")
+    public static @NotNull Class<?> getNMSClass(@Nullable String packageName, String mojangName, String spigotName) {
+        MinecraftClassHandle handle = XReflection.ofMinecraft();
+
+        if (packageName != null) {
+            handle.inPackage(MinecraftPackage.NMS, packageName);
+        } else {
+            handle.inPackage(MinecraftPackage.NMS);
+        }
+
+        return handle
                 .map(MinecraftMapping.MOJANG, mojangName)
-                .map(MinecraftMapping.SPIGOT, spigotName).unreflect();
+                .map(MinecraftMapping.SPIGOT, spigotName)
+                .unreflect();
+    }
+
+    public static @NotNull Class<?> getNMSClass(@Nullable String packageName, String sameName) {
+        return getNMSClass(packageName, sameName, sameName);
     }
 }

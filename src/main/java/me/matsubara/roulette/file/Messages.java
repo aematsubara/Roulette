@@ -1,4 +1,4 @@
-package me.matsubara.roulette.manager;
+package me.matsubara.roulette.file;
 
 import com.cryptomorin.xseries.messages.ActionBar;
 import lombok.Getter;
@@ -18,14 +18,14 @@ import java.util.function.UnaryOperator;
 
 @Getter
 @Setter
-public final class MessageManager {
+public final class Messages {
 
     private final RoulettePlugin plugin;
     private FileConfiguration configuration;
 
     private static final UnaryOperator<String> IDENTITY = UnaryOperator.identity();
 
-    public MessageManager(RoulettePlugin plugin) {
+    public Messages(RoulettePlugin plugin) {
         this.plugin = plugin;
         this.plugin.saveResource("messages.yml");
     }
@@ -89,6 +89,8 @@ public final class MessageManager {
         CREATE("command.create"),
         DELETE("command.delete"),
         EXIST("command.exist"),
+        INVALID_NAME("command.invalid-name"),
+        INVALID_TYPE("command.invalid-type"),
         UNKNOWN("command.unknown"),
         SINTAX("command.sintax"),
         FROM_CONSOLE("command.from-console"),
@@ -106,6 +108,7 @@ public final class MessageManager {
         SESSION_TRANSACTION_COMPLETED("session.transaction-completed"),
         SESSION_TRANSACTION_FAILED("session.transaction-failed"),
         SESSION_EMPTY("session.empty"),
+        NO_ECONOMY_PROVIDER("game.no-economy-provider"),
         STARTING("game.starting"),
         SELECT_BET("game.select-bet"),
         BET_IN_PRISON("game.bet-in-prison"),
@@ -171,11 +174,11 @@ public final class MessageManager {
         }
 
         public @NotNull String asString() {
-            return PluginUtils.translate(plugin.getMessageManager().getConfiguration().getString(path));
+            return PluginUtils.translate(plugin.getMessages().getConfiguration().getString(path));
         }
 
         public @NotNull List<String> asList() {
-            return PluginUtils.translate(plugin.getMessageManager().getConfiguration().getStringList(path));
+            return PluginUtils.translate(plugin.getMessages().getConfiguration().getStringList(path));
         }
     }
 }

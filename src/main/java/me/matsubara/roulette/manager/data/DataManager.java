@@ -3,10 +3,10 @@ package me.matsubara.roulette.manager.data;
 import com.google.common.base.Predicates;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -76,7 +76,7 @@ public class DataManager {
         }
     }
 
-    public RouletteSession saveSession(@NotNull UUID sessionUUID, String name, Collection<Map.Entry<Player, Bet>> bets, @NotNull Slot slot, long timestamp) {
+    public CompletableFuture<RouletteSession> saveSession(@NotNull UUID sessionUUID, String name, Collection<Map.Entry<Player, Bet>> bets, @NotNull Slot slot, long timestamp) {
         RouletteSession session = new RouletteSession(sessionUUID, name, slot, timestamp, bets);
         sessions.add(session);
         sort();
@@ -84,16 +84,15 @@ public class DataManager {
         List<RouletteSession> last = handleLimit();
 
         // Save session and results async.
-        CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             saveSession(session);
             if (last != null) last.forEach(this::removeSession);
+            return session;
         }, executor);
-
-        return session;
     }
 
     private int getLimit() {
-        int limit = ConfigManager.Config.SESSIONS_LIMIT.asInt();
+        int limit = Config.SESSIONS_LIMIT.asInt();
         return limit == -1 ? -1 : Math.max(limit, 3);
     }
 
@@ -102,7 +101,7 @@ public class DataManager {
         if (limit == -1 || sessions.isEmpty() || size <= limit) return null;
 
         List<RouletteSession> last = new ArrayList<>(sessions.subList(Math.max(0, size - excess), size));
-        if (!ConfigManager.Config.SESSIONS_KEEP_VICTORIES.asBool()) {
+        if (!Config.SESSIONS_KEEP_VICTORIES.asBool()) {
             sessions.removeAll(last);
             return last;
         }
@@ -161,7 +160,7 @@ public class DataManager {
         // Remove result async.
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> removePlayerResult(result), executor);
         if (!results.isEmpty()) {
-            if (!ConfigManager.Config.MAP_IMAGE_ENABLED.asBool()) return;
+            if (!Config.MAP_IMAGE_ENABLED.asBool()) return;
 
             List<PlayerResult> left = results.stream()
                     .filter(temp -> temp.playerUUID().equals(result.playerUUID()))

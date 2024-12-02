@@ -3,9 +3,9 @@ package me.matsubara.roulette.gui.data;
 import com.google.common.base.Predicates;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.gui.RouletteGUI;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.util.InventoryUpdate;
@@ -62,11 +62,11 @@ public final class SessionsGUI extends RouletteGUI {
         this.plugin = plugin;
         this.player = player;
         this.inventory = plugin.getServer().createInventory(this, 36);
-        this.format = new SimpleDateFormat(ConfigManager.Config.DATE_FORMAT.asString());
+        this.format = new SimpleDateFormat(Config.DATE_FORMAT.asString());
         this.currentPage = currentPage;
 
         player.openInventory(inventory);
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::updateInventory);
+        updateInventory();
     }
 
     public void updateInventory() {
@@ -119,7 +119,7 @@ public final class SessionsGUI extends RouletteGUI {
 
             if (session.results().stream()
                     .noneMatch(Predicates.not(PlayerResult::won))) {
-                builder.addLore("", ConfigManager.Config.SESSIONS_ONLY_VICTORIES_TEXT.asString());
+                builder.addLore("", Config.SESSIONS_ONLY_VICTORIES_TEXT.asStringTranslated());
             }
 
             inventory.setItem(slotIndex.get(index), builder
@@ -127,7 +127,7 @@ public final class SessionsGUI extends RouletteGUI {
         }
 
         // Update inventory title to show the current page.
-        InventoryUpdate.updateInventory(player, ConfigManager.Config.SESSIONS_MENU_TITLE.asString()
+        InventoryUpdate.updateInventory(player, Config.SESSIONS_MENU_TITLE.asStringTranslated()
                 .replace("%page%", String.valueOf(currentPage + 1))
                 .replace("%max%", String.valueOf(pages)));
     }

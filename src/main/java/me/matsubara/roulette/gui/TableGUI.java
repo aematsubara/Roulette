@@ -2,9 +2,9 @@ package me.matsubara.roulette.gui;
 
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.CustomizationGroup;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -38,7 +38,7 @@ public class TableGUI extends RouletteGUI {
         super("table-menu");
         this.plugin = game.getPlugin();
         this.game = game;
-        this.inventory = Bukkit.createInventory(this, 27, ConfigManager.Config.TABLE_MENU_TITLE.asString());
+        this.inventory = Bukkit.createInventory(this, 27, Config.TABLE_MENU_TITLE.asStringTranslated());
 
         // Fill inventory.
         fillInventory();

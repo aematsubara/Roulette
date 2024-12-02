@@ -1,25 +1,30 @@
 package me.matsubara.roulette.npc;
 
+import com.cryptomorin.xseries.XSound;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityHeadLook;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.npc.modifier.RotationModifier;
 import me.matsubara.roulette.util.ParrotUtils;
 import me.matsubara.roulette.util.PluginUtils;
-import org.bukkit.*;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
+import java.util.Set;
 
 public class NPCTick implements Runnable {
 
     private final NPCPool pool;
     private final RoulettePlugin plugin;
+
+    private final boolean lookAndInviteEnabled = Config.NPC_LOOK_AND_INVITE_ENABLED.asBool();
+    private final double lookAndInviteRange = Math.pow(Config.NPC_LOOK_AND_INVITE_RANGE.asDouble(), 2);
 
     private static final float CROUPIER_FOV = 85.0f;
 
@@ -38,7 +43,7 @@ public class NPCTick implements Runnable {
             World world = npcLocation.getWorld();
             if (world == null) continue;
 
-            for (Player player : Bukkit.getOnlinePlayers()) {
+            for (Player player : world.getPlayers()) {
                 Location playerLocation = player.getLocation();
 
                 if (!world.equals(playerLocation.getWorld())
@@ -67,25 +72,25 @@ public class NPCTick implements Runnable {
 
             if (!playParrotSound) continue;
 
-            Sound nearbySound = ParrotUtils.imitateNearbyMobs(npcLocation);
-            Sound soundToPlay = Objects.requireNonNullElse(nearbySound, ParrotUtils.getAmbient(world));
-            float volume = nearbySound != null ? 0.7f : 1.0f;
+            XSound sound = ParrotUtils.getAmbient(world);
+            Location at = npcLocation.clone().add(0.0d, 0.75d, 0.0d);
+
+            Set<Player> seeing = npc.getSeeingPlayers();
+            if (seeing.isEmpty()) continue;
 
             // Play parrot sounds for the players seeing this NPC.
-            for (Player player : npc.getSeeingPlayers()) {
-                if (!player.isOnline()) continue;
-
-                player.playSound(npcLocation,
-                        soundToPlay,
-                        SoundCategory.PLAYERS,
-                        volume,
-                        ParrotUtils.getPitch());
-            }
+            sound.record()
+                    .withVolume(0.7f)
+                    .withPitch(ParrotUtils.getPitch())
+                    .soundPlayer()
+                    .forPlayers(seeing)
+                    .atLocation(at)
+                    .play();
         }
     }
 
     private boolean handleFOV(@NotNull NPC npc, Player player) {
-        if (!ConfigManager.Config.NPC_LOOK_AND_INVITE_ENABLED.asBool()) return false;
+        if (!lookAndInviteEnabled) return false;
         if (!npc.isShownFor(player)) return false;
 
         Game game = npc.getGame();
@@ -112,14 +117,13 @@ public class NPCTick implements Runnable {
         if (angleDifference > CROUPIER_FOV) return false;
 
         // The player must be around X blocks from the table (not the NPC).
-        double range = ConfigManager.Config.NPC_LOOK_AND_INVITE_RANGE.asDouble();
-        double renderDistance = Math.min(range * range, plugin.getStandManager().getRenderDistance());
+        double renderDistance = Math.min(lookAndInviteRange, plugin.getStandManager().getRenderDistance());
 
         if (game.getLocation().distanceSquared(target) > renderDistance) return false;
 
         // Send an invitation message to the player the first time they enter the FOV.
         if (game.isInvitePlayers() && !npc.isInsideFOV(player) && notInvitedYet(player)) {
-            plugin.getMessageManager().sendNPCMessage(player, game, MessageManager.Message.INVITE);
+            plugin.getMessages().sendNPCMessage(player, game, Messages.Message.INVITE);
         }
 
         rotation.send(player);

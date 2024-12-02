@@ -1,8 +1,8 @@
 package me.matsubara.roulette.listener;
 
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.MessageManager;
+import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -30,10 +30,10 @@ public final class EntityDamageByEntity implements Listener {
             return;
         }
 
-        if (ConfigManager.Config.HIT_ON_GAME.asBool()) return;
+        if (Config.HIT_ON_GAME.asBool()) return;
 
         if (isInGame(damager) || (isInGame(event.getEntity()) && damager.getType() == EntityType.PLAYER)) {
-            plugin.getMessageManager().send(damager, MessageManager.Message.CAN_NOT_HIT);
+            plugin.getMessages().send(damager, Messages.Message.CAN_NOT_HIT);
             event.setCancelled(true);
         }
     }

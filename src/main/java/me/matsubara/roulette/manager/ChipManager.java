@@ -3,6 +3,7 @@ package me.matsubara.roulette.manager;
 import com.google.common.base.Predicates;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.util.ItemBuilder;
@@ -123,10 +124,10 @@ public final class ChipManager {
 
     public boolean hasEnoughMoney(Game game, Player player) {
         double minAmount = getMinAmount(game);
-        if (plugin.getEconomy().has(player, minAmount)) return true;
+        if (plugin.getEconomyExtension().has(player, minAmount)) return true;
 
-        plugin.getMessageManager().send(player,
-                MessageManager.Message.MIN_REQUIRED,
+        plugin.getMessages().send(player,
+                Messages.Message.MIN_REQUIRED,
                 message -> message.replace("%money%", PluginUtils.format(minAmount)));
         return false;
     }

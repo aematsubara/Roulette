@@ -1,21 +1,20 @@
 package me.matsubara.roulette.animation;
 
 import com.cryptomorin.xseries.reflection.XReflection;
-import com.github.retrooper.packetevents.protocol.item.ItemStack;
-import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
-import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.model.stand.animator.ArmorStandAnimator;
+import me.matsubara.roulette.model.stand.data.ItemSlot;
 import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -23,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Getter
 public class DabAnimation extends BukkitRunnable {
@@ -31,27 +31,29 @@ public class DabAnimation extends BukkitRunnable {
     private final int speed;
     private final boolean glowing;
     private final Map<ArmorStandAnimator, Integer> animators = new HashMap<>();
+    private final Set<Player> seeing;
 
     private static final int THRESHOLD = Integer.MAX_VALUE - 5000;
     private static final int BIT_MASK = 0xFF;
 
     public DabAnimation(@NotNull Game game, Player player, Location location) {
         this.game = game;
-        this.speed = ConfigManager.Config.DAB_ANIMATION_RAINBOW_EFFECT_SPEED.asInt();
-        this.glowing = ConfigManager.Config.DAB_ANIMATION_RAINBOW_EFFECT_GLOWING.asBool();
+        this.speed = Config.DAB_ANIMATION_RAINBOW_EFFECT_SPEED.asInt();
+        this.glowing = Config.DAB_ANIMATION_RAINBOW_EFFECT_GLOWING.asBool();
+        this.seeing = game.getSeeingPlayers();
 
         RoulettePlugin plugin = game.getPlugin();
         File file = new File(plugin.getDataFolder(), "dab_animation.txt");
 
         StandSettings settings = new StandSettings();
-        settings.getEquipment().put(EquipmentSlot.HELMET, SpigotConversionUtil.fromBukkitItemStack(new ItemBuilder(Material.PLAYER_HEAD)
+        settings.getEquipment().put(ItemSlot.HEAD, new ItemBuilder(Material.PLAYER_HEAD)
                 .setOwningPlayer(player)
-                .build()));
+                .build());
         settings.setBasePlate(false);
         settings.setArms(true);
 
-        int amount = ConfigManager.Config.DAB_ANIMATION_AMOUNT.asInt();
-        int radius = ConfigManager.Config.DAB_ANIMATION_RADIUS.asInt();
+        int amount = Config.DAB_ANIMATION_AMOUNT.asInt();
+        int radius = Config.DAB_ANIMATION_RADIUS.asInt();
 
         for (int i = 0; i < amount; i++) {
             double angle = (2 * Math.PI / amount) * i;
@@ -68,18 +70,18 @@ public class DabAnimation extends BukkitRunnable {
             StandSettings clone = settings.clone();
             setEquipment(clone, color);
 
-            ArmorStandAnimator animator = new ArmorStandAnimator(plugin, file, clone, spawn);
+            ArmorStandAnimator animator = new ArmorStandAnimator(plugin, seeing, file, clone, spawn);
             handleGlowingColor(animator.getStand(), color);
 
             animators.put(animator, count);
         }
 
         game.setDabAnimation(this);
-        runTaskTimer(plugin, 1L, 1L);
+        runTaskTimerAsynchronously(plugin, 1L, 1L);
     }
 
     @Override
-    public synchronized void cancel() throws IllegalStateException {
+    public void cancel() throws IllegalStateException {
         super.cancel();
 
         animators.keySet().forEach(ArmorStandAnimator::stop);
@@ -98,12 +100,17 @@ public class DabAnimation extends BukkitRunnable {
         for (Map.Entry<ArmorStandAnimator, Integer> entry : animators.entrySet()) {
             ArmorStandAnimator animator = entry.getKey();
 
+            PacketStand stand = animator.getStand();
+            if (!animator.isSpawned()) {
+                seeing.forEach(stand::spawn);
+                animator.setSpawned(true);
+            }
+
             Integer count = entry.getValue();
             Color color = convertCountToRGB(count);
 
-            PacketStand stand = animator.getStand();
             setEquipment(stand.getSettings(), color);
-            stand.sendEquipment();
+            stand.sendEquipment(seeing);
 
             animator.update();
 
@@ -121,15 +128,18 @@ public class DabAnimation extends BukkitRunnable {
         GlowingEntities glowing = game.getPlugin().getGlowingEntities();
         if (glowing == null) return;
 
+        World world = game.getLocation().getWorld();
+        if (world == null) return;
+
         int id = stand.getId();
         String team = stand.getUniqueId().toString();
         ChatColor glow = getClosestChatColor(color);
 
         try {
-            for (Player player : Bukkit.getOnlinePlayers()) {
+            for (Player player : world.getPlayers()) {
                 glowing.setGlowing(id, team, player, glow);
                 stand.getSettings().setGlow(true);
-                stand.sendMetadata(player, true);
+                stand.sendMetadata(seeing);
             }
         } catch (ReflectiveOperationException ignored) {
 
@@ -165,16 +175,16 @@ public class DabAnimation extends BukkitRunnable {
     }
 
     private void setEquipment(@NotNull StandSettings settings, Color color) {
-        Map<EquipmentSlot, ItemStack> equipment = settings.getEquipment();
-        equipment.put(EquipmentSlot.CHEST_PLATE, createArmor(Material.LEATHER_CHESTPLATE, color));
-        equipment.put(EquipmentSlot.LEGGINGS, createArmor(Material.LEATHER_LEGGINGS, color));
-        equipment.put(EquipmentSlot.BOOTS, createArmor(Material.LEATHER_BOOTS, color));
+        Map<ItemSlot, ItemStack> equipment = settings.getEquipment();
+        equipment.put(ItemSlot.CHEST, createArmor(Material.LEATHER_CHESTPLATE, color));
+        equipment.put(ItemSlot.LEGS, createArmor(Material.LEATHER_LEGGINGS, color));
+        equipment.put(ItemSlot.FEET, createArmor(Material.LEATHER_BOOTS, color));
     }
 
     private @NotNull ItemStack createArmor(Material material, Color color) {
-        return SpigotConversionUtil.fromBukkitItemStack(new ItemBuilder(material)
+        return new ItemBuilder(material)
                 .setLeatherArmorMetaColor(color)
-                .build());
+                .build();
     }
 
     private int convertARGBtoRGB(int argb) {

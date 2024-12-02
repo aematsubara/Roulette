@@ -2,8 +2,8 @@ package me.matsubara.roulette.game.data;
 
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
-import me.matsubara.roulette.manager.ConfigManager;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Axis;
@@ -141,7 +141,7 @@ public enum Slot {
 
     public double getMultiplier(RoulettePlugin plugin) {
         double defaultValue = getMultiplier();
-        if (!ConfigManager.Config.CUSTOM_WIN_MULTIPLIER_ENABLED.asBool()) return defaultValue;
+        if (!Config.CUSTOM_WIN_MULTIPLIER_ENABLED.asBool()) return defaultValue;
         return plugin.getConfig().getDouble("custom-win-multiplier.slots." + name(), defaultValue);
     }
 

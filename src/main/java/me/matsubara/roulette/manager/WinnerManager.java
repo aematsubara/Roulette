@@ -2,6 +2,7 @@ package me.matsubara.roulette.manager;
 
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.manager.data.DataManager;
 import me.matsubara.roulette.manager.data.MapRecord;
 import me.matsubara.roulette.manager.data.PlayerResult;
@@ -109,7 +110,7 @@ public final class WinnerManager implements Listener {
                 .sum();
 
         OfflinePlayer winner = Bukkit.getOfflinePlayer(playerUUID);
-        String date = new SimpleDateFormat(ConfigManager.Config.DATE_FORMAT.asString())
+        String date = new SimpleDateFormat(Config.DATE_FORMAT.asString())
                 .format(new Date(session.timestamp()));
 
         return string

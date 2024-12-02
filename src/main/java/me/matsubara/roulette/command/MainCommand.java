@@ -1,14 +1,16 @@
 package me.matsubara.roulette.command;
 
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
+import me.matsubara.roulette.file.config.ConfigValue;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
 import me.matsubara.roulette.game.state.Spinning;
 import me.matsubara.roulette.gui.data.SessionsGUI;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.MessageManager;
+import me.matsubara.roulette.manager.GameManager;
 import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.util.PluginUtils;
@@ -56,16 +58,18 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         // If the player doesn't have permission to use roulette commands, send (@no-permission) message.
         if (!hasPermission(sender, "roulette.help")) return true;
 
-        MessageManager messages = plugin.getMessageManager();
+        Messages messages = plugin.getMessages();
 
         // No arguments provided.
         boolean noArgs = args.length == 0;
         if (noArgs || args.length > 3 || (!COMMAND_ARGS.contains(args[0].toLowerCase(Locale.ROOT)))) {
             // Otherwise, send a help message.
             if (noArgs) HELP.forEach(sender::sendMessage);
-            else messages.send(sender, MessageManager.Message.SINTAX);
+            else messages.send(sender, Messages.Message.SINTAX);
             return true;
         }
+
+        GameManager manager = plugin.getGameManager();
 
         if (args.length == 1) {
             switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -78,7 +82,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                     if (!hasPermission(player, "roulette.sessions")) return true;
 
                     if (plugin.getDataManager().getSessions().isEmpty()) {
-                        messages.send(player, MessageManager.Message.SESSION_EMPTY);
+                        messages.send(player, Messages.Message.SESSION_EMPTY);
                         return true;
                     }
 
@@ -92,18 +96,22 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                     // Log reloading message.
                     plugin.getLogger().info("Reloading " + plugin.getDescription().getFullName());
 
-                    messages.send(sender, MessageManager.Message.RELOADING);
+                    messages.send(sender, Messages.Message.RELOADING);
                     CompletableFuture.runAsync(plugin::updateConfigs).thenRun(() -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        ConfigValue.ALL_VALUES.forEach(ConfigValue::reloadValue);
+
+                        plugin.resetEconomyProvider();
                         plugin.reloadAbbreviations();
 
                         // Reload chips config.
                         plugin.getChipManager().reloadConfig();
 
                         // Reload games.
-                        plugin.getGameManager().reloadConfig();
+                        manager.reloadConfig();
+                        manager.getModels().clear();
 
                         // Send reload messages.
-                        messages.send(sender, MessageManager.Message.RELOAD);
+                        messages.send(sender, Messages.Message.RELOAD);
                     }));
                     return true;
                 }
@@ -136,7 +144,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 default -> {
-                    messages.send(sender, MessageManager.Message.SINTAX);
+                    messages.send(sender, Messages.Message.SINTAX);
                     return true;
                 }
             }
@@ -147,9 +155,9 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                 // If the player doesn't have permission to delete games, send (@no-permission) message.
                 if (!hasPermission(sender, "roulette.delete")) return true;
 
-                Game game = plugin.getGameManager().getGame(args[1]);
+                Game game = manager.getGame(args[1]);
                 if (game == null) {
-                    messages.send(sender, MessageManager.Message.UNKNOWN, message -> message.replace("%name%", args[1]));
+                    messages.send(sender, Messages.Message.UNKNOWN, message -> message.replace("%name%", args[1]));
                     return true;
                 }
 
@@ -161,13 +169,13 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
 
-                plugin.getGameManager().deleteGame(game);
-                messages.send(sender, MessageManager.Message.DELETE, message -> message.replace("%name%", game.getName()));
+                manager.deleteGame(game);
+                messages.send(sender, Messages.Message.DELETE, message -> message.replace("%name%", game.getName()));
                 return true;
             }
 
             if (!args[0].equalsIgnoreCase("force")) {
-                messages.send(sender, MessageManager.Message.SINTAX);
+                messages.send(sender, Messages.Message.SINTAX);
                 return true;
             }
 
@@ -177,32 +185,32 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             Player player = getPlayerFromSender(sender);
             if (player == null) return true;
 
-            Game game = plugin.getGameManager().getGameByPlayer(player);
+            Game game = manager.getGameByPlayer(player);
             if (game == null) {
-                messages.send(sender, MessageManager.Message.FORCE_NOT_PLAYING);
+                messages.send(sender, Messages.Message.FORCE_NOT_PLAYING);
                 return true;
             }
 
             Spinning spinning = game.getSpinning();
             if (spinning == null || spinning.isCancelled()) {
-                messages.send(player, MessageManager.Message.FORCE_NOT_SPINNING);
+                messages.send(player, Messages.Message.FORCE_NOT_SPINNING);
                 return true;
             }
 
             Slot slot = PluginUtils.getOrNull(Slot.class, args[1]);
             if (!ArrayUtils.contains(Slot.values(game), slot)) {
-                messages.send(player, MessageManager.Message.FORCE_UNKNOWN_SLOT);
+                messages.send(player, Messages.Message.FORCE_UNKNOWN_SLOT);
                 return true;
             }
 
             spinning.setForce(slot);
 
-            messages.send(player, MessageManager.Message.FORCE_SLOT_CHANGED, message -> message.replace("%slot%", PluginUtils.getSlotName(slot)));
+            messages.send(player, Messages.Message.FORCE_SLOT_CHANGED, message -> message.replace("%slot%", PluginUtils.getSlotName(slot)));
             return true;
         }
 
         if (!args[0].equalsIgnoreCase("create")) {
-            messages.send(sender, MessageManager.Message.SINTAX);
+            messages.send(sender, Messages.Message.SINTAX);
             return true;
         }
 
@@ -212,8 +220,16 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         // If the player doesn't have permission to create games, send (@no-permission) message.
         if (!hasPermission(player, "roulette.create")) return true;
 
-        if (plugin.getGameManager().exist(args[1])) {
-            messages.send(player, MessageManager.Message.EXIST, message -> message.replace("%name%", args[1]));
+        // "." cannot be used in the name as it creates conflicts with yaml.
+        String name = args[1];
+        if (name.contains(".")) {
+            messages.send(player, Messages.Message.INVALID_NAME);
+            return true;
+        }
+
+        // A game with the same name already exists.
+        if (manager.exist(name)) {
+            messages.send(player, Messages.Message.EXIST, message -> message.replace("%name%", name));
             return true;
         }
 
@@ -222,33 +238,34 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                 .getTargetBlock(null, 15)
                 .getLocation()
                 .add(0.5d, 1.0d, 0.5d)
-                .setDirection(PluginUtils.getDirection(PluginUtils.getFace(player.getLocation().getYaw(), false)));
+                .setDirection(PluginUtils.getDirection(PluginUtils.getFace(player.getLocation().getYaw())));
 
         // Get the type of the roulette, or AMERICAN by default.
         GameType type;
         try {
             type = GameType.valueOf(args[2].toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            type = GameType.AMERICAN;
+            messages.send(player, Messages.Message.INVALID_TYPE);
+            return true;
         }
 
-        plugin.getGameManager().addFreshGame(
-                args[1],
+        manager.addFreshGame(
+                name,
                 1,
                 10,
                 type,
                 UUID.randomUUID(),
                 location,
                 player.getUniqueId(),
-                ConfigManager.Config.COUNTDOWN_WAITING.asInt());
+                Config.COUNTDOWN_WAITING.asInt());
 
-        messages.send(player, MessageManager.Message.CREATE, message -> message.replace("%name%", args[1]));
+        messages.send(player, Messages.Message.CREATE, message -> message.replace("%name%", name));
         return true;
     }
 
     private @Nullable Player getPlayerFromSender(CommandSender sender) {
         if (sender instanceof Player player) return player;
-        plugin.getMessageManager().send(sender, MessageManager.Message.FROM_CONSOLE);
+        plugin.getMessages().send(sender, Messages.Message.FROM_CONSOLE);
         return null;
     }
 
@@ -289,7 +306,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean hasPermission(@NotNull CommandSender sender, String permission) {
         if (sender.hasPermission(permission)) return true;
-        plugin.getMessageManager().send(sender, MessageManager.Message.NOT_PERMISSION);
+        plugin.getMessages().send(sender, Messages.Message.NOT_PERMISSION);
         return false;
     }
 }

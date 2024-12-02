@@ -1,6 +1,5 @@
 package me.matsubara.roulette.model.stand.animator;
 
-import com.github.retrooper.packetevents.util.Vector3f;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
@@ -8,7 +7,9 @@ import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 import org.bukkit.util.Consumer;
+import org.bukkit.util.EulerAngle;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
@@ -16,12 +17,15 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Getter
 @Setter
 public final class ArmorStandAnimator {
 
     private final PacketStand stand;
+    private final Set<Player> seeing;
+    private boolean spawned;
 
     private Frame[] frames;
     private Location location;
@@ -34,8 +38,9 @@ public final class ArmorStandAnimator {
 
     private static final Map<String, AnimatorCache> CACHE = new HashMap<>();
 
-    public ArmorStandAnimator(RoulettePlugin plugin, @NotNull File file, StandSettings settings, Location location) {
-        (this.stand = new PacketStand(plugin, location, settings)).spawn();
+    public ArmorStandAnimator(RoulettePlugin plugin, Set<Player> seeing, @NotNull File file, StandSettings settings, Location location) {
+        this.stand = new PacketStand(plugin, location, settings);
+        this.seeing = seeing;
         this.location = stand.getLocation();
 
         String path = file.getAbsolutePath();
@@ -99,22 +104,22 @@ public final class ArmorStandAnimator {
         CACHE.put(path, new AnimatorCache(ArrayUtils.clone(this.frames), length, interpolate));
     }
 
-    private boolean setAngle(@NotNull String line, String part, Consumer<Vector3f> setter) {
+    private boolean setAngle(@NotNull String line, String part, Consumer<EulerAngle> setter) {
         if (!line.contains(part)) return false;
         try {
             String[] split = line.split(" ");
-            float x = toRadians(split[1]);
-            float y = toRadians(split[2]);
-            float z = toRadians(split[3]);
-            setter.accept(new Vector3f(x, y, z));
+            double x = toRadians(split[1]);
+            double y = toRadians(split[2]);
+            double z = toRadians(split[3]);
+            setter.accept(new EulerAngle(x, y, z));
             return true;
         } catch (IndexOutOfBoundsException exception) {
             return false;
         }
     }
 
-    private float toRadians(String data) {
-        return (float) Math.toRadians(Float.parseFloat(data));
+    private double toRadians(String data) {
+        return Math.toRadians(Double.parseDouble(data));
     }
 
     public void stop() {
@@ -142,7 +147,7 @@ public final class ArmorStandAnimator {
         if (frame != null) {
             Location newLocation = this.location.clone().add(frame.getX(), frame.getY(), frame.getZ());
             newLocation.setYaw(frame.getRotation() + newLocation.getYaw());
-            this.stand.teleport(newLocation);
+            this.stand.teleport(seeing, newLocation);
 
             StandSettings settings = this.stand.getSettings();
             settings.setLeftLegPose(frame.getLeftLeg());
@@ -151,7 +156,7 @@ public final class ArmorStandAnimator {
             settings.setRightArmPose(frame.getRightArm());
             settings.setHeadPose(frame.getHead());
 
-            stand.sendMetadata();
+            stand.sendMetadata(seeing);
         }
 
         this.currentFrame++;

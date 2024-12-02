@@ -1,17 +1,17 @@
 package me.matsubara.roulette.game.data;
 
 import com.cryptomorin.xseries.XSound;
-import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
-import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.hologram.Hologram;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.model.Model;
+import me.matsubara.roulette.model.stand.ModelLocation;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
+import me.matsubara.roulette.model.stand.data.ItemSlot;
 import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -23,6 +23,7 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
@@ -65,7 +66,13 @@ public final class Bet {
     // If this bet resulted in a win, then it will be saved here.
     private WinData winData;
 
-    BiFunction<String, Bet, String> FORMAT_HOLOGRAM = new BiFunction<>() {
+    // COnfig values.
+    private final XSound.Record selectSound = XSound.parse(Config.SOUND_SELECT.asString());
+    private final @SuppressWarnings("unchecked") List<String> selectHologramLines = Config.SELECT_HOLOGRAM.getValue(List.class).stream()
+            .map(object -> PluginUtils.translate((String) object))
+            .toList();
+
+    private static final BiFunction<String, Bet, String> FORMAT_HOLOGRAM = new BiFunction<>() {
         @Override
         public @NotNull String apply(@NotNull String line, @NotNull Bet bet) {
             Chip chip = bet.getChip();
@@ -139,11 +146,11 @@ public final class Bet {
 
         Model model = game.getModel();
 
-        PacketStand stand = model.getByName(slot.name());
-        if (stand == null) return;
+        ModelLocation temp = model.getLocationByName(slot.name());
+        if (temp == null) return;
 
         Location modelLocation = model.getLocation();
-        Location where = stand.getLocation().clone().add(PluginUtils.offsetVector(
+        Location where = temp.getLocation().clone().add(PluginUtils.offsetVector(
                 new Vector(
                         axis == Axis.X ? offsets[offsetIndex] : 0.0d,
                         0.0d,
@@ -168,10 +175,8 @@ public final class Bet {
                 modelLocation.getYaw(),
                 modelLocation.getPitch()));
 
-        // Play move chip sound at hologram location (sync to prevent issues).
-        plugin.getServer().getScheduler().runTask(plugin,
-                () -> XSound.play(ConfigManager.Config.SOUND_SELECT.asString(),
-                        temp -> temp.atLocation(finalWhere).play()));
+        // Play move chip sound at hologram location.
+        game.playSound(finalWhere, selectSound);
 
         // No need to create another hologram.
         if (!hasHologram()) {
@@ -181,7 +186,7 @@ public final class Bet {
             this.hologram.showTo(owner);
 
             // Add lines.
-            for (String line : ConfigManager.Config.SELECT_HOLOGRAM.asList()) {
+            for (String line : selectHologramLines) {
                 hologram.addLines(FORMAT_HOLOGRAM.apply(line, this));
             }
             return;
@@ -190,29 +195,30 @@ public final class Bet {
         hologram.teleport(finalWhere);
 
         // Update lines.
-        List<String> lines = ConfigManager.Config.SELECT_HOLOGRAM.asList();
-        for (int i = 0; i < lines.size(); i++) {
-            hologram.setLine(i, FORMAT_HOLOGRAM.apply(lines.get(i), this));
+        for (int i = 0; i < selectHologramLines.size(); i++) {
+            hologram.setLine(i, FORMAT_HOLOGRAM.apply(selectHologramLines.get(i), this));
         }
     }
 
     private void setStand(Slot slot, Location where) {
         this.slot = slot;
 
+        Set<Player> to = game.getSeeingPlayers();
+
         // No need to create another stand.
         if (!hasStand()) {
             // Spawn stand with its settings.
-            PacketStand stand = game.getModel().getByName(slot.name());
-            if (stand == null) return;
+            ModelLocation temp = game.getModel().getLocationByName(slot.name());
+            if (temp == null) return;
 
-            StandSettings settings = stand.getSettings().clone();
+            StandSettings settings = temp.getSettings().clone();
             settings.setMarker(true);
-            settings.getEquipment().put(EquipmentSlot.MAIN_HAND, SpigotConversionUtil.fromBukkitItemStack(PluginUtils.createHead(chip.url())));
+            settings.getEquipment().put(ItemSlot.MAINHAND, PluginUtils.createHead(chip.url()));
 
-            (this.stand = new PacketStand(plugin, where, settings)).spawn();
+            to.forEach((this.stand = new PacketStand(plugin, where, settings))::spawn);
         } else {
             // Teleport.
-            stand.teleport(where);
+            stand.teleport(to, where);
         }
 
         updateStandGlow(owner);
@@ -228,8 +234,12 @@ public final class Bet {
                     stand.getUniqueId().toString(),
                     player,
                     game.getGlowColor(player));
-            stand.getSettings().setGlow(true);
-            stand.sendMetadata(player, true);
+
+            // After sending the metadata to the player we have to disable the glow in the settings.
+            StandSettings settings = stand.getSettings();
+            settings.setGlow(true);
+            stand.sendMetadata(player);
+            settings.setGlow(false);
         } catch (ReflectiveOperationException exception) {
             exception.printStackTrace();
         }
@@ -242,7 +252,7 @@ public final class Bet {
         try {
             glowing.unsetGlowing(stand.getId(), player);
             stand.getSettings().setGlow(false);
-            stand.sendMetadata(player, true);
+            stand.sendMetadata(player);
         } catch (ReflectiveOperationException exception) {
             exception.printStackTrace();
         }

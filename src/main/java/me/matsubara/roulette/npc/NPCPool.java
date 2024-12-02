@@ -24,7 +24,7 @@ public class NPCPool implements Listener {
         this.plugin = plugin;
         Server server = this.plugin.getServer();
         server.getPluginManager().registerEvents(this, plugin);
-        server.getScheduler().runTaskTimer(plugin, new NPCTick(this), 1L, 1L);
+        server.getScheduler().runTaskTimerAsynchronously(plugin, new NPCTick(this), 1L, 1L);
     }
 
     protected void takeCareOf(NPC npc) {

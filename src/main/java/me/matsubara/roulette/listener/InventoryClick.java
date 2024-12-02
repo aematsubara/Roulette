@@ -5,6 +5,8 @@ import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
 import com.google.common.base.Predicates;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.animation.MoneyAnimation;
+import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.data.Bet;
@@ -16,9 +18,8 @@ import me.matsubara.roulette.gui.*;
 import me.matsubara.roulette.gui.data.SessionResultGUI;
 import me.matsubara.roulette.gui.data.SessionsGUI;
 import me.matsubara.roulette.hologram.Hologram;
-import me.matsubara.roulette.manager.ConfigManager;
+import me.matsubara.roulette.hook.economy.EconomyExtension;
 import me.matsubara.roulette.manager.InputManager;
-import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.manager.data.DataManager;
 import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.manager.data.RouletteSession;
@@ -102,8 +103,7 @@ public final class InventoryClick implements Listener {
         if (item == null || !item.hasItemMeta()) return;
 
         // Play click sound.
-        XSound.play(ConfigManager.Config.SOUND_CLICK.asString(),
-                temp -> temp.forPlayers(player).play());
+        XSound.play(Config.SOUND_CLICK.asString(), temp -> temp.forPlayers(player).play());
 
         if (holder instanceof BetsGUI gui) {
             handleBetsGUI(event, gui);
@@ -154,11 +154,19 @@ public final class InventoryClick implements Listener {
         if (!left && !right) return;
 
         DataManager dataManager = plugin.getDataManager();
-        MessageManager messageManager = plugin.getMessageManager();
+        Messages messages = plugin.getMessages();
 
         if (right) {
             dataManager.remove(result);
-            messageManager.send(player, MessageManager.Message.SESSION_RESULT_REMOVED);
+            messages.send(player, Messages.Message.SESSION_RESULT_REMOVED);
+            closeInventory(player);
+            return;
+        }
+
+        // If there is no economy provider then we won't be able to deposit/withdraw money.
+        EconomyExtension<?> economyExtension = plugin.getEconomyExtension();
+        if (!economyExtension.isEnabled()) {
+            messages.send(player, Messages.Message.NO_ECONOMY_PROVIDER);
             closeInventory(player);
             return;
         }
@@ -172,14 +180,14 @@ public final class InventoryClick implements Listener {
 
         // Player lost. We want to refund the original money.
         if (win == null) {
-            if (!plugin.deposit(winner, originalMoney)) return;
+            if (!economyExtension.deposit(winner, originalMoney)) return;
 
             Optional.ofNullable(winner.getPlayer())
-                    .ifPresent(temp -> messageManager.send(temp,
-                            MessageManager.Message.SESSION_LOST_RECOVERED,
+                    .ifPresent(temp -> messages.send(temp,
+                            Messages.Message.SESSION_LOST_RECOVERED,
                             line -> line.replace("%money%", PluginUtils.format(originalMoney))));
 
-            messageManager.send(player, MessageManager.Message.SESSION_TRANSACTION_COMPLETED);
+            messages.send(player, Messages.Message.SESSION_TRANSACTION_COMPLETED);
             dataManager.remove(result);
             closeInventory(player);
             return;
@@ -187,30 +195,30 @@ public final class InventoryClick implements Listener {
 
         // Player won in prison, the player already recovered his original money.
         if (win.isEnPrisonWin()) {
-            messageManager.send(player, MessageManager.Message.SESSION_BET_IN_PRISON);
+            messages.send(player, Messages.Message.SESSION_BET_IN_PRISON);
             dataManager.remove(result);
             closeInventory(player);
             return;
         }
 
-        if (plugin.getEconomy().has(winner, expectedMoney)) {
+        if (economyExtension.has(winner, expectedMoney)) {
             // Remove the money that the player won.
-            if (plugin.withdrawFailed(winner, expectedMoney)) return;
+            if (!economyExtension.withdraw(winner, expectedMoney)) return;
 
             // Deposit the original money.
-            if (!plugin.deposit(winner, originalMoney)) return;
+            if (!economyExtension.deposit(winner, originalMoney)) return;
 
             Optional.ofNullable(winner.getPlayer())
-                    .ifPresent(temp -> messageManager.send(temp,
-                            MessageManager.Message.SESSION_BET_REVERTED,
+                    .ifPresent(temp -> messages.send(temp,
+                            Messages.Message.SESSION_BET_REVERTED,
                             line -> line
                                     .replace("%win-money%", PluginUtils.format(expectedMoney))
                                     .replace("%money%", PluginUtils.format(originalMoney))));
 
             dataManager.remove(result);
-            messageManager.send(player, MessageManager.Message.SESSION_TRANSACTION_COMPLETED);
+            messages.send(player, Messages.Message.SESSION_TRANSACTION_COMPLETED);
         } else {
-            messageManager.send(player, MessageManager.Message.SESSION_TRANSACTION_FAILED);
+            messages.send(player, Messages.Message.SESSION_TRANSACTION_FAILED);
         }
 
         closeInventory(player);
@@ -268,7 +276,7 @@ public final class InventoryClick implements Listener {
             game.enableChip(chip);
         } else {
             if (plugin.getChipManager().getChipsByGame(game).size() == 1) {
-                plugin.getMessageManager().send(player, MessageManager.Message.AT_LEAST_ONE_CHIP_REQUIRED);
+                plugin.getMessages().send(player, Messages.Message.AT_LEAST_ONE_CHIP_REQUIRED);
                 closeInventory(player);
                 return;
             }
@@ -297,19 +305,23 @@ public final class InventoryClick implements Listener {
         boolean left = click.isLeftClick(), right = click.isRightClick();
         if (!left && !right) return;
 
+        Model.CustomizationChange change;
         if (isCustomItem(current, "texture")) {
+            change = Model.CustomizationChange.TABLE;
             CustomizationGroup texture = PluginUtils.getNextOrPrevious(CustomizationGroup.GROUPS,
                     CustomizationGroup.GROUPS.indexOf(model.getTexture()),
                     right);
             model.setTexture(texture);
             gui.setTextureItem();
         } else if (isCustomItem(current, "chair")) {
+            change = Model.CustomizationChange.CHAIR_CARPET;
             Material newCarpet = PluginUtils.getNextOrPrevious(TableGUI.VALID_CARPETS,
                     ArrayUtils.indexOf(TableGUI.VALID_CARPETS, model.getCarpetsType()),
                     right);
             model.setCarpetsType(newCarpet);
             gui.setChairItem();
         } else if (isCustomItem(current, "decoration")) {
+            change = Model.CustomizationChange.DECO;
             String[] pattern = PluginUtils.getNextOrPrevious(Model.PATTERNS,
                     model.getPatternIndex(),
                     right);
@@ -317,7 +329,7 @@ public final class InventoryClick implements Listener {
             gui.setDecorationItem();
         } else return;
 
-        model.updateModel();
+        model.updateModel(game.getSeeingPlayers(), change);
         plugin.getGameManager().save(game);
     }
 
@@ -382,18 +394,18 @@ public final class InventoryClick implements Listener {
         Bet bet = bets.get(betIndex);
         if (bet == null) return;
 
-        MessageManager messageManager = plugin.getMessageManager();
+        Messages messages = plugin.getMessages();
 
         if (left) {
             // We don't want players to interact with prison bets.
             if (bet.isEnPrison()) {
-                messageManager.send(player, MessageManager.Message.BET_IN_PRISON);
+                messages.send(player, Messages.Message.BET_IN_PRISON);
                 return;
             }
 
             // This bet is already selected.
             if (betIndex.equals(game.getSelectedBetIndex(player))) {
-                messageManager.send(player, MessageManager.Message.BET_ALREADY_SELECTED);
+                messages.send(player, Messages.Message.BET_ALREADY_SELECTED);
                 closeInventory(player);
                 return;
             }
@@ -405,14 +417,14 @@ public final class InventoryClick implements Listener {
             handlePlayerBetHolograms(game, player);
             closeInventory(player);
 
-            messageManager.send(player, MessageManager.Message.BET_SELECTED,
+            messages.send(player, Messages.Message.BET_SELECTED,
                     line -> line.replace("%bet%", String.valueOf(betIndex + 1)));
             return;
         }
 
         // We don't want players to interact with prison bets.
         if (bet.isEnPrison()) {
-            messageManager.send(player, MessageManager.Message.BET_IN_PRISON);
+            messages.send(player, Messages.Message.BET_IN_PRISON);
             closeInventory(player);
             return;
         }
@@ -420,7 +432,7 @@ public final class InventoryClick implements Listener {
         if (bets.stream()
                 .filter(Predicates.not(Bet::isEnPrison))
                 .count() == 1) {
-            messageManager.send(player, MessageManager.Message.AT_LEAST_ONE_BET_REQUIRED);
+            messages.send(player, Messages.Message.AT_LEAST_ONE_BET_REQUIRED);
             closeInventory(player);
             return;
         }
@@ -439,13 +451,13 @@ public final class InventoryClick implements Listener {
         handlePlayerBetHolograms(game, player);
         closeInventory(player);
 
-        messageManager.send(player, MessageManager.Message.BET_REMOVED,
+        messages.send(player, Messages.Message.BET_REMOVED,
                 line -> line.replace("%bet%", String.valueOf(betIndex + 1)));
     }
 
     private void handleCroupierGUI(@NotNull InventoryClickEvent event, @NotNull CroupierGUI gui) {
         Player player = (Player) event.getWhoClicked();
-        MessageManager messages = plugin.getMessageManager();
+        Messages messages = plugin.getMessages();
 
         ItemStack current = event.getCurrentItem();
         if (current == null) return;
@@ -459,31 +471,31 @@ public final class InventoryClick implements Listener {
             if (left) {
                 // Change name.
                 plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_NAME, game);
-                messages.send(player, MessageManager.Message.NPC_NAME);
+                messages.send(player, Messages.Message.NPC_NAME);
             } else if (right) {
                 // Reset name.
                 String npcName = game.getNPCName();
-                if (npcName != null && !npcName.isEmpty() && !npcName.equals(ConfigManager.Config.UNNAMED_CROUPIER.asString())) {
-                    messages.send(player, MessageManager.Message.NPC_RENAMED);
+                if (npcName != null && !npcName.isEmpty() && !npcName.equals(Config.UNNAMED_CROUPIER.asStringTranslated())) {
+                    messages.send(player, Messages.Message.NPC_RENAMED);
                     game.setNPC(null, game.getNPCTexture(), game.getNPCSignature());
                     plugin.getGameManager().save(game);
                 } else {
-                    messages.send(player, MessageManager.Message.NPC_ALREADY_RENAMED);
+                    messages.send(player, Messages.Message.NPC_ALREADY_RENAMED);
                 }
             }
         } else if (isCustomItem(current, "croupier-texture")) {
             if (left) {
                 // Change texture.
                 plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_TEXTURE, game);
-                messages.send(player, MessageManager.Message.NPC_TEXTURE);
+                messages.send(player, Messages.Message.NPC_TEXTURE);
             } else if (right) {
                 // Reset texture.
                 if (game.hasNPCTexture()) {
-                    messages.send(player, MessageManager.Message.NPC_TEXTURIZED);
+                    messages.send(player, Messages.Message.NPC_TEXTURIZED);
                     game.setNPC(game.getNPCName(), null, null);
                     plugin.getGameManager().save(game);
                 } else {
-                    messages.send(player, MessageManager.Message.NPC_ALREADY_TEXTURIZED);
+                    messages.send(player, Messages.Message.NPC_ALREADY_TEXTURIZED);
                 }
             }
         } else if (isCustomItem(current, "invite")) {
@@ -577,15 +589,15 @@ public final class InventoryClick implements Listener {
             return;
         }
 
-        MessageManager messageManager = plugin.getMessageManager();
+        Messages messages = plugin.getMessages();
 
         if (type.isLeave()) {
             // Remove the player from the game.
-            messageManager.send(player, MessageManager.Message.LEAVE_PLAYER);
+            messages.send(player, Messages.Message.LEAVE_PLAYER);
             game.removeCompletely(player);
         } else if (type.isBetAll()) {
             // Bet all the money.
-            double money = plugin.getEconomy().getBalance(player);
+            double money = plugin.getEconomyExtension().getBalance(player);
 
             // If the @bet-all item has URL, use it. Otherwise, use a default one.
             String skin = plugin.getConfig().getString("chip-menu.items.bet-all.url", "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852");
@@ -600,7 +612,7 @@ public final class InventoryClick implements Listener {
 
             // If all players are done, then we want to reduce the start time.
             if (game.getPlayers().stream().noneMatch(Predicates.not(game::isDone))) {
-                game.broadcast(MessageManager.Message.ALL_PLAYERS_DONE);
+                game.broadcast(Messages.Message.ALL_PLAYERS_DONE);
 
                 Selecting selecting = game.getSelecting();
                 if (selecting != null
@@ -609,10 +621,10 @@ public final class InventoryClick implements Listener {
                     selecting.setSeconds(5);
                 }
             } else {
-                messageManager.send(player, MessageManager.Message.YOU_ARE_DONE);
+                messages.send(player, Messages.Message.YOU_ARE_DONE);
                 // Let the other players know.
                 game.broadcast(
-                        MessageManager.Message.YOU_ARE_DONE,
+                        Messages.Message.YOU_ARE_DONE,
                         line -> line.replace("%player-name%", player.getName()),
                         player);
             }
@@ -657,7 +669,7 @@ public final class InventoryClick implements Listener {
             return;
         } else if (isCustomItem(current, "exit")) {
             // Remove player from game.
-            plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
+            plugin.getMessages().send(player, Messages.Message.LEAVE_PLAYER);
             game.removeCompletely(player);
         } else {
             ItemMeta meta = current.getItemMeta();
@@ -672,7 +684,7 @@ public final class InventoryClick implements Listener {
             double money = chip.price();
 
             // Check if the player has the required money for this chip.
-            if (!plugin.getEconomy().has(player, money)) {
+            if (!plugin.getEconomyExtension().has(player, money)) {
                 // Not enough money.
                 event.setCurrentItem(plugin.getItem("not-enough-money").build());
                 return;
@@ -686,14 +698,15 @@ public final class InventoryClick implements Listener {
 
     private void takeMoney(Game game, Player player, double money, Chip chip, boolean isNewBet) {
         // Take money from player.
-        if (plugin.withdrawFailed(player, money)) return;
+        EconomyExtension<?> economyExtension = plugin.getEconomyExtension();
+        if (!economyExtension.withdraw(player, money)) return;
 
         // Remove the money and close inventory.
-        MessageManager messages = plugin.getMessageManager();
-        messages.send(player, MessageManager.Message.SELECTED_AMOUNT, message -> message
+        Messages messages = plugin.getMessages();
+        messages.send(player, Messages.Message.SELECTED_AMOUNT, message -> message
                 .replace("%money%", PluginUtils.format(money))
-                .replace("%money-left%", PluginUtils.format(plugin.getEconomy().getBalance(player))));
-        if (!isNewBet) messages.send(player, MessageManager.Message.CONTROL);
+                .replace("%money-left%", PluginUtils.format(economyExtension.getBalance(player))));
+        if (!isNewBet) messages.send(player, Messages.Message.CONTROL);
 
         playerBet(game, player, chip, isNewBet);
     }
@@ -708,7 +721,7 @@ public final class InventoryClick implements Listener {
         if (inventory == null) return;
 
         Player player = (Player) event.getWhoClicked();
-        MessageManager messages = plugin.getMessageManager();
+        Messages messages = plugin.getMessages();
 
         boolean isMinAccount;
         if ((isMinAccount = isCustomItem(current, "min-amount")) || isCustomItem(current, "max-amount")) {
@@ -718,15 +731,15 @@ public final class InventoryClick implements Listener {
                 // Remove the account only if there's one.
                 if (game.getAccountGiveTo() != null) {
                     game.setAccountGiveTo(null);
-                    messages.send(player, MessageManager.Message.NO_ACCOUNT);
+                    messages.send(player, Messages.Message.NO_ACCOUNT);
                     event.setCurrentItem(plugin.getItem("game-menu.items.no-account").build());
                 } else {
-                    messages.send(player, MessageManager.Message.ACCOUNT_ALREADY_DELETED);
+                    messages.send(player, Messages.Message.ACCOUNT_ALREADY_DELETED);
                 }
             } else {
                 // Add account.
                 plugin.getInputManager().newInput(player, InputManager.InputType.ACCOUNT_NAME, game);
-                messages.send(player, MessageManager.Message.ACCOUNT_NAME);
+                messages.send(player, Messages.Message.ACCOUNT_NAME);
             }
             closeInventory(player);
         } else if (isCustomItem(current, "start-time")) {
@@ -758,14 +771,14 @@ public final class InventoryClick implements Listener {
         if (rule == null) return;
 
         if (rule.isSurrender() && !game.getType().isAmerican()) {
-            messages.send(player, MessageManager.Message.ONLY_AMERICAN);
+            messages.send(player, Messages.Message.ONLY_AMERICAN);
             closeInventory(player);
             return;
         }
 
         // Prison rule can only be applied in a game with 1 min player required.
         if (rule.isEnPrison() && game.getMinPlayers() > 1) {
-            messages.send(player, MessageManager.Message.PRISON_ERROR);
+            messages.send(player, Messages.Message.PRISON_ERROR);
             closeInventory(player);
             return;
         }
@@ -918,11 +931,11 @@ public final class InventoryClick implements Listener {
         Selecting selecting = game.getSelecting();
         if (selecting == null || selecting.isCancelled()) return;
 
-        int extra = ConfigManager.Config.COUNTDOWN_SELECTING_EXTRA.asInt();
-        int max = ConfigManager.Config.COUNTDOWN_SELECTING_MAX.asInt();
+        int extra = Config.COUNTDOWN_SELECTING_EXTRA.asInt();
+        int max = Config.COUNTDOWN_SELECTING_MAX.asInt();
         selecting.setSeconds(Math.min(selecting.getSeconds() + extra, max - 1));
 
-        game.broadcast(MessageManager.Message.EXTRA_TIME_ADDED, line -> line
+        game.broadcast(Messages.Message.EXTRA_TIME_ADDED, line -> line
                 .replace("%extra%", String.valueOf(extra))
                 .replace("%player-name%", player.getName()), player);
     }

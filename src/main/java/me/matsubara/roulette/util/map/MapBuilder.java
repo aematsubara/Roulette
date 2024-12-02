@@ -4,7 +4,7 @@ import com.cryptomorin.xseries.reflection.XReflection;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.manager.ConfigManager;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.util.PluginUtils;
@@ -55,7 +55,7 @@ public final class MapBuilder extends MapRenderer {
             String playerName = Objects.requireNonNullElse(Bukkit.getOfflinePlayer(result.playerUUID()).getName(), "???");
             String moneyFormatted = PluginUtils.format(plugin.getExpectedMoney(result));
             String originalFormatted = PluginUtils.format(result.money());
-            String date = new SimpleDateFormat(ConfigManager.Config.DATE_FORMAT.asString()).format(new Date(session.timestamp()));
+            String date = new SimpleDateFormat(Config.DATE_FORMAT.asString()).format(new Date(session.timestamp()));
             String selected = PluginUtils.getSlotName(result.slot());
             String winner = PluginUtils.getSlotName(session.slot());
             return string.replace("%player%", playerName)

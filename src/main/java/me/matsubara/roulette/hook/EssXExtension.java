@@ -6,12 +6,14 @@ import me.matsubara.roulette.RoulettePlugin;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public final class EssXExtension {
+public final class EssXExtension implements RExtension<EssXExtension> {
 
-    private final Essentials essentials;
+    private Essentials essentials;
 
-    public EssXExtension(@NotNull RoulettePlugin plugin) {
-        this.essentials = (Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
+    @Override
+    public EssXExtension init(@NotNull RoulettePlugin plugin) {
+        essentials = (Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
+        return this;
     }
 
     public boolean isVanished(Player player) {

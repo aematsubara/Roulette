@@ -3,6 +3,8 @@ package me.matsubara.roulette.manager;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Bukkit;
@@ -48,11 +50,11 @@ public final class InputManager implements Listener {
         if (type == null) return;
 
         String message = ChatColor.stripColor(event.getMessage());
-        MessageManager messageManager = plugin.getMessageManager();
+        Messages messages = plugin.getMessages();
         GameManager gameManager = plugin.getGameManager();
 
-        if (message.equalsIgnoreCase(ConfigManager.Config.CANCEL_WORD.asString())) {
-            messageManager.send(player, MessageManager.Message.REQUEST_CANCELLED);
+        if (message.equalsIgnoreCase(Config.CANCEL_WORD.asString())) {
+            messages.send(player, Messages.Message.REQUEST_CANCELLED);
             event.setCancelled(true);
             remove(player);
             return;
@@ -70,10 +72,10 @@ public final class InputManager implements Listener {
             if (target.hasPlayedBefore()) {
                 game.setAccountGiveTo(target.getUniqueId());
 
-                messageManager.send(player, MessageManager.Message.ACCOUNT);
+                messages.send(player, Messages.Message.ACCOUNT);
                 gameManager.save(game);
             } else {
-                messageManager.send(player, MessageManager.Message.UNKNOWN_ACCOUNT);
+                messages.send(player, Messages.Message.UNKNOWN_ACCOUNT);
             }
         } else if (type == InputType.CROUPIER_NAME) {
             if (isInvalidPlayerName(player, message)) return;
@@ -91,7 +93,7 @@ public final class InputManager implements Listener {
             String signature = game.getNPCSignature();
 
             game.setNPC(name, texture, signature);
-            messageManager.send(player, MessageManager.Message.NPC_RENAMED);
+            messages.send(player, Messages.Message.NPC_RENAMED);
             gameManager.save(game);
         } else {
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -125,11 +127,11 @@ public final class InputManager implements Listener {
 
                     String name = game.getNPCName() == null ? "" : game.getNPCName();
                     game.setNPC(name, texture, signature);
-                    messageManager.send(player, MessageManager.Message.NPC_TEXTURIZED);
+                    messages.send(player, Messages.Message.NPC_TEXTURIZED);
                     gameManager.save(game);
 
                 } catch (IOException throwable) {
-                    messageManager.send(player, MessageManager.Message.REQUEST_INVALID);
+                    messages.send(player, Messages.Message.REQUEST_INVALID);
                     throwable.printStackTrace();
                 }
             });
@@ -141,7 +143,7 @@ public final class InputManager implements Listener {
     private boolean isInvalidPlayerName(Player player, @NotNull String message) {
         if (message.matches("\\w{3,16}")) return false;
 
-        plugin.getMessageManager().send(player, MessageManager.Message.REQUEST_INVALID);
+        plugin.getMessages().send(player, Messages.Message.REQUEST_INVALID);
         remove(player);
         return true;
     }

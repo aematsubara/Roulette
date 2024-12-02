@@ -8,6 +8,7 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPl
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSteerVehicle;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameState;
@@ -15,7 +16,6 @@ import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.PlayerInput;
 import me.matsubara.roulette.gui.BetsGUI;
 import me.matsubara.roulette.gui.ConfirmGUI;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.manager.GameManager;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -95,6 +95,7 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         boolean jump = input.jump(), dismount = input.dismount();
 
         if (dismount && !GameManager.MODERN_APPROACH && event != null) {
+            event.markForReEncode(true);
             event.setCancelled(true);
         }
 
@@ -139,7 +140,7 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         }
 
         // Put player in cooldown.
-        long interval = Math.max(200L, ConfigManager.Config.MOVE_INTERVAL.asLong());
+        long interval = Math.max(200L, Config.MOVE_INTERVAL.asLong());
         this.cooldown.put(player.getUniqueId(), System.currentTimeMillis() + interval);
     }
 
@@ -156,6 +157,6 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
     }
 
     private boolean hasSwapChairPermission(Player player) {
-        return ConfigManager.Config.SWAP_CHAIR.asBool() || player.hasPermission("roulette.swapchair");
+        return Config.SWAP_CHAIR.asBool() || player.hasPermission("roulette.swapchair");
     }
 }

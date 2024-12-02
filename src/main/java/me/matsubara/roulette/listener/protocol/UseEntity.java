@@ -7,9 +7,9 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.PlayerRouletteEnterEvent;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.hook.EssXExtension;
-import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.Model;
 import me.matsubara.roulette.model.stand.PacketStand;
 import org.apache.commons.lang3.ArrayUtils;
@@ -62,36 +62,42 @@ public final class UseEntity extends SimplePacketListenerAbstract {
     private boolean handle(Game game, Player player, int entityId, @NotNull PacketStand stand) {
         if (stand.getId() != entityId) return false;
 
-        MessageManager messages = plugin.getMessageManager();
+        Messages messages = plugin.getMessages();
 
         // Joining while shifting will remove the player from the chair.
         if (player.isSneaking()) return true;
 
+        // If there is no economy provider then we won't be able to play.
+        if (!plugin.getEconomyExtension().isEnabled()) {
+            messages.send(player, Messages.Message.NO_ECONOMY_PROVIDER);
+            return true;
+        }
+
         // Can happen when the player is already in the game.
         if (game.isPlaying(player) && game.isSittingOn(player)) {
-            messages.send(player, MessageManager.Message.ALREADY_INGAME);
+            messages.send(player, Messages.Message.ALREADY_INGAME);
             return true;
         }
 
         // Can happen whe the game is already started.
         if (!game.canJoin()) {
             if (game.getState().isEnding()) {
-                messages.send(player, MessageManager.Message.RESTARTING);
+                messages.send(player, Messages.Message.RESTARTING);
             } else {
-                messages.send(player, MessageManager.Message.ALREADY_STARTED);
+                messages.send(player, Messages.Message.ALREADY_STARTED);
             }
             return true;
         }
 
         // Can happen when the game is full.
         if (game.isFull()) {
-            messages.send(player, MessageManager.Message.FULL);
+            messages.send(player, Messages.Message.FULL);
             return true;
         }
 
         // Check if player is vanished using EssentialsX, SuperVanish, PremiumVanish, VanishNoPacket, etc.
         if (isPluginVanished(player)) {
-            messages.send(player, MessageManager.Message.VANISH);
+            messages.send(player, Messages.Message.VANISH);
             return true;
         }
 
@@ -121,7 +127,7 @@ public final class UseEntity extends SimplePacketListenerAbstract {
             }
 
             game.add(player, sitAt);
-            game.broadcast(MessageManager.Message.JOIN, line -> line
+            game.broadcast(Messages.Message.JOIN, line -> line
                     .replace("%player-name%", player.getName())
                     .replace("%playing%", String.valueOf(game.size()))
                     .replace("%max%", String.valueOf(game.getMaxPlayers())));
@@ -140,7 +146,7 @@ public final class UseEntity extends SimplePacketListenerAbstract {
         if (chair == null) return -1;
 
         if (!chair.getPassengers().isEmpty()) {
-            plugin.getMessageManager().send(player, MessageManager.Message.SEAT_TAKEN);
+            plugin.getMessages().send(player, Messages.Message.SEAT_TAKEN);
             return null;
         }
 

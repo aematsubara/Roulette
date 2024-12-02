@@ -1,10 +1,11 @@
 package me.matsubara.roulette.model.stand;
 
-import com.github.retrooper.packetevents.protocol.item.ItemStack;
-import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
-import com.github.retrooper.packetevents.util.Vector3f;
 import lombok.Getter;
 import lombok.Setter;
+import me.matsubara.roulette.model.stand.data.ItemSlot;
+import me.matsubara.roulette.model.stand.data.Pose;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,8 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 @Getter
 @Setter
@@ -37,15 +36,15 @@ public final class StandSettings implements Cloneable {
     private boolean customNameVisible;
 
     // Entity poses.
-    private Vector3f headPose;
-    private Vector3f bodyPose;
-    private Vector3f leftArmPose;
-    private Vector3f rightArmPose;
-    private Vector3f leftLegPose;
-    private Vector3f rightLegPose;
+    private EulerAngle headPose;
+    private EulerAngle bodyPose;
+    private EulerAngle leftArmPose;
+    private EulerAngle rightArmPose;
+    private EulerAngle leftLegPose;
+    private EulerAngle rightLegPose;
 
     // Entity equipment.
-    private Map<EquipmentSlot, ItemStack> equipment = new HashMap<>();
+    private Map<ItemSlot, ItemStack> equipment = new HashMap<>();
 
     public StandSettings() {
         // Default settings.
@@ -62,7 +61,7 @@ public final class StandSettings implements Cloneable {
 
         // Default poses.
         for (Pose pose : Pose.values()) {
-            pose.setter.accept(this, Vector3f.zero());
+            pose.set(this, EulerAngle.ZERO);
         }
     }
 
@@ -75,56 +74,32 @@ public final class StandSettings implements Cloneable {
             copy.setTags(new ArrayList<>(tags));
 
             // Clone equipment map.
-            Map<EquipmentSlot, ItemStack> equipment = new HashMap<>();
-            for (Map.Entry<EquipmentSlot, ItemStack> entry : this.equipment.entrySet()) {
+            Map<ItemSlot, ItemStack> equipment = new HashMap<>();
+            for (Map.Entry<ItemSlot, ItemStack> entry : this.equipment.entrySet()) {
                 if (entry == null) continue;
 
-                EquipmentSlot slot = entry.getKey();
+                ItemSlot slot = entry.getKey();
                 if (slot == null) continue;
 
                 ItemStack item = entry.getValue();
                 if (item == null) continue;
 
-                equipment.put(slot, item.copy());
+                equipment.put(slot, item.clone());
             }
             copy.setEquipment(equipment);
 
             // Clone angles.
             for (Pose pose : Pose.values()) {
-                pose.setter.accept(copy, clonePose(pose.getter.apply(this)));
+                pose.set(copy, clonePose(pose.get(this)));
             }
 
-            copy.setCustomName(null);
             return copy;
         } catch (CloneNotSupportedException exception) {
             throw new Error(exception);
         }
     }
 
-    private @NotNull Vector3f clonePose(@NotNull Vector3f pose) {
-        return new Vector3f(pose.getX(), pose.getY(), pose.getZ());
-    }
-
-    public enum Pose {
-        HEAD(16, StandSettings::getHeadPose, StandSettings::setHeadPose),
-        BODY(17, StandSettings::getBodyPose, StandSettings::setBodyPose),
-        LEFT_ARM(18, StandSettings::getLeftArmPose, StandSettings::setLeftArmPose),
-        RIGHT_ARM(19, StandSettings::getRightArmPose, StandSettings::setRightArmPose),
-        LEFT_LEG(20, StandSettings::getLeftLegPose, StandSettings::setLeftLegPose),
-        RIGHT_LEG(21, StandSettings::getRightLegPose, StandSettings::setRightLegPose);
-
-        private final @Getter int index;
-        private final Function<StandSettings, Vector3f> getter;
-        private final BiConsumer<StandSettings, Vector3f> setter;
-
-        Pose(int index, Function<StandSettings, Vector3f> getter, BiConsumer<StandSettings, Vector3f> setter) {
-            this.index = index;
-            this.getter = getter;
-            this.setter = setter;
-        }
-
-        public Vector3f get(StandSettings settings) {
-            return getter.apply(settings);
-        }
+    private @NotNull EulerAngle clonePose(@NotNull EulerAngle pose) {
+        return new EulerAngle(pose.getX(), pose.getY(), pose.getZ());
     }
 }

@@ -5,9 +5,12 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.EventManager;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import lombok.Getter;
 import me.matsubara.roulette.command.MainCommand;
+import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.game.data.Bet;
@@ -15,6 +18,10 @@ import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
 import me.matsubara.roulette.hook.EssXExtension;
 import me.matsubara.roulette.hook.PAPIExtension;
+import me.matsubara.roulette.hook.RExtension;
+import me.matsubara.roulette.hook.economy.EconomyExtension;
+import me.matsubara.roulette.hook.economy.PlayerPointsExtension;
+import me.matsubara.roulette.hook.economy.VaultExtension;
 import me.matsubara.roulette.listener.EntityDamageByEntity;
 import me.matsubara.roulette.listener.InventoryClick;
 import me.matsubara.roulette.listener.InventoryClose;
@@ -30,8 +37,6 @@ import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
 import me.matsubara.roulette.util.config.ConfigFileUtils;
-import net.milkbowl.vault.economy.Economy;
-import net.milkbowl.vault.economy.EconomyResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.*;
 import org.bukkit.command.PluginCommand;
@@ -41,10 +46,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionType;
 import org.bukkit.scoreboard.Scoreboard;
@@ -55,6 +59,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Getter
 public final class RoulettePlugin extends JavaPlugin {
@@ -62,21 +70,27 @@ public final class RoulettePlugin extends JavaPlugin {
     // Managers.
     private SteerVehicle steerVehicle;
     private ChipManager chipManager;
-    private ConfigManager configManager;
     private GameManager gameManager;
     private InputManager inputManager;
-    private MessageManager messageManager;
+    private Messages messages;
     private StandManager standManager;
     private DataManager dataManager;
     private WinnerManager winnerManager;
 
+    private final Map<String, RExtension<?>> extensions = new HashMap<>();
+    private final ExecutorService pool = new ThreadPoolExecutor(
+            0,
+            Integer.MAX_VALUE,
+            120L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(),
+            new ThreadFactoryBuilder().setNameFormat("roulette-worker-thread-%d").build());
+
     // NPC Pool.
     private NPCPool npcPool;
 
-    // Economy manager.
-    private Economy economy;
-
-    // EssentialsX extension.
+    // Extensions.
+    EconomyExtension<?> economyExtension;
     private EssXExtension essXExtension;
 
     private final String[] DEPENDENCIES = {"packetevents", "Vault"};
@@ -86,6 +100,7 @@ public final class RoulettePlugin extends JavaPlugin {
 
     private GlowingEntities glowingEntities;
 
+    private static final Set<String> ECONOMY_PROVIDER = Set.of("Vault", "PlayerPoints");
     private static final Set<String> SPECIAL_SECTIONS = Sets.newHashSet("custom-win-multiplier.slots", "money-abbreviation-format.translations", "not-enough-money");
     private static final List<String> GUI_TYPES = List.of(
             "confirmation-menu",
@@ -98,6 +113,7 @@ public final class RoulettePlugin extends JavaPlugin {
             "session-result-menu",
             "table-menu");
 
+    public static final ItemStack EMPTY_ITEM = new ItemStack(Material.AIR);
     public NamespacedKey itemIdKey = new NamespacedKey(this, "ItemID");
     public NamespacedKey chipNameKey = new NamespacedKey(this, "ChipName");
     public NamespacedKey betIndexKey = new NamespacedKey(this, "BetIndex");
@@ -109,10 +125,24 @@ public final class RoulettePlugin extends JavaPlugin {
     @Override
     public void onLoad() {
         PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
-        PacketEvents.getAPI().getSettings()
-                .reEncodeByDefault(true)
-                .checkForUpdates(false);
         PacketEvents.getAPI().load();
+
+        messages = new Messages(this);
+        saveDefaultConfig();
+        updateConfigs();
+    }
+
+    public @NotNull ItemStack getBall() {
+        Material material = PluginUtils.getOrNull(Material.class, Config.CROUPIER_BALL.asString());
+        return material != null ? new ItemStack(material) : EMPTY_ITEM;
+    }
+
+    public long getRestartPeriod() {
+        return (long) (((double) Config.RESTART_TIME.asInt() / Config.RESTART_FIREWORKS.asInt()) * 20L);
+    }
+
+    public @NotNull String getColumnOrDozen(String type, int index) {
+        return PluginUtils.translate(getConfig().getString("slots." + type + "." + index));
     }
 
     @Override
@@ -129,13 +159,6 @@ public final class RoulettePlugin extends JavaPlugin {
         // Disable plugin if dependencies aren't installed.
         if (!hasDependencies(DEPENDENCIES)) {
             getLogger().severe("You need to install all the dependencies to be able to use this plugin, disabling...");
-            pluginManager.disablePlugin(this);
-            return;
-        }
-
-        // Disable plugin if we can't set up economy manager.
-        if (setupEconomy() == null) {
-            getLogger().severe("You need to install an economy provider (like EssentialsX, CMI, etc...) to be able to use this plugin, disabling...");
             pluginManager.disablePlugin(this);
             return;
         }
@@ -177,33 +200,24 @@ public final class RoulettePlugin extends JavaPlugin {
 
         // Register placeholder for PAPI.
         if (hasDependency("PlaceholderAPI")) new PAPIExtension(this);
-        if (hasDependency("Essentials")) essXExtension = new EssXExtension(this);
-
-        // Team used to disable the nametag of NPCs.
-        getHideTeam();
+        resetEconomyProvider();
+        essXExtension = registerExtension(EssXExtension.class, "Essentials");
 
         // Initialize managers.
         chipManager = new ChipManager(this);
-        configManager = new ConfigManager(this);
-
-        // Initialize npc pool (before games get loaded).
-        npcPool = new NPCPool(this);
-
+        npcPool = new NPCPool(this); // Initialize npc pool (before games get loaded).
         inputManager = new InputManager(this);
-        messageManager = new MessageManager(this);
         standManager = new StandManager(this);
 
         // Save models to /models.
-        saveModels(GameType.AMERICAN.getModelName(), GameType.EUROPEAN.getModelName());
-
-        saveDefaultConfig();
-        updateConfigs();
+        saveModels(GameType.AMERICAN, GameType.EUROPEAN);
 
         // Save dab animation.
         saveFile("dab_animation.txt");
 
         // AFTER updating configs.
         gameManager = new GameManager(this);
+        gameManager.init();
         dataManager = new DataManager(this);
         winnerManager = new WinnerManager(this);
 
@@ -215,6 +229,46 @@ public final class RoulettePlugin extends JavaPlugin {
         }
 
         reloadAbbreviations();
+
+        // Enable extensions.
+        for (RExtension<?> extension : extensions.values()) {
+            extension.onEnable(this);
+        }
+    }
+
+    public void resetEconomyProvider() {
+        // Invalidate before initializing.
+        economyExtension = null;
+
+        String provider = Config.ECONOMY_PROVIDER.asString();
+        if (provider == null || !ECONOMY_PROVIDER.contains(provider)) {
+            getLogger().severe("No economy provider found, players won't be able to play!");
+            economyExtension = EconomyExtension.DUMMY;
+            return;
+        }
+
+        if (provider.equals("Vault")) {
+            economyExtension = registerExtension(VaultExtension.class, "Vault");
+        } else {
+            economyExtension = registerExtension(PlayerPointsExtension.class, "PlayerPoints");
+        }
+
+        if (economyExtension == null || !economyExtension.isEnabled()) {
+            economyExtension = EconomyExtension.DUMMY;
+        }
+    }
+
+    public <T> @Nullable T registerExtension(@NotNull Class<T> extensionClazz, String pluginName) {
+        if (getServer().getPluginManager().getPlugin(pluginName) == null) return null;
+
+        try {
+            @SuppressWarnings("unchecked") RExtension<T> extension = (RExtension<T>) extensionClazz.getConstructor().newInstance();
+            extensions.put(pluginName, extension);
+
+            return extension.init(this);
+        } catch (NoClassDefFoundError | ReflectiveOperationException ignored) {
+            return null;
+        }
     }
 
     public @NotNull File saveFile(@SuppressWarnings("SameParameterValue") String name) {
@@ -227,24 +281,11 @@ public final class RoulettePlugin extends JavaPlugin {
     public void onDisable() {
         PacketEvents.getAPI().terminate();
 
-        // If disabling on startup, prevent errors in console.
-        if (gameManager != null) gameManager.getGames().forEach(Game::remove);
-    }
+        if (gameManager != null) {
+            gameManager.getGames().forEach(Game::remove);
+        }
 
-    public boolean deposit(OfflinePlayer player, double money) {
-        EconomyResponse response = economy.depositPlayer(player, money);
-        if (response.transactionSuccess()) return true;
-
-        getLogger().warning(String.format("It wasn't possible to deposit $%s to %s.", money, player.getName()));
-        return false;
-    }
-
-    public boolean withdrawFailed(OfflinePlayer player, double money) {
-        EconomyResponse response = economy.withdrawPlayer(player, money);
-        if (response.transactionSuccess()) return false;
-
-        getLogger().warning(String.format("It wasn't possible to withdraw $%s to %s.", money, player.getName()));
-        return true;
+        pool.shutdownNow();
     }
 
     public double getExpectedMoney(@NotNull Bet bet) {
@@ -301,7 +342,7 @@ public final class RoulettePlugin extends JavaPlugin {
                 this,
                 folder,
                 "messages.yml",
-                file -> messageManager.setConfiguration(YamlConfiguration.loadConfiguration(file)),
+                file -> messages.setConfiguration(YamlConfiguration.loadConfiguration(file)),
                 file -> saveResource("messages.yml"),
                 config -> Collections.emptyList(),
                 Collections.emptyList());
@@ -332,13 +373,19 @@ public final class RoulettePlugin extends JavaPlugin {
         }
     }
 
-    private void saveModels(String... names) {
-        for (String name : names) {
-            File file = new File(getDataFolder() + File.separator + "models", name + ".yml");
+    private void saveModels(GameType... types) {
+        for (GameType type : types) {
+            String name = type.getFileName();
+
+            File file = new File(getModelFolder(), name);
             if (file.exists()) continue;
 
-            saveResource("models" + File.separator + name + ".yml", false);
+            saveResource("models" + File.separator + name, false);
         }
+    }
+
+    public @NotNull String getModelFolder() {
+        return getDataFolder() + File.separator + "models";
     }
 
     public boolean hasDependencies(String... dependencies) {
@@ -350,18 +397,6 @@ public final class RoulettePlugin extends JavaPlugin {
 
     public boolean hasDependency(String plugin) {
         return getServer().getPluginManager().getPlugin(plugin) != null;
-    }
-
-    public @Nullable Plugin setupEconomy() {
-        RegisteredServiceProvider<Economy> provider = getServer().getServicesManager().getRegistration(Economy.class);
-        if (provider == null) return null;
-
-        Plugin plugin = provider.getPlugin();
-        if (provider.getProvider().equals(economy)) return plugin;
-
-        getLogger().info("Using " + plugin.getDescription().getFullName() + " as the economy provider.");
-        economy = provider.getProvider();
-        return plugin;
     }
 
     public Team getHideTeam() {

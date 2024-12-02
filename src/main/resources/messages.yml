@@ -47,6 +47,8 @@ command:
   create: "&6The game &e%name% &6has been created!"
   delete: "&6The game &e%name% &6has been deleted!"
   exist: "&cThe game &7%name% &calready exists!"
+  invalid-name: "&cThe given name is not valid!"
+  invalid-type: "&cThe given roulette type is not valid!"
   unknown: "&cThe &7%name% &cgame doesn't exist!"
   sintax: "&cInvalid command! check the correct syntax with /roulette."
   from-console: "&cThis command can't be executed from the console!"
@@ -61,6 +63,7 @@ command:
 
 # Game related messages.
 game:
+  no-economy-provider: "&cNo economy provider found! Contact an administrator."
   # %seconds% - the countdown time involved.
   starting: "&6Starting the game in &e%seconds% &6seconds..."
   select-bet: "&6Please, select your bet."

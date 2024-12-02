@@ -3,8 +3,8 @@ package me.matsubara.roulette.gui;
 import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.ParrotUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -50,11 +50,11 @@ public class CroupierGUI extends RouletteGUI {
 
         RoulettePlugin plugin = game.getPlugin();
 
-        String npcName = game.getNPCName(), finalName = npcName != null ? npcName : ConfigManager.Config.UNNAMED_CROUPIER.asString();
+        String npcName = game.getNPCName(), finalName = npcName != null ? npcName : Config.UNNAMED_CROUPIER.asStringTranslated();
         this.inventory = plugin.getServer().createInventory(
                 this,
                 27,
-                ConfigManager.Config.CROUPIER_MENU_TITLE.asString().replace("%croupier-name%", finalName));
+                Config.CROUPIER_MENU_TITLE.asStringTranslated().replace("%croupier-name%", finalName));
 
         inventory.setItem(10, getItem("croupier-name")
                 .replace("%croupier-name%", finalName)
@@ -131,6 +131,6 @@ public class CroupierGUI extends RouletteGUI {
     }
 
     private @NotNull String getState(@NotNull Function<Game, Boolean> function) {
-        return function.apply(game) ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
+        return (function.apply(game) ? Config.STATE_ENABLED : Config.STATE_DISABLED).asStringTranslated();
     }
 }

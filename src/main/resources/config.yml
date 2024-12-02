@@ -59,8 +59,11 @@
 # Don't touch this!
 config-version: 1
 
-# The render distance for the models. Default: 96.
-render-distance: 96
+# The render distance for the models. Default: 72.0
+render-distance: 72.0
+
+# Which economy provider to use (Vault / PlayerPoints).
+economy-provider: Vault
 
 # Here you will find some options about saving sessions.
 # NOTE: Victory sessions are used for statistics (used by PlaceholderAPI).

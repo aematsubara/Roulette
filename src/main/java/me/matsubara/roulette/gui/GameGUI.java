@@ -2,10 +2,10 @@ package me.matsubara.roulette.gui;
 
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.data.Chip;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -43,7 +43,7 @@ public final class GameGUI extends RouletteGUI {
         this.inventory = Bukkit.createInventory(
                 this,
                 27,
-                ConfigManager.Config.GAME_MENU_TITLE.asString().replace("%name%", game.getName()));
+                Config.GAME_MENU_TITLE.asStringTranslated().replace("%name%", game.getName()));
 
         // Fill inventory.
         fillInventory();
@@ -105,7 +105,7 @@ public final class GameGUI extends RouletteGUI {
     }
 
     public void setBetAllItem() {
-        String state = game.isBetAllEnabled() ? ConfigManager.Config.STATE_ENABLED.asString() : ConfigManager.Config.STATE_DISABLED.asString();
+        String state = (game.isBetAllEnabled() ? Config.STATE_ENABLED : Config.STATE_DISABLED).asStringTranslated();
         inventory.setItem(8, getItem("bet-all")
                 .replace("%state%", state)
                 .build());
@@ -131,7 +131,7 @@ public final class GameGUI extends RouletteGUI {
 
         // Surrender rule only applies to american tables.
         if (!game.getType().isAmerican() && rule.isSurrender()) {
-            builder.addLore(ConfigManager.Config.ONLY_AMERICAN.asString());
+            builder.addLore(Config.ONLY_AMERICAN.asStringTranslated());
         }
 
         return builder.build();

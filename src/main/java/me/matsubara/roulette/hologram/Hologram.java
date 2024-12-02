@@ -9,6 +9,7 @@ import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
@@ -69,9 +70,12 @@ public final class Hologram {
 
         this.visibleByDefault = visibleByDefault;
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        World world = location.getWorld();
+        if (world == null) return;
+
+        for (Player player : world.getPlayers()) {
             if (game.equals(plugin.getGameManager().getGameByPlayer(player))) continue;
-            if (game.getModel().getOutOfRange().contains(player.getUniqueId())) continue;
+            if (game.getModel().getOut().contains(player.getUniqueId())) continue;
 
             if (visibleByDefault) {
                 if (isVisibleTo(player, false)) showPackets(player);
@@ -123,6 +127,13 @@ public final class Hologram {
 
         Location current = location.clone().add(0.0d, (LINE_DISTANCE * lines.size()) - 1.97d, 0.0d);
 
+        World world = location.getWorld();
+        if (world == null) return;
+
+        HashSet<Player> temp = new HashSet<>(world.getPlayers());
+        temp.removeIf(player -> !isVisibleTo(player) || !game.getSeeingPlayers().contains(player));
+        if (temp.isEmpty()) return;
+
         for (int i = 0; i < lines.size(); i++) {
             String name = "line-" + (i + 1);
             String text = PluginUtils.translate(lines.get(i));
@@ -136,10 +147,10 @@ public final class Hologram {
                 settings.setInvisible(true);
 
                 // Create packet stand, but don't show to all players.
-                PacketStand stand = new PacketStand(plugin, current, settings);
+                PacketStand stand = new PacketStand(plugin, current.clone(), settings);
 
                 // Spawn packet stand to players who can see this hologram.
-                for (Player player : Bukkit.getOnlinePlayers()) {
+                for (Player player : temp) {
                     if (isVisibleTo(player)) stand.spawn(player);
                 }
 
@@ -149,10 +160,10 @@ public final class Hologram {
                 PacketStand stand = getByName(name);
                 if (stand == null) continue;
 
-                stand.teleport(current);
+                stand.teleport(temp, current.clone());
 
                 stand.getSettings().setCustomName(text);
-                stand.sendMetadata();
+                stand.sendMetadata(temp);
             }
 
             current.subtract(0.0d, LINE_DISTANCE, 0.0d);
@@ -233,7 +244,7 @@ public final class Hologram {
 
                 update(copy);
             }
-        }.runTaskTimer(plugin, 10L, 10L).getTaskId();
+        }.runTaskTimerAsynchronously(plugin, 5L, 5L).getTaskId();
     }
 
     private void cancelTask() {

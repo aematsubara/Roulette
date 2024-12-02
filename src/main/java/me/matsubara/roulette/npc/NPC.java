@@ -12,21 +12,21 @@ import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.npc.modifier.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
 public class NPC {
 
-    private final Collection<Player> seeingPlayers = new CopyOnWriteArraySet<>();
-    private final Collection<UUID> insideFOVPlayers = new CopyOnWriteArraySet<>();
+    private final Set<Player> seeingPlayers = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> insideFOVPlayers = ConcurrentHashMap.newKeySet();
     private final int entityId;
     private final UserProfile profile;
     private final SpawnCustomizer spawnCustomizer;
@@ -34,6 +34,10 @@ public class NPC {
     private final Game game;
 
     public NPC(UserProfile profile, SpawnCustomizer spawnCustomizer, @NotNull Location location, int entityId, Game game) {
+        World world = location.getWorld();
+        if (world != null) insideFOVPlayers.addAll(world.getPlayers().stream()
+                .map(Player::getUniqueId)
+                .toList());
         this.entityId = entityId;
         this.spawnCustomizer = spawnCustomizer;
         this.location = location;
@@ -81,17 +85,14 @@ public class NPC {
         rotation().queueBodyRotation(location.getYaw(), location.getPitch()).send(players);
     }
 
-    public Collection<Player> getSeeingPlayers() {
-        return Collections.unmodifiableCollection(seeingPlayers);
-    }
-
     public boolean isShownFor(Player player) {
         return seeingPlayers.contains(player);
     }
 
     public void removeFOV(@NotNull Player player) {
-        insideFOVPlayers.remove(player.getUniqueId());
-        lookAtDefaultLocation(player);
+        if (insideFOVPlayers.remove(player.getUniqueId())) {
+            lookAtDefaultLocation(player);
+        }
     }
 
     public boolean isInsideFOV(@NotNull Player player) {

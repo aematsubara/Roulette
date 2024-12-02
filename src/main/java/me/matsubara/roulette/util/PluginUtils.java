@@ -1,14 +1,13 @@
 package me.matsubara.roulette.util;
 
-import com.cryptomorin.xseries.reflection.XReflection;
 import com.google.gson.JsonParser;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Slot;
-import me.matsubara.roulette.manager.ConfigManager;
 import net.md_5.bungee.api.ChatColor;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -74,8 +73,9 @@ public final class PluginUtils {
 
     public static final Color[] COLORS;
     private static final Map<String, org.bukkit.Color> COLORS_BY_NAME = new HashMap<>();
+    private static final boolean USE_RADIAL = true;
 
-    private static final Class<?> CRAFT_META_SKULL = XReflection.getCraftClass("inventory.CraftMetaSkull");
+    private static final Class<?> CRAFT_META_SKULL = Reflection.getCraftClass("inventory", "CraftMetaSkull");
 
     private static final MethodHandle SET_PROFILE = Reflection.getMethod(CRAFT_META_SKULL, "setProfile", false, GameProfile.class);
     private static final MethodHandle SET_OWNER_PROFILE = SET_PROFILE != null ? null : Reflection.getMethod(SkullMeta.class, "setOwnerProfile", false, PlayerProfile.class);
@@ -93,8 +93,8 @@ public final class PluginUtils {
         COLORS = COLORS_BY_NAME.values().toArray(new org.bukkit.Color[0]);
     }
 
-    public static @NotNull BlockFace getFace(float yaw, boolean subCardinal) {
-        return (subCardinal ? RADIAL[Math.round(yaw / 45f) & 0x7] : AXIS[Math.round(yaw / 90f) & 0x3]).getOppositeFace();
+    public static @NotNull BlockFace getFace(float yaw) {
+        return (USE_RADIAL ? RADIAL[Math.round(yaw / 45f) & 0x7] : AXIS[Math.round(yaw / 90f) & 0x3]).getOppositeFace();
     }
 
     public static @NotNull Vector getDirection(@NotNull BlockFace face) {
@@ -213,39 +213,39 @@ public final class PluginUtils {
         if (slot.isSingleInclusive()) {
             String number = slot.isDoubleZero() ? "00" : String.valueOf(slot.getInts()[0]);
             return switch (slot.getColor()) {
-                case RED -> ConfigManager.Config.SINGLE_RED.asString().replace("%number%", number);
-                case BLACK -> ConfigManager.Config.SINGLE_BLACK.asString().replace("%number%", number);
-                default -> ConfigManager.Config.SINGLE_ZERO.asString().replace("%number%", number);
+                case RED -> Config.SINGLE_RED.asStringTranslated().replace("%number%", number);
+                case BLACK -> Config.SINGLE_BLACK.asStringTranslated().replace("%number%", number);
+                default -> Config.SINGLE_ZERO.asStringTranslated().replace("%number%", number);
             };
         }
 
         if (slot.isColumn() || slot.isDozen()) {
-            return PLUGIN.getConfigManager().getColumnOrDozen(slot.isColumn() ? "column" : "dozen", slot.getColumnOrDozen());
+            return PLUGIN.getColumnOrDozen(slot.isColumn() ? "column" : "dozen", slot.getColumnOrDozen());
         }
 
         return switch (slot) {
-            case SLOT_LOW -> ConfigManager.Config.LOW.asString();
-            case SLOT_EVEN -> ConfigManager.Config.EVEN.asString();
-            case SLOT_ODD -> ConfigManager.Config.ODD.asString();
-            case SLOT_HIGH -> ConfigManager.Config.HIGH.asString();
-            case SLOT_RED -> ConfigManager.Config.RED.asString();
-            default -> ConfigManager.Config.BLACK.asString();
+            case SLOT_LOW -> Config.LOW.asStringTranslated();
+            case SLOT_EVEN -> Config.EVEN.asStringTranslated();
+            case SLOT_ODD -> Config.ODD.asStringTranslated();
+            case SLOT_HIGH -> Config.HIGH.asStringTranslated();
+            case SLOT_RED -> Config.RED.asStringTranslated();
+            default -> Config.BLACK.asStringTranslated();
         };
     }
 
     public static String format(double value) {
-        return format(value, ConfigManager.Config.MONEY_ABBREVIATION_FORMAT_ENABLED.asBool());
+        return format(value, Config.MONEY_ABBREVIATION_FORMAT_ENABLED.asBool());
     }
 
     public static String format(double value, boolean abbreviation) {
-        return abbreviation ? format(value, PLUGIN.getAbbreviations()) : PLUGIN.getEconomy().format(value);
+        return abbreviation ? format(value, PLUGIN.getAbbreviations()) : PLUGIN.getEconomyExtension().format(value);
     }
 
     @SuppressWarnings("IntegerDivisionInFloatingPointContext")
     private static String format(double value, NavigableMap<Long, String> lang) {
         if (value == Long.MIN_VALUE) return format(Long.MIN_VALUE + 1, lang);
         if (value < 0) return "-" + format(-value, lang);
-        if (value < 1000) return PLUGIN.getEconomy().format(value);
+        if (value < 1000) return PLUGIN.getEconomyExtension().format(value);
 
         Map.Entry<Long, String> entry = lang.floorEntry((long) value);
         Long divideBy = entry.getKey();

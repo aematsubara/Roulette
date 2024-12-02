@@ -4,18 +4,18 @@ import com.cryptomorin.xseries.XSound;
 import com.github.retrooper.packetevents.protocol.entity.pose.EntityPose;
 import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityAnimation;
-import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.LastRouletteSpinEvent;
+import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.hologram.Hologram;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.MessageManager;
 import me.matsubara.roulette.model.stand.PacketStand;
+import me.matsubara.roulette.model.stand.data.ItemSlot;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.npc.modifier.MetadataModifier;
 import me.matsubara.roulette.util.PluginUtils;
@@ -41,13 +41,17 @@ public final class Spinning extends BukkitRunnable {
     private boolean shouldStart;
     private @Setter Slot force;
 
+    private final String hologramSpinning = Config.SPINNING.asStringTranslated();
+    private final String hologramWinningNumber = Config.WINNING_NUMBER.asStringTranslated();
+    private final XSound.Record spinningSound = XSound.parse(Config.SOUND_SPINNING.asString());
+
     public Spinning(@NotNull RoulettePlugin plugin, @NotNull Game game) {
         this.plugin = plugin;
         this.game = game;
-        this.ball = game.getModel().getByName("BALL");
+        this.ball = game.getBall();
         this.isEuropean = game.getType().isEuropean();
         this.slots = new Slot[isEuropean ? 37 : 38];
-        this.totalTime = ConfigManager.Config.COUNTDOWN_SORTING.asInt() * 20;
+        this.totalTime = Config.COUNTDOWN_SORTING.asInt() * 20;
         this.time = totalTime;
         this.shouldStart = true;
 
@@ -61,8 +65,8 @@ public final class Spinning extends BukkitRunnable {
             game.getBets(player).forEach(Bet::hide);
             game.sendBets(
                     player,
-                    MessageManager.Message.YOUR_BETS,
-                    MessageManager.Message.BET_HOVER,
+                    Messages.Message.YOUR_BETS,
+                    Messages.Message.BET_HOVER,
                     UnaryOperator.identity(),
                     false);
             game.closeOpenMenu(player);
@@ -76,18 +80,18 @@ public final class Spinning extends BukkitRunnable {
 
         NPC npc = game.getNpc();
 
-        game.npcBroadcast(MessageManager.Message.NO_BETS);
+        game.npcBroadcast(Messages.Message.NO_BETS);
 
         // Play NPC spin animation.
         npc.metadata().queue(MetadataModifier.EntityMetadata.POSE, EntityPose.CROUCHING).send();
         npc.animation().queue(WrapperPlayServerEntityAnimation.EntityAnimationType.SWING_MAIN_ARM).send();
-        npc.equipment().queue(EquipmentSlot.MAIN_HAND, new ItemStack(Material.AIR)).send();
+        npc.equipment().queue(EquipmentSlot.MAIN_HAND, RoulettePlugin.EMPTY_ITEM).send();
 
         // Show ball, shouldn't be null.
         if (ball == null) return;
 
-        ball.getSettings().getEquipment().put(EquipmentSlot.HELMET, SpigotConversionUtil.fromBukkitItemStack(new ItemStack(Material.END_ROD)));
-        ball.sendEquipment();
+        ball.getSettings().getEquipment().put(ItemSlot.HEAD, new ItemStack(Material.END_ROD));
+        ball.sendEquipment(game.getSeeingPlayers());
     }
 
     @Override
@@ -100,7 +104,7 @@ public final class Spinning extends BukkitRunnable {
         Hologram spinHologram = game.getSpinHologram();
 
         if (time == 0) {
-            spinHologram.setLine(0, ConfigManager.Config.WINNING_NUMBER.asString());
+            spinHologram.setLine(0, hologramWinningNumber);
 
             // Stop NPC animation, check if there are winners and stop.
             game.getNpc().metadata().queue(MetadataModifier.EntityMetadata.POSE, EntityPose.STANDING).send();
@@ -114,7 +118,7 @@ public final class Spinning extends BukkitRunnable {
         // Spin ball.
         Location location = ball.getLocation();
         location.setYaw(location.getYaw() + (time >= totalTime / 3 ? 30.0f : (30.0f * time / totalTime)));
-        ball.teleport(location);
+        ball.teleport(game.getSeeingPlayers(), location);
 
         // Select a random number.
         int which = PluginUtils.RANDOM.nextInt(0, isEuropean ? 37 : 38);
@@ -142,13 +146,12 @@ public final class Spinning extends BukkitRunnable {
                     .clone()
                     .add(0.0d, 2.5d, 0.0d));
 
-            spinHologram.addLines(ConfigManager.Config.SPINNING.asString());
+            spinHologram.addLines(hologramSpinning);
             spinHologram.addLines(slotName);
         } else {
             spinHologram.setLine(1, slotName);
             // Play spinning sound at spin hologram location, this sound can be heard by every player (even those outside the game).
-            XSound.play(ConfigManager.Config.SOUND_SPINNING.asString(),
-                    temp -> temp.atLocation(game.getSpinHologram().getLocation()).play());
+            game.playSound(game.getSpinHologram().getLocation(), spinningSound);
         }
 
         time--;

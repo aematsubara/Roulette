@@ -1,0 +1,74 @@
+package me.matsubara.roulette.file;
+
+import lombok.experimental.UtilityClass;
+import me.matsubara.roulette.file.config.ConfigValue;
+
+@UtilityClass
+public class Config {
+
+    public final ConfigValue RENDER_DISTANCE = new ConfigValue("render-distance");
+    public final ConfigValue ECONOMY_PROVIDER = new ConfigValue("economy-provider");
+    public final ConfigValue SESSIONS_LIMIT = new ConfigValue("sessions.limit");
+    public final ConfigValue SESSIONS_KEEP_VICTORIES = new ConfigValue("sessions.keep-victories");
+    public final ConfigValue SESSIONS_ONLY_VICTORIES_TEXT = new ConfigValue("sessions.only-victories-text");
+    public final ConfigValue SWAP_CHAIR = new ConfigValue("swap-chair");
+    public final ConfigValue INSTANT_EXPLODE = new ConfigValue("instant-explode");
+    public final ConfigValue FIX_CHAIR_CAMERA = new ConfigValue("fix-chair-camera");
+    public final ConfigValue HIT_ON_GAME = new ConfigValue("hit-on-game");
+    public final ConfigValue KEEP_SEAT = new ConfigValue("keep-seat");
+    public final ConfigValue DATE_FORMAT = new ConfigValue("date-format");
+    public final ConfigValue MOVE_INTERVAL = new ConfigValue("move-interval");
+    public final ConfigValue CROUPIER_BALL = new ConfigValue("croupier-ball");
+    public final ConfigValue COUNTDOWN_WAITING = new ConfigValue("countdown.waiting");
+    public final ConfigValue COUNTDOWN_SELECTING = new ConfigValue("countdown.selecting.base");
+    public final ConfigValue COUNTDOWN_SELECTING_EXTRA = new ConfigValue("countdown.selecting.extra");
+    public final ConfigValue COUNTDOWN_SELECTING_MAX = new ConfigValue("countdown.selecting.max");
+    public final ConfigValue COUNTDOWN_SORTING = new ConfigValue("countdown.sorting");
+    public final ConfigValue RESTART_TIME = new ConfigValue("restart.time");
+    public final ConfigValue RESTART_FIREWORKS = new ConfigValue("restart.fireworks");
+    public final ConfigValue SOUND_CLICK = new ConfigValue("sounds.click");
+    public final ConfigValue SOUND_COUNTDOWN = new ConfigValue("sounds.countdown");
+    public final ConfigValue SOUND_SPINNING = new ConfigValue("sounds.spinning");
+    public final ConfigValue SOUND_SWAP_CHAIR = new ConfigValue("sounds.swap-chair");
+    public final ConfigValue SOUND_SELECT = new ConfigValue("sounds.select");
+    public final ConfigValue DISABLED_SLOTS = new ConfigValue("disabled-slots");
+    public final ConfigValue MAP_IMAGE_ENABLED = new ConfigValue("map-image.enabled");
+    public final ConfigValue CANCEL_WORD = new ConfigValue("cancel-word");
+    public final ConfigValue SPINNING = new ConfigValue("spin-holograms.spinning");
+    public final ConfigValue WINNING_NUMBER = new ConfigValue("spin-holograms.winning-number");
+    public final ConfigValue SINGLE_ZERO = new ConfigValue("slots.single.zero");
+    public final ConfigValue SINGLE_RED = new ConfigValue("slots.single.red");
+    public final ConfigValue SINGLE_BLACK = new ConfigValue("slots.single.black");
+    public final ConfigValue LOW = new ConfigValue("slots.other.low");
+    public final ConfigValue HIGH = new ConfigValue("slots.other.high");
+    public final ConfigValue EVEN = new ConfigValue("slots.other.even");
+    public final ConfigValue ODD = new ConfigValue("slots.other.odd");
+    public final ConfigValue RED = new ConfigValue("slots.other.red");
+    public final ConfigValue BLACK = new ConfigValue("slots.other.black");
+    public final ConfigValue TYPE_EUROPEAN = new ConfigValue("variable-text.types.european");
+    public final ConfigValue TYPE_AMERICAN = new ConfigValue("variable-text.types.american");
+    public final ConfigValue JOIN_HOLOGRAM = new ConfigValue("join-hologram");
+    public final ConfigValue SELECT_HOLOGRAM = new ConfigValue("select-hologram");
+    public final ConfigValue STATE_ENABLED = new ConfigValue("variable-text.state.enabled");
+    public final ConfigValue STATE_DISABLED = new ConfigValue("variable-text.state.disabled");
+    public final ConfigValue SESSION_RESULT_MENU_TITLE = new ConfigValue("session-result-menu.title");
+    public final ConfigValue SESSIONS_MENU_TITLE = new ConfigValue("sessions-menu.title");
+    public final ConfigValue BETS_MENU_TITLE = new ConfigValue("bets-menu.title");
+    public final ConfigValue CHIP_MENU_TITLE = new ConfigValue("chip-menu.title");
+    public final ConfigValue CONFIRM_MENU_TITLE = new ConfigValue("confirmation-menu.title");
+    public final ConfigValue CROUPIER_MENU_TITLE = new ConfigValue("croupier-menu.title");
+    public final ConfigValue GAME_CHIP_MENU_TITLE = new ConfigValue("game-chip-menu.title");
+    public final ConfigValue GAME_MENU_TITLE = new ConfigValue("game-menu.title");
+    public final ConfigValue TABLE_MENU_TITLE = new ConfigValue("table-menu.title");
+    public final ConfigValue ONLY_AMERICAN = new ConfigValue("variable-text.only-american");
+    public final ConfigValue UNNAMED_CROUPIER = new ConfigValue("variable-text.unnamed-croupier");
+    public final ConfigValue CUSTOM_WIN_MULTIPLIER_ENABLED = new ConfigValue("custom-win-multiplier.enabled");
+    public final ConfigValue MONEY_ABBREVIATION_FORMAT_ENABLED = new ConfigValue("money-abbreviation-format.enabled");
+    public final ConfigValue DAB_ANIMATION_ENABLED = new ConfigValue("dab-animation.enabled");
+    public final ConfigValue DAB_ANIMATION_AMOUNT = new ConfigValue("dab-animation.settings.amount");
+    public final ConfigValue DAB_ANIMATION_RADIUS = new ConfigValue("dab-animation.settings.radius");
+    public final ConfigValue DAB_ANIMATION_RAINBOW_EFFECT_SPEED = new ConfigValue("dab-animation.rainbow-effect.speed");
+    public final ConfigValue DAB_ANIMATION_RAINBOW_EFFECT_GLOWING = new ConfigValue("dab-animation.rainbow-effect.glowing");
+    public final ConfigValue NPC_LOOK_AND_INVITE_ENABLED = new ConfigValue("npc-look-and-invite.enabled");
+    public final ConfigValue NPC_LOOK_AND_INVITE_RANGE = new ConfigValue("npc-look-and-invite.range");
+}

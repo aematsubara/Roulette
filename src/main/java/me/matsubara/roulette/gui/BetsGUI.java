@@ -2,12 +2,12 @@ package me.matsubara.roulette.gui;
 
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.InventoryUpdate;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
@@ -66,7 +66,7 @@ public final class BetsGUI extends RouletteGUI {
         this.currentPage = currentPage;
 
         player.openInventory(inventory);
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::updateInventory);
+        updateInventory();
     }
 
     public void updateInventory() {
@@ -100,7 +100,7 @@ public final class BetsGUI extends RouletteGUI {
 
         // Set money item.
         inventory.setItem(23, getItem("money")
-                .replace("%money%", PluginUtils.format(plugin.getEconomy().getBalance(player)))
+                .replace("%money%", PluginUtils.format(plugin.getEconomyExtension().getBalance(player)))
                 .build());
 
         // If the current page isn't the last one, show the next page item.
@@ -146,7 +146,7 @@ public final class BetsGUI extends RouletteGUI {
         }
 
         // Update inventory title to show the current page.
-        InventoryUpdate.updateInventory(player, ConfigManager.Config.BETS_MENU_TITLE.asString()
+        InventoryUpdate.updateInventory(player, Config.BETS_MENU_TITLE.asStringTranslated()
                 .replace("%page%", String.valueOf(currentPage + 1))
                 .replace("%max%", String.valueOf(pages)));
     }

@@ -2,7 +2,6 @@ package me.matsubara.roulette.listener.npc;
 
 import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityAnimation;
-import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.npc.NPC;
@@ -13,11 +12,10 @@ import org.jetbrains.annotations.NotNull;
 
 public class NPCSpawn implements SpawnCustomizer {
 
-    private final RoulettePlugin plugin;
     private final Game game;
 
     public NPCSpawn(Game game) {
-        this.plugin = (this.game = game).getPlugin();
+        this.game = game;
     }
 
     @Override
@@ -27,7 +25,7 @@ public class NPCSpawn implements SpawnCustomizer {
         // Set item (ball) in the main hand.
         GameState state = game.getState();
         if (!state.isSpinning() && !state.isEnding()) {
-            npc.equipment().queue(EquipmentSlot.MAIN_HAND, plugin.getConfigManager().getBall()).send(player);
+            npc.equipment().queue(EquipmentSlot.MAIN_HAND, game.getPlugin().getBall()).send(player);
         }
 
         // Swing the main hand to rotate the body with the head rotation.

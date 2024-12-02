@@ -1,14 +1,15 @@
 package me.matsubara.roulette.game.state;
 
 
+import com.cryptomorin.xseries.XSound;
 import com.google.common.base.Predicates;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.RouletteStartEvent;
+import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
 import me.matsubara.roulette.game.data.Bet;
-import me.matsubara.roulette.manager.ConfigManager;
-import me.matsubara.roulette.manager.MessageManager;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,6 +17,7 @@ public final class Starting extends BukkitRunnable {
 
     private final RoulettePlugin plugin;
     private final Game game;
+    private final XSound.Record countdownSound = XSound.parse(Config.SOUND_COUNTDOWN.asString());
 
     private int seconds;
 
@@ -50,10 +52,10 @@ public final class Starting extends BukkitRunnable {
 
         if (seconds % 5 == 0 || seconds <= 3) {
             // Play countdown sound.
-            game.playSound(ConfigManager.Config.SOUND_COUNTDOWN.asString());
+            game.playSound(countdownSound);
 
             // Send countdown.
-            game.broadcast(MessageManager.Message.STARTING, line -> line.replace("%seconds%", String.valueOf(seconds)));
+            game.broadcast(Messages.Message.STARTING, line -> line.replace("%seconds%", String.valueOf(seconds)));
         }
 
         seconds--;

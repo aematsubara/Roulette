@@ -4,6 +4,7 @@ import com.cryptomorin.xseries.reflection.XReflection;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameRule;
 import me.matsubara.roulette.game.GameType;
@@ -37,13 +38,15 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.util.*;
 
+@Getter
 public final class GameManager extends BukkitRunnable implements Listener {
 
     private final RoulettePlugin plugin;
-    private final @Getter List<Game> games;
+    private final List<Game> games = new ArrayList<>();
 
     private File file;
     private FileConfiguration configuration;
+    private final Map<String, FileConfiguration> models = new HashMap<>();
 
     private static final Class<?> INPUT = Reflection.getUnversionedClass("org.bukkit.Input");
     private static final MethodHandle GET_CURRENT_INPUT = Reflection.getMethod(Player.class, "getCurrentInput", false);
@@ -54,9 +57,10 @@ public final class GameManager extends BukkitRunnable implements Listener {
     public GameManager(RoulettePlugin plugin) {
         this.plugin = plugin;
         this.plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        this.games = new ArrayList<>();
-        load();
+    }
 
+    public void init() {
+        load();
         if (MODERN_APPROACH) {
             runTaskTimer(plugin, 1L, 1L);
         }
@@ -99,7 +103,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
         }
 
         // Remove player from game.
-        plugin.getMessageManager().send(player, MessageManager.Message.LEAVE_PLAYER);
+        plugin.getMessages().send(player, Messages.Message.LEAVE_PLAYER);
         playing.removeCompletely(player);
     }
 
@@ -151,7 +155,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
                 npcName,
                 npcTexture,
                 npcSignature,
-                new Model(plugin, type.getModelName(), modelId, location, carpet, customization, patternIndex),
+                new Model(plugin, type, modelId, location, carpet, customization, patternIndex),
                 minPlayers,
                 maxPlayers,
                 type,

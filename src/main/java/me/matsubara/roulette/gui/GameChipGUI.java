@@ -2,10 +2,10 @@ package me.matsubara.roulette.gui;
 
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
+import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.manager.ChipManager;
-import me.matsubara.roulette.manager.ConfigManager;
 import me.matsubara.roulette.util.InventoryUpdate;
 import me.matsubara.roulette.util.ItemBuilder;
 import org.apache.commons.lang3.ArrayUtils;
@@ -66,7 +66,7 @@ public final class GameChipGUI extends RouletteGUI {
         disabled = getItem("disabled").build();
 
         player.openInventory(inventory);
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::updateInventory);
+        updateInventory();
     }
 
     public void updateInventory() {
@@ -114,7 +114,7 @@ public final class GameChipGUI extends RouletteGUI {
         }
 
         // Update inventory title to show the current page.
-        InventoryUpdate.updateInventory(player, ConfigManager.Config.GAME_CHIP_MENU_TITLE.asString()
+        InventoryUpdate.updateInventory(player, Config.GAME_CHIP_MENU_TITLE.asStringTranslated()
                 .replace("%page%", String.valueOf(current + 1))
                 .replace("%max%", String.valueOf(pages)));
     }
