@@ -497,9 +497,11 @@ public final class Game {
     }
 
     public void playSound(XSound.Record record) {
-        if (record != null) record.soundPlayer()
-                .forPlayers(getPlayers())
-                .play();
+        for (Player player : getPlayers()) {
+            record.soundPlayer()
+                    .forPlayers(player)
+                    .play();
+        }
     }
 
     public void playSound(Location location, XSound.Record record) {

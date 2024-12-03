@@ -399,8 +399,14 @@ public class GlowingEntities implements Listener {
 
                 Class<?> entityClass = getNMSClass("world.entity", "Entity");
                 Class<?> entityTypesClass = getNMSClass("world.entity", "EntityTypes");
+
+                boolean useWorld = version == 21 ? versionMinor >= 3 : version > 21;
+                Object worldInstance = useWorld
+                        ? Reflection.getCraftClass(null, "CraftWorld").getDeclaredMethod("getHandle").invoke(Bukkit.getWorlds().get(0))
+                        : null;
+
                 Object markerEntity = getNMSClass("world.entity", "Marker").getDeclaredConstructors()[0]
-                        .newInstance(getField(entityTypesClass, mappings.getMarkerTypeId(), null), null);
+                        .newInstance(getField(entityTypesClass, mappings.getMarkerTypeId()).get(null), worldInstance);
 
                 getHandle = getCraftClass("entity", "CraftEntity").getDeclaredMethod("getHandle");
                 getDataWatcher = entityClass.getDeclaredMethod(mappings.getWatcherAccessor());

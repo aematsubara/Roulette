@@ -72,11 +72,11 @@ public class NPCTick implements Runnable {
 
             if (!playParrotSound) continue;
 
-            XSound sound = ParrotUtils.getAmbient(world);
-            Location at = npcLocation.clone().add(0.0d, 0.75d, 0.0d);
-
             Set<Player> seeing = npc.getSeeingPlayers();
             if (seeing.isEmpty()) continue;
+
+            XSound sound = ParrotUtils.getAmbient(world);
+            Location at = npcLocation.clone().add(0.0d, 0.75d, 0.0d);
 
             // Play parrot sounds for the players seeing this NPC.
             sound.record()
