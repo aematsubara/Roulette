@@ -60,7 +60,7 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
 
         if (GameManager.MODERN_APPROACH) return;
 
-        handle(player, null, input, event);
+        handle(player, null, input);
     }
 
     private @NotNull PlayerInput createInput(@NotNull PacketPlayReceiveEvent event, PacketType.Play.Client type) {
@@ -81,7 +81,7 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
                 wrapper.isShift());
     }
 
-    public void handle(Player player, @Nullable Game game, @NotNull PlayerInput input, @Nullable PacketPlayReceiveEvent event) {
+    public void handle(Player player, @Nullable Game game, @NotNull PlayerInput input) {
         // Nothing changed?
         if (input.forward() == 0.0f
                 && input.sideways() == 0.0f
@@ -94,14 +94,18 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         float forward = input.forward(), sideways = input.sideways();
         boolean jump = input.jump(), dismount = input.dismount();
 
-        if (dismount && !GameManager.MODERN_APPROACH && event != null) {
-            event.markForReEncode(true);
-            event.setCancelled(true);
+        // Handle shift.
+        if (dismount) {
+            // Open leave confirms gui to the player sync.
+            runTask(() -> new ConfirmGUI(temp, player, ConfirmGUI.ConfirmType.LEAVE));
+            return;
         }
 
+        // The player is in cooldown.
         boolean cooldown = this.cooldown.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis();
         if (cooldown) return;
 
+        // For some reason, the player still has no bets.
         List<Bet> bets = temp.getBets(player);
         if (bets.isEmpty()) return;
 
@@ -120,12 +124,6 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         // Handle chair movement (left/right).
         if (sideways != 0.0f && canSwapChair(player, temp, prison)) {
             runTask(() -> temp.sitPlayer(player, sideways < 0.0f));
-        }
-
-        // Handle shift.
-        if (dismount) {
-            // Open leave confirms gui to the player sync.
-            runTask(() -> new ConfirmGUI(temp, player, ConfirmGUI.ConfirmType.LEAVE));
         }
 
         // Handle jump.

@@ -1,6 +1,5 @@
 package me.matsubara.roulette.animation;
 
-import com.cryptomorin.xseries.reflection.XReflection;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
@@ -9,6 +8,7 @@ import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.model.stand.animator.ArmorStandAnimator;
 import me.matsubara.roulette.model.stand.data.ItemSlot;
+import me.matsubara.roulette.util.ColorUtils;
 import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
@@ -34,7 +34,6 @@ public class DabAnimation extends BukkitRunnable {
     private final Set<Player> seeing;
 
     private static final int THRESHOLD = Integer.MAX_VALUE - 5000;
-    private static final int BIT_MASK = 0xFF;
 
     public DabAnimation(@NotNull Game game, Player player, Location location) {
         this.game = game;
@@ -65,7 +64,7 @@ public class DabAnimation extends BukkitRunnable {
             lookAt(spawn, location);
 
             int count = PluginUtils.RANDOM.nextInt(THRESHOLD);
-            Color color = convertCountToRGB(count);
+            Color color = ColorUtils.convertCountToRGB(count);
 
             StandSettings clone = settings.clone();
             setEquipment(clone, color);
@@ -107,7 +106,7 @@ public class DabAnimation extends BukkitRunnable {
             }
 
             Integer count = entry.getValue();
-            Color color = convertCountToRGB(count);
+            Color color = ColorUtils.convertCountToRGB(count);
 
             setEquipment(stand.getSettings(), color);
             stand.sendEquipment(seeing);
@@ -133,7 +132,7 @@ public class DabAnimation extends BukkitRunnable {
 
         int id = stand.getId();
         String team = stand.getUniqueId().toString();
-        ChatColor glow = getClosestChatColor(color);
+        ChatColor glow = ColorUtils.getClosestChatColor(color);
 
         try {
             for (Player player : world.getPlayers()) {
@@ -144,34 +143,6 @@ public class DabAnimation extends BukkitRunnable {
         } catch (ReflectiveOperationException ignored) {
 
         }
-    }
-
-    private ChatColor getClosestChatColor(Color from) {
-        ChatColor closest = null;
-        double minDistance = Double.MAX_VALUE;
-
-        for (ChatColor color : Game.GLOW_COLORS) {
-            int rgb = color.asBungee().getColor().getRGB();
-
-            Color to = XReflection.supports(19, 4) ?
-                    Color.fromARGB(rgb) :
-                    Color.fromRGB(convertARGBtoRGB(rgb));
-
-            double distance = colorDistance(from, to);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closest = color;
-            }
-        }
-
-        return closest;
-    }
-
-    private double colorDistance(@NotNull Color first, @NotNull Color second) {
-        int redDiff = first.getRed() - second.getRed();
-        int greenDiff = first.getGreen() - second.getGreen();
-        int blueDiff = first.getBlue() - second.getBlue();
-        return Math.sqrt(redDiff * redDiff + greenDiff * greenDiff + blueDiff * blueDiff);
     }
 
     private void setEquipment(@NotNull StandSettings settings, Color color) {
@@ -185,20 +156,6 @@ public class DabAnimation extends BukkitRunnable {
         return new ItemBuilder(material)
                 .setLeatherArmorMetaColor(color)
                 .build();
-    }
-
-    private int convertARGBtoRGB(int argb) {
-        int red = (argb >> 16) & BIT_MASK;
-        int green = (argb >> 8) & BIT_MASK;
-        int blue = argb & BIT_MASK;
-        return (red << 16) | (green << 8) | blue;
-    }
-
-    private @NotNull Color convertCountToRGB(int count) {
-        int red = (int) (Math.sin(count * 0.01d) * 127 + 128);
-        int green = (int) (Math.sin(count * 0.01d + 2) * 127 + 128);
-        int blue = (int) (Math.sin(count * 0.01d + 4) * 127 + 128);
-        return Color.fromRGB(red, green, blue);
     }
 
     private void lookAt(@NotNull Location origin, @NotNull Location target) {

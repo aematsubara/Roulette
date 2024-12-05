@@ -319,7 +319,7 @@ confirmation-menu:
 # %max-amount% - maximum amount of money that can be bet.
 join-hologram:
   - "%type% &e%name% (%playing%/%max%)"
-  - "&u&l¡CLICK TO PLAY!"
+  - "&u&lRIGHT CLICK TO PLAY!"
   - "&a%min-amount% - %max-amount%"
 
 # The line that'll appear on the spinning hologram.

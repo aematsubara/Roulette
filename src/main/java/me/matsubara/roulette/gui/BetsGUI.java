@@ -8,6 +8,7 @@ import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
+import me.matsubara.roulette.util.ColorUtils;
 import me.matsubara.roulette.util.InventoryUpdate;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
@@ -158,7 +159,7 @@ public final class BetsGUI extends RouletteGUI {
         String colorName = plugin.getConfig().getString("variable-text.glow-colors." + tempName, StringUtils.capitalize(tempName.replace("-", " ")));
 
         inventory.setItem(21, getItem("glow-color")
-                .setHead(game.getGlowColorURL(color), true)
+                .setHead(ColorUtils.GLOW_COLOR_URL.get(color), true)
                 .replace("%color%", color + colorName)
                 .build());
     }

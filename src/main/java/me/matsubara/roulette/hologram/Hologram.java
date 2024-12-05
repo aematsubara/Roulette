@@ -46,7 +46,7 @@ public final class Hologram {
     private int taskId = -1;
 
     // Space between lines.
-    private static final double LINE_DISTANCE = 0.23d;
+    private static final double LINE_DISTANCE = 0.275d;
 
     // Rainbow colors.
     private static final String[] RAINBOW = Stream.of(
@@ -160,10 +160,17 @@ public final class Hologram {
                 PacketStand stand = getByName(name);
                 if (stand == null) continue;
 
-                stand.teleport(temp, current.clone());
+                // Only send teleport if the location is different.
+                if (!current.equals(stand.getLocation())) {
+                    stand.teleport(temp, current.clone());
+                }
 
-                stand.getSettings().setCustomName(text);
-                stand.sendMetadata(temp);
+                // Only send metadata if the text is different.
+                StandSettings settings = stand.getSettings();
+                if (!text.equals(settings.getCustomName())) {
+                    settings.setCustomName(text);
+                    stand.sendMetadata(temp);
+                }
             }
 
             current.subtract(0.0d, LINE_DISTANCE, 0.0d);

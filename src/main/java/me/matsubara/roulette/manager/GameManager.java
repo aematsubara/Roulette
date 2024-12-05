@@ -26,6 +26,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Contract;
@@ -72,14 +73,14 @@ public final class GameManager extends BukkitRunnable implements Listener {
         SteerVehicle steer = plugin.getSteerVehicle();
         for (Game game : games) {
             for (Player player : game.getPlayers()) {
-                steer.handle(player, game, steer.getInput(player), null);
+                steer.handle(player, game, steer.getInput(player));
             }
         }
     }
 
     // This is deprecated and removed in 1.20.6,
     // but as we are compiling with 1.20.1, the class will be changed on runtime.
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDismount(@NotNull EntityDismountEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         if (!(event.getDismounted() instanceof ArmorStand)) return;
@@ -89,22 +90,28 @@ public final class GameManager extends BukkitRunnable implements Listener {
         Game playing = getGameByPlayer(player);
         if (playing == null || playing.getTransfers().remove(playerUUID)) return;
 
-        // Dummy fix for 1.21.2+ to prevent leaving the game.
-        if (MODERN_APPROACH && GET_CURRENT_INPUT != null && IS_SNEAK != null) {
-            try {
-                Object input = GET_CURRENT_INPUT.invoke(player);
-                if ((boolean) IS_SNEAK.invoke(input)) {
-                    event.setCancelled(true);
-                    return;
-                }
-            } catch (Throwable ignored) {
-
-            }
+        if (isSneaking(player)) {
+            event.setCancelled(true);
+            return;
         }
 
         // Remove player from game.
         plugin.getMessages().send(player, Messages.Message.LEAVE_PLAYER);
         playing.removeCompletely(player);
+    }
+
+    private boolean isSneaking(@NotNull Player player) {
+        if (player.isSneaking()) return true;
+
+        // Dummy fix for 1.21.2+ to prevent leaving the game.
+        if (GET_CURRENT_INPUT == null || IS_SNEAK == null) return false;
+
+        try {
+            Object input = GET_CURRENT_INPUT.invoke(player);
+            return (boolean) IS_SNEAK.invoke(input);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private void load() {
