@@ -1,6 +1,7 @@
 package me.matsubara.roulette.game.data;
 
 import com.cryptomorin.xseries.XSound;
+import com.cryptomorin.xseries.reflection.minecraft.NMSExtras;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
@@ -48,7 +49,6 @@ public final class Bet {
 
     // Slot selected.
     private Slot slot;
-    private Slot temp;
 
     // Stand showing chip.
     private PacketStand stand;
@@ -115,7 +115,7 @@ public final class Bet {
     }
 
     public void handle(@NotNull Slot slot) {
-        this.temp = this.slot;
+        Slot previous = this.slot;
         this.slot = slot;
 
         this.offset = slot.getOffsets(game.getType().isEuropean());
@@ -123,7 +123,7 @@ public final class Bet {
         double[] offsets = offset.getRight();
         Axis axis = offset.getLeft();
 
-        if (temp != slot) {
+        if (previous != slot) {
             int[] validOffsets = IntStream.range(0, offsets.length).toArray();
 
             for (Bet bet : game.getAllBets()) {
@@ -221,6 +221,8 @@ public final class Bet {
             stand.teleport(to, where);
         }
 
+        // Play swing hand animation and update glow.
+        NMSExtras.animation(to, owner, NMSExtras.Animation.SWING_MAIN_ARM);
         updateStandGlow(owner);
     }
 

@@ -316,7 +316,7 @@ public final class InventoryClick implements Listener {
         } else if (isCustomItem(current, "chair")) {
             change = Model.CustomizationChange.CHAIR_CARPET;
             Material newCarpet = PluginUtils.getNextOrPrevious(TableGUI.VALID_CARPETS,
-                    ArrayUtils.indexOf(TableGUI.VALID_CARPETS, model.getCarpetsType()),
+                    model.getCarpetsType(),
                     right);
             model.setCarpetsType(newCarpet);
             gui.setChairItem();
@@ -498,12 +498,26 @@ public final class InventoryClick implements Listener {
                     messages.send(player, Messages.Message.NPC_ALREADY_TEXTURIZED);
                 }
             }
-        } else if (isCustomItem(current, "invite")) {
+        } else if (isCustomItem(current, "croupier-action")) {
+            if (click == ClickType.MIDDLE) {
+                handleGameChange(
+                        gui,
+                        temp -> temp.setNpcActionFOV(!temp.isNpcActionFOV()),
+                        CroupierGUI::setCroupierActionItem,
+                        false);
+                return;
+            }
+
             handleGameChange(
                     gui,
-                    temp -> temp.setInvitePlayers(!temp.isInvitePlayers()),
-                    CroupierGUI::setInviteItem,
+                    temp -> temp.setNpcAction(PluginUtils.getNextOrPreviousEnum(temp.getNpcAction(), right)),
+                    CroupierGUI::setCroupierActionItem,
                     false);
+
+            if (game.getNpcAction() != NPC.NPCAction.INVITE) return;
+
+            NPC npc = game.getNpc();
+            npc.getSeeingPlayers().forEach(npc::lookAtDefaultLocation);
             return;
         } else if (isCustomItem(current, "parrot")) {
             handleGameChange(
@@ -539,7 +553,25 @@ public final class InventoryClick implements Listener {
             metadata.queue(game.getParrotShoulder().isLeft() ?
                     MetadataModifier.EntityMetadata.SHOULDER_ENTITY_RIGHT :
                     MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT, new NBTCompound());
-            metadata.send(player.getWorld().getPlayers());
+            metadata.send();
+            return;
+        } else if (isCustomItem(current, "croupier-rotation")) {
+            handleGameChange(
+                    gui,
+                    temp -> temp.setCurrentNPCFace(PluginUtils.getNextOrPrevious(PluginUtils.RADIAL,
+                            temp.getCurrentNPCFace(),
+                            right)),
+                    CroupierGUI::setCroupierRotationItem,
+                    false);
+
+            game.lookAtFace(game.getCurrentNPCFace());
+            return;
+        } else if (isCustomItem(current, "croupier-distance")) {
+            double limit = Math.sqrt(plugin.getStandManager().getRenderDistance());
+            double distance = Math.max(10.0d, Math.min(limit, game.getNpcDistance() + (right ? 5.0d : -5.0d)));
+            game.setNpcDistance(Math.round(distance));
+            gui.setCroupierDistanceItem();
+            plugin.getGameManager().save(game);
             return;
         } else return;
 
@@ -559,15 +591,15 @@ public final class InventoryClick implements Listener {
 
         if (refreshParrot) {
             World world = game.getNpc().getLocation().getWorld();
-            if (world != null) refreshParrotChange(game, world);
+            if (world != null) refreshParrotChange(game);
         }
     }
 
-    private void refreshParrotChange(@NotNull Game game, @NotNull World world) {
+    private void refreshParrotChange(@NotNull Game game) {
         NPC npc = game.getNpc();
         MetadataModifier metadata = npc.metadata();
         npc.toggleParrotVisibility(metadata);
-        metadata.send(world.getPlayers());
+        metadata.send();
     }
 
     private void handleConfirmGUI(@NotNull InventoryClickEvent event, ConfirmGUI confirm) {
@@ -617,8 +649,8 @@ public final class InventoryClick implements Listener {
                 Selecting selecting = game.getSelecting();
                 if (selecting != null
                         && !selecting.isCancelled()
-                        && selecting.getSeconds() > 5) {
-                    selecting.setSeconds(5);
+                        && selecting.getTicks() > 100) {
+                    selecting.setTicks(100);
                 }
             } else {
                 messages.send(player, Messages.Message.YOU_ARE_DONE);
@@ -933,7 +965,8 @@ public final class InventoryClick implements Listener {
 
         int extra = Config.COUNTDOWN_SELECTING_EXTRA.asInt();
         int max = Config.COUNTDOWN_SELECTING_MAX.asInt();
-        selecting.setSeconds(Math.min(selecting.getSeconds() + extra, max - 1));
+
+        selecting.setTicks(Math.min(selecting.getTicks() + extra * 20, max * 20 - 20));
 
         game.broadcast(Messages.Message.EXTRA_TIME_ADDED, line -> line
                 .replace("%extra%", String.valueOf(extra))

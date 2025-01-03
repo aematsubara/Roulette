@@ -70,7 +70,8 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
                     wrapper.getSideways(),
                     wrapper.getForward(),
                     wrapper.isJump(),
-                    wrapper.isUnmount());
+                    wrapper.isUnmount(),
+                    false);
         }
 
         WrapperPlayClientPlayerInput wrapper = new WrapperPlayClientPlayerInput(event);
@@ -78,7 +79,8 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
                 wrapper.isLeft() ? 0.98f : wrapper.isRight() ? -0.98f : 0.0f,
                 wrapper.isForward() ? 0.98f : wrapper.isBackward() ? -0.98f : 0.0f,
                 wrapper.isJump(),
-                wrapper.isShift());
+                wrapper.isShift(),
+                wrapper.isSprint());
     }
 
     public void handle(Player player, @Nullable Game game, @NotNull PlayerInput input) {
@@ -110,7 +112,6 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         if (bets.isEmpty()) return;
 
         GameState state = temp.getState();
-        boolean prison = bets.stream().anyMatch(Bet::isEnPrison);
 
         // Move the current bet.
         Bet bet = temp.getSelectedBet(player);
@@ -122,7 +123,7 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         }
 
         // Handle chair movement (left/right).
-        if (sideways != 0.0f && canSwapChair(player, temp, prison)) {
+        if (sideways != 0.0f && canSwapChair(player, temp)) {
             runTask(() -> temp.sitPlayer(player, sideways < 0.0f));
         }
 
@@ -150,7 +151,8 @@ public final class SteerVehicle extends SimplePacketListenerAbstract {
         return game.getState().isSelecting() && !game.isDone(player) && (!game.isRuleEnabled(GameRule.EN_PRISON) || !bet.isEnPrison());
     }
 
-    private boolean canSwapChair(Player player, @NotNull Game game, boolean prison) {
+    private boolean canSwapChair(Player player, @NotNull Game game) {
+        boolean prison = game.getBets(player).stream().anyMatch(Bet::isEnPrison);
         return hasSwapChairPermission(player) && (!game.getState().isSelecting() || game.isDone(player) || prison);
     }
 

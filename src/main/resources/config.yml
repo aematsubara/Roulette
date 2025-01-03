@@ -59,6 +59,15 @@
 # Don't touch this!
 config-version: 1
 
+# If true, the experimental features will be enabled.
+# These features are still under development and may be incomplete or need to be optimized.
+#
+# Current (experimental) features:
+# * Show the numbers covered by the current bet (with particles).
+# * Show the numbers in the table using display entities (text, only for 1.19.4+).
+# * Move your bet around the table using the player view (while pressing the SPRINT key, only for 1.21.2+).
+experimental: false
+
 # The render distance for the models. Default: 72.0
 render-distance: 72.0
 
@@ -103,13 +112,6 @@ keep-seat: true
 # Information and examples: https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
 date-format: "MM-dd-yyyy HH:mm:ss"
 
-# Here you can configure the NPC function to look at nearby players and invite them to play.
-npc-look-and-invite:
-  # Whether this function is enabled.
-  enabled: true
-  # The distance to start looking at a player.
-  range: 20.0
-
 # If you want to use an abbreviation format when naming money.
 # Useful for prison type servers where money values are much higher.
 # You can add your own translations per value, using the abbreviation as the key.
@@ -140,6 +142,22 @@ dab-animation:
 
 # Texts that are used in some variables.
 variable-text:
+  # All directions the croupier can look.
+  face:
+    north: "North"
+    north-east: "North East"
+    east: "East"
+    south-east: "South East"
+    south: "South"
+    south-west: "South West"
+    west: "West"
+    north-west: "North West"
+  # The actions that the croupier can perform.
+  action:
+    look: "Look"
+    invite: "Invite"
+    look-and-invite: "Look And Invite"
+    none: "None"
   # All variants of parrots.
   parrot-variant:
     red: "&cRed"
@@ -324,6 +342,9 @@ join-hologram:
 
 # The line that'll appear on the spinning hologram.
 spin-holograms:
+  # If true, all nearby players will be able to see the hologram.
+  # If false, only in-game players (players inside the roulette) will be able to see the hologram.
+  global: true
   spinning: "&6Spinning..."
   winning-number: "&6Winning number:"
 
@@ -478,13 +499,37 @@ croupier-menu:
         - "&7"
         - "&6Left click to change the texture."
         - "&6Right click to reset the texture."
-    invite:
-      material: WRITABLE_BOOK
-      display-name: "&eInvite players: %state%"
+    croupier-action:
+      material: ENDER_EYE
+      display-name: "&eAction: &a%state%"
       lore:
-        - "&7Toggles the invitation status."
+        - "&7Changes the action of the croupier."
+        - "&7The croupier can look at nearby players and"
+        - "&7invite them to play a game of roulette."
         - "&7"
-        - "&6Click to enable/disable."
+        - "&eFOV: %fov%"
+        - "&7If FOV is enabled, the croupier will only"
+        - "&7look at and invite nearby players who are"
+        - "&7within his field of view"
+        - "&7"
+        - "&6Click to change the action."
+        - "&6Middle click to toggle FOV."
+    croupier-rotation:
+      material: PLAYER_HEAD
+      display-name: "&aRotation: &e%rotation%"
+      lore:
+        - "&7Changes the direction the croupier is facing."
+        - "&7When it's time to spin the roulette, the croupier"
+        - "&7will face the wheel."
+    croupier-distance:
+      material: COMPASS
+      display-name: "&aDistance: &e%distance%"
+      lore:
+        - "&7Changes the distance at which the croupier"
+        - "&7looks and invites nearby players."
+        - "&7"
+        - "&6Left click to reduce 5 blocks."
+        - "&6Right click to increase 5 blocks."
     # %state% - the state of the parrot option.
     parrot:
       material: FEATHER

@@ -78,18 +78,18 @@ public enum Slot {
     SLOT_HIGH(19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36);
 
     private final String url;
-    private final int[] ints;
+    private final int[] childs;
 
     private static final double[] OFFSET_FOR_7 = {0.0d, -0.15d, 0.15d, -0.3d, 0.3d, -0.45d, 0.45d};
     private static final double[] OFFSET_FOR_3 = {0.0d, -0.15d, 0.15d};
 
-    Slot(String url, int... ints) {
+    Slot(String url, int... childs) {
         this.url = url;
-        this.ints = ints;
+        this.childs = childs;
     }
 
-    Slot(int... ints) {
-        this(null, ints);
+    Slot(int... childs) {
+        this(null, childs);
     }
 
     public int getMaxBets(boolean isEuropean) {
@@ -129,7 +129,7 @@ public enum Slot {
                  SLOT_36 -> SlotColor.RED;
             case SLOT_BLACK -> SlotColor.BLACK;
             case SLOT_0, SLOT_00 -> SlotColor.GREEN;
-            default -> ints.length > 1 ? SlotColor.MIXED : SlotColor.BLACK;
+            default -> childs.length > 1 ? SlotColor.MIXED : SlotColor.BLACK;
         };
     }
 
@@ -164,7 +164,7 @@ public enum Slot {
     }
 
     public boolean isSingle() {
-        return ints.length == 1;
+        return childs.length == 1;
     }
 
     public boolean isSingleInclusive() {
@@ -175,8 +175,8 @@ public enum Slot {
         // Won't happen for now, maybe when adding more slots.
         if (slot.isAnyZero()) return false;
 
-        for (int number : slot.getInts()) {
-            if (ArrayUtils.contains(ints, number)) return true;
+        for (int number : slot.getChilds()) {
+            if (ArrayUtils.contains(childs, number)) return true;
         }
 
         return false;

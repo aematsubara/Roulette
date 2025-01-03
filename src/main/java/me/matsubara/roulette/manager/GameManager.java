@@ -18,6 +18,7 @@ import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -101,16 +102,16 @@ public final class GameManager extends BukkitRunnable implements Listener {
     }
 
     private boolean isSneaking(@NotNull Player player) {
-        if (player.isSneaking()) return true;
+        boolean sneaking = player.isSneaking();
 
         // Dummy fix for 1.21.2+ to prevent leaving the game.
-        if (GET_CURRENT_INPUT == null || IS_SNEAK == null) return false;
+        if (GET_CURRENT_INPUT == null || IS_SNEAK == null) return sneaking;
 
         try {
             Object input = GET_CURRENT_INPUT.invoke(player);
             return (boolean) IS_SNEAK.invoke(input);
         } catch (Throwable ignored) {
-            return false;
+            return sneaking;
         }
     }
 
@@ -129,7 +130,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
     }
 
     public void addFreshGame(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, true, null, null, false, false, null, null, null, null, null, null);
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, true, null, 20.0d, null, null, false, false, null, null, null, null, null, null);
     }
 
     public void add(
@@ -145,7 +146,10 @@ public final class GameManager extends BukkitRunnable implements Listener {
             UUID owner,
             int startTime,
             boolean betAll,
-            boolean invitePlayers,
+            @Nullable NPC.NPCAction npcAction,
+            boolean npcActionFOV,
+            BlockFace currentNPCFace,
+            double npcDistance,
             @Nullable UUID accountTo,
             @Nullable EnumMap<GameRule, Boolean> rules,
             boolean parrotEnabled,
@@ -169,7 +173,10 @@ public final class GameManager extends BukkitRunnable implements Listener {
                 owner,
                 startTime,
                 betAll,
-                invitePlayers,
+                npcAction,
+                npcActionFOV,
+                currentNPCFace,
+                npcDistance,
                 accountTo,
                 rules,
                 parrotEnabled,
@@ -216,7 +223,6 @@ public final class GameManager extends BukkitRunnable implements Listener {
 
         // Save settings.
         configuration.set("games." + name + ".settings.bet-all", game.isBetAllEnabled());
-        configuration.set("games." + name + ".settings.invite", game.isInvitePlayers());
         configuration.set("games." + name + ".settings.start-time", game.getStartTime());
         configuration.set("games." + name + ".settings.min-players", game.getMinPlayers());
         configuration.set("games." + name + ".settings.max-players", game.getMaxPlayers());
@@ -224,6 +230,10 @@ public final class GameManager extends BukkitRunnable implements Listener {
 
         // Save NPC related data.
         configuration.set("games." + name + ".npc.name", game.getNPCName());
+        configuration.set("games." + name + ".npc.action", game.getNpcAction().name());
+        configuration.set("games." + name + ".npc.fov", game.isNpcActionFOV());
+        configuration.set("games." + name + ".npc.rotation", game.getCurrentNPCFace().name());
+        configuration.set("games." + name + ".npc.distance", game.getNpcDistance());
         configuration.set("games." + name + ".npc.parrot.enabled", game.isParrotEnabled());
         configuration.set("games." + name + ".npc.parrot.sounds", game.isParrotSounds());
         configuration.set("games." + name + ".npc.parrot.variant", game.getParrotVariant().name());
@@ -274,13 +284,12 @@ public final class GameManager extends BukkitRunnable implements Listener {
 
             // Load rules.
             EnumMap<GameRule, Boolean> rules = new EnumMap<>(GameRule.class);
-            rules.put(GameRule.LA_PARTAGE, configuration.getBoolean("games." + path + ".rules.la-partage"));
-            rules.put(GameRule.EN_PRISON, configuration.getBoolean("games." + path + ".rules.en-prison"));
-            rules.put(GameRule.SURRENDER, configuration.getBoolean("games." + path + ".rules.surrender"));
+            for (GameRule rule : GameRule.values()) {
+                rules.put(rule, configuration.getBoolean("games." + path + ".rules." + rule.toConfigPath()));
+            }
 
             // Load settings.
-            boolean betAll = configuration.getBoolean("games." + path + ".settings.bet-all");
-            boolean invite = configuration.getBoolean("games." + path + ".settings.invite");
+            boolean betAll = configuration.getBoolean("games." + path + ".settings.bet-all", true);
             int startTime = configuration.getInt("games." + path + ".settings.start-time");
             int minPlayers = configuration.getInt("games." + path + ".settings.min-players");
             int maxPlayers = configuration.getInt("games." + path + ".settings.max-players");
@@ -288,6 +297,10 @@ public final class GameManager extends BukkitRunnable implements Listener {
 
             // Load NPC related data.
             String npcName = configuration.getString("games." + path + ".npc.name");
+            NPC.NPCAction npcAction = PluginUtils.getOrNull(NPC.NPCAction.class, configuration.getString("games." + path + ".npc.action", ""));
+            boolean npcActionFOV = configuration.getBoolean("games." + path + ".npc.fov", true);
+            BlockFace currentNPCFace = PluginUtils.getOrNull(BlockFace.class, configuration.getString("games." + path + ".npc.rotation", ""));
+            double npcDistance = configuration.getDouble("games." + path + ".npc.distance", 20.0d);
             String texture = configuration.getString("games." + path + ".npc.skin.texture");
             String signature = configuration.getString("games." + path + ".npc.skin.signature");
 
@@ -313,7 +326,10 @@ public final class GameManager extends BukkitRunnable implements Listener {
                     owner,
                     startTime,
                     betAll,
-                    invite,
+                    npcAction,
+                    npcActionFOV,
+                    currentNPCFace,
+                    npcDistance,
                     accountTo,
                     rules,
                     parrotEnabled,

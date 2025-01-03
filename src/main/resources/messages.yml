@@ -179,7 +179,7 @@ other:
   # %money% - the money involved.
   # %money-left% - they money left in your account.
   selected-amount: "&c%money% &6will be taken from your account (&a%money-left% &6left)."
-  control: "&bUse the &7WASD &bkeys to move your bet. &7Space &bto manage all your bets."
+  control: "&bUse the &7WASD (or sprint) &bkeys to move your bet. &7Space &bto manage all your bets."
   account: "&6The account has been changed!"
   no-account: "&cThe game account has been deleted!"
   account-already-deleted: "&cThe account is already deleted!"

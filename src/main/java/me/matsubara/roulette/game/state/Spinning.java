@@ -3,7 +3,6 @@ package me.matsubara.roulette.game.state;
 import com.cryptomorin.xseries.XSound;
 import com.github.retrooper.packetevents.protocol.entity.pose.EntityPose;
 import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityAnimation;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.event.LastRouletteSpinEvent;
@@ -83,8 +82,8 @@ public final class Spinning extends BukkitRunnable {
         game.npcBroadcast(Messages.Message.NO_BETS);
 
         // Play NPC spin animation.
+        game.lookAtFace(game.getDefaultNPCFace());
         npc.metadata().queue(MetadataModifier.EntityMetadata.POSE, EntityPose.CROUCHING).send();
-        npc.animation().queue(WrapperPlayServerEntityAnimation.EntityAnimationType.SWING_MAIN_ARM).send();
         npc.equipment().queue(EquipmentSlot.MAIN_HAND, RoulettePlugin.EMPTY_ITEM).send();
 
         // Show ball, shouldn't be null.
@@ -151,7 +150,7 @@ public final class Spinning extends BukkitRunnable {
         } else {
             spinHologram.setLine(1, slotName);
             // Play spinning sound at spin hologram location, this sound can be heard by every player (even those outside the game).
-            game.playSound(game.getSpinHologram().getLocation(), spinningSound);
+            game.playSound(spinHologram.getLocation(), spinningSound);
         }
 
         time--;

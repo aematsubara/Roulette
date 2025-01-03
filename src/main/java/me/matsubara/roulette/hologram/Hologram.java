@@ -40,7 +40,7 @@ public final class Hologram {
     private Location location;
 
     // If this hologram is visible by default.
-    private boolean visibleByDefault = true;
+    private boolean visibleByDefault;
 
     // Task used for rainbow color.
     private int taskId = -1;
@@ -60,9 +60,14 @@ public final class Hologram {
             .toArray(String[]::new);
 
     public Hologram(@NotNull Game game, Location location) {
+        this(game, location, true);
+    }
+
+    public Hologram(@NotNull Game game, Location location, boolean visibleByDefault) {
         this.game = game;
         this.plugin = game.getPlugin();
         this.location = location;
+        this.visibleByDefault = visibleByDefault;
     }
 
     public void setVisibleByDefault(boolean visibleByDefault) {

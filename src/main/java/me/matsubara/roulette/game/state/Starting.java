@@ -37,7 +37,7 @@ public final class Starting extends BukkitRunnable {
             if (game.getAllBets().stream().anyMatch(Predicates.not(Bet::isEnPrison))) {
                 // If there's at least 1 bet that is NOT in prison, then we want to start the selecting task.
                 game.setSelecting(selecting);
-                selecting.runTaskTimer(plugin, 20L, 20L);
+                selecting.runTaskTimer(plugin, 1L, 1L);
 
                 RouletteStartEvent startEvent = new RouletteStartEvent(game);
                 plugin.getServer().getPluginManager().callEvent(startEvent);

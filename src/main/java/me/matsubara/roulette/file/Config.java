@@ -6,6 +6,7 @@ import me.matsubara.roulette.file.config.ConfigValue;
 @UtilityClass
 public class Config {
 
+    public final ConfigValue EXPERIMENTAL = new ConfigValue("experimental");
     public final ConfigValue RENDER_DISTANCE = new ConfigValue("render-distance");
     public final ConfigValue ECONOMY_PROVIDER = new ConfigValue("economy-provider");
     public final ConfigValue SESSIONS_LIMIT = new ConfigValue("sessions.limit");
@@ -34,6 +35,7 @@ public class Config {
     public final ConfigValue DISABLED_SLOTS = new ConfigValue("disabled-slots");
     public final ConfigValue MAP_IMAGE_ENABLED = new ConfigValue("map-image.enabled");
     public final ConfigValue CANCEL_WORD = new ConfigValue("cancel-word");
+    public final ConfigValue SPINNING_GLOBAL = new ConfigValue("spin-holograms.global");
     public final ConfigValue SPINNING = new ConfigValue("spin-holograms.spinning");
     public final ConfigValue WINNING_NUMBER = new ConfigValue("spin-holograms.winning-number");
     public final ConfigValue SINGLE_ZERO = new ConfigValue("slots.single.zero");
@@ -69,6 +71,4 @@ public class Config {
     public final ConfigValue DAB_ANIMATION_RADIUS = new ConfigValue("dab-animation.settings.radius");
     public final ConfigValue DAB_ANIMATION_RAINBOW_EFFECT_SPEED = new ConfigValue("dab-animation.rainbow-effect.speed");
     public final ConfigValue DAB_ANIMATION_RAINBOW_EFFECT_GLOWING = new ConfigValue("dab-animation.rainbow-effect.glowing");
-    public final ConfigValue NPC_LOOK_AND_INVITE_ENABLED = new ConfigValue("npc-look-and-invite.enabled");
-    public final ConfigValue NPC_LOOK_AND_INVITE_RANGE = new ConfigValue("npc-look-and-invite.range");
 }

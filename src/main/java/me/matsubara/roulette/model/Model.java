@@ -147,6 +147,10 @@ public final class Model {
     }
 
     public void addNew(String name, StandSettings settings, @Nullable Location copyLocation, @Nullable Float yaw) {
+        addNew(name, settings, copyLocation, yaw, true);
+    }
+
+    public void addNew(String name, StandSettings settings, @Nullable Location copyLocation, @Nullable Float yaw, boolean isStand) {
         if (isInvalidName(name)) return;
 
         Location finalLocation = copyLocation != null ? copyLocation : location;
@@ -166,7 +170,7 @@ public final class Model {
         }
 
         // Spawn model but don't show it to anyone, we want to apply customizations first.
-        stands.add(new PacketStand(plugin, finalLocation, settings));
+        stands.add(new PacketStand(plugin, finalLocation, settings, isStand));
     }
 
     private @Nullable String getDecoURL(@NotNull String name) {
@@ -326,7 +330,7 @@ public final class Model {
         }
 
         if (item != null && item.getType() == Material.PLAYER_HEAD && configuration.get(defaultPath + ".url") != null) {
-            item = PluginUtils.createHead(configuration.getString(defaultPath + ".url"), true);
+            item = PluginUtils.createHead(configuration.getString(defaultPath + ".url"));
         }
 
         return item;

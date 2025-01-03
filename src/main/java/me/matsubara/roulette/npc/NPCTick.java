@@ -1,14 +1,10 @@
 package me.matsubara.roulette.npc;
 
 import com.cryptomorin.xseries.XSound;
-import com.github.retrooper.packetevents.wrapper.PacketWrapper;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityHeadLook;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.GameState;
-import me.matsubara.roulette.npc.modifier.RotationModifier;
 import me.matsubara.roulette.util.ParrotUtils;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.Location;
@@ -23,10 +19,8 @@ public class NPCTick implements Runnable {
     private final NPCPool pool;
     private final RoulettePlugin plugin;
 
-    private final boolean lookAndInviteEnabled = Config.NPC_LOOK_AND_INVITE_ENABLED.asBool();
-    private final double lookAndInviteRange = Math.pow(Config.NPC_LOOK_AND_INVITE_RANGE.asDouble(), 2);
-
-    private static final float CROUPIER_FOV = 85.0f;
+    private static final float FOV_YAW = 85.0f;
+    private static final float FOV_PITCH = 45.0f;
 
     public NPCTick(@NotNull NPCPool pool) {
         this.pool = pool;
@@ -90,10 +84,13 @@ public class NPCTick implements Runnable {
     }
 
     private boolean handleFOV(@NotNull NPC npc, Player player) {
-        if (!lookAndInviteEnabled) return false;
         if (!npc.isShownFor(player)) return false;
 
         Game game = npc.getGame();
+
+        // Not enabled.
+        NPC.NPCAction action = game.getNpcAction();
+        if (action == null || action == NPC.NPCAction.NONE) return false;
 
         // Only rotate when the game isn't started.
         GameState state = game.getState();
@@ -104,29 +101,39 @@ public class NPCTick implements Runnable {
 
         // Only look at the nearest player if the player is in front of the NPC.
         Location target = player.getLocation();
-        RotationModifier rotation = npc.rotation().queueLookAt(target);
 
-        // Laziest way to get the yaw from the packet...
-        PacketWrapper<? extends PacketWrapper<?>> packet = rotation.getPacketContainers().get(0).provide(npc, player);
-        if (!(packet instanceof WrapperPlayServerEntityHeadLook look)) return false;
+        Location npcLocation = npc.getLocation();
+        float npcYaw = npcLocation.getYaw();
 
-        float npcYaw = npc.getLocation().getYaw();
-        float angleDifference = Math.abs((look.getHeadYaw() - npcYaw + 540) % 360 - 180);
+        double xDifference = target.getX() - npcLocation.getX();
+        double yDifference = target.getY() - npcLocation.getY();
+        double zDifference = target.getZ() - npcLocation.getZ();
+
+        double distance = Math.sqrt(Math.pow(xDifference, 2) + Math.pow(yDifference, 2) + Math.pow(zDifference, 2));
+
+        float yaw = (float) (-Math.atan2(xDifference, zDifference) / Math.PI * 180.0d) % 360;
+        float pitch = (float) (-Math.asin(yDifference / distance) / Math.PI * 180.0d);
+
+        float angleDifference = Math.abs((yaw - npcYaw + 540) % 360 - 180);
 
         // Player is out of the FOV of the croupier.
-        if (angleDifference > CROUPIER_FOV) return false;
+        boolean fov = game.isNpcActionFOV();
+        if (fov && (angleDifference > FOV_YAW || Math.abs(pitch) > FOV_PITCH)) return false;
 
         // The player must be around X blocks from the table (not the NPC).
-        double renderDistance = Math.min(lookAndInviteRange, plugin.getStandManager().getRenderDistance());
+        double renderDistance = Math.min(Math.pow(game.getNpcDistance(), 2), plugin.getStandManager().getRenderDistance());
 
         if (game.getLocation().distanceSquared(target) > renderDistance) return false;
 
         // Send an invitation message to the player the first time they enter the FOV.
-        if (game.isInvitePlayers() && !npc.isInsideFOV(player) && notInvitedYet(player)) {
+        if (action.isInvite() && !npc.isInsideFOV(player) && notInvitedYet(player)) {
             plugin.getMessages().sendNPCMessage(player, game, Messages.Message.INVITE);
         }
 
-        rotation.send(player);
+        if (action.isLook()) {
+            npc.rotation().queueBodyRotation(yaw, pitch).send(player);
+        }
+
         npc.setInsideFOV(player);
         return true;
     }

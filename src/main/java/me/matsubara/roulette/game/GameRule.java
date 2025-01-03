@@ -1,5 +1,9 @@
 package me.matsubara.roulette.game;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Locale;
+
 @SuppressWarnings("unused")
 public enum GameRule {
     /**
@@ -39,5 +43,9 @@ public enum GameRule {
 
     public boolean isSurrender() {
         return this == SURRENDER;
+    }
+
+    public @NotNull String toConfigPath() {
+        return name().toLowerCase(Locale.ROOT).replace("_", "-");
     }
 }

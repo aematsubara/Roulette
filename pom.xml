@@ -6,7 +6,7 @@
 
     <groupId>me.matsubara</groupId>
     <artifactId>Roulette</artifactId>
-    <version>3.1.2</version>
+    <version>3.2</version>
     <packaging>jar</packaging>
 
     <name>Roulette</name>
@@ -60,7 +60,9 @@
                         <filter>
                             <artifact>com.github.cryptomorin:XSeries</artifact>
                             <includes>
+                                <include>com/cryptomorin/xseries/base/**</include>
                                 <include>com/cryptomorin/xseries/reflection/**</include>
+                                <include>com/cryptomorin/xseries/particles/**</include>
                                 <include>com/cryptomorin/xseries/messages/ActionBar*</include>
                                 <include>com/cryptomorin/xseries/XEntityType*</include>
                                 <include>com/cryptomorin/xseries/XSound*</include>
@@ -116,7 +118,7 @@
         </repository>
         <repository>
             <id>placeholderapi</id>
-            <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+            <url>https://repo.extendedclip.com/releases/</url>
         </repository>
         <repository>
             <id>maven-central</id>
@@ -146,7 +148,7 @@
         <dependency>
             <groupId>com.github.cryptomorin</groupId>
             <artifactId>XSeries</artifactId>
-            <version>11.3.0</version>
+            <version>12.1.0</version>
             <scope>compile</scope>
         </dependency>
         <!-- Annotations -->
@@ -186,7 +188,7 @@
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
-            <version>2.11.3</version>
+            <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
         <!-- ConfigUpdater -->
@@ -236,7 +238,7 @@
         <dependency>
             <groupId>com.github.retrooper</groupId>
             <artifactId>packetevents-spigot</artifactId>
-            <version>2.6.1-SNAPSHOT</version>
+            <version>2.7.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- sqlite -->

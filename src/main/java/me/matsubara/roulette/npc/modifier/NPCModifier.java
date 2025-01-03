@@ -4,7 +4,6 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import lombok.Getter;
 import me.matsubara.roulette.npc.NPC;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,8 +30,7 @@ public class NPCModifier {
     }
 
     public void send() {
-        World world = npc.getLocation().getWorld();
-        if (world != null) send(world.getPlayers());
+        send(npc.getSeeingPlayers());
     }
 
     public void send(@NotNull Iterable<? extends Player> players) {

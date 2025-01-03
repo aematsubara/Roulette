@@ -55,13 +55,13 @@ public final class PluginUtils {
             {Slot.SLOT_LOW, Slot.SLOT_EVEN, Slot.SLOT_RED, Slot.SLOT_BLACK, Slot.SLOT_ODD, Slot.SLOT_HIGH}
     };
 
-    private static final BlockFace[] AXIS = {
+    public static final BlockFace[] AXIS = {
             BlockFace.NORTH,
             BlockFace.EAST,
             BlockFace.SOUTH,
             BlockFace.WEST};
 
-    private static final BlockFace[] RADIAL = {
+    public static final BlockFace[] RADIAL = {
             BlockFace.NORTH,
             BlockFace.NORTH_EAST,
             BlockFace.EAST,
@@ -211,7 +211,7 @@ public final class PluginUtils {
 
     public static String getSlotName(@NotNull Slot slot) {
         if (slot.isSingleInclusive()) {
-            String number = slot.isDoubleZero() ? "00" : String.valueOf(slot.getInts()[0]);
+            String number = slot.isDoubleZero() ? "00" : String.valueOf(slot.getChilds()[0]);
             return switch (slot.getColor()) {
                 case RED -> Config.SINGLE_RED.asStringTranslated().replace("%number%", number);
                 case BLACK -> Config.SINGLE_BLACK.asStringTranslated().replace("%number%", number);
@@ -320,6 +320,10 @@ public final class PluginUtils {
 
     public static <E extends Enum<E>> E getNextOrPreviousEnum(@NotNull E current, boolean next) {
         return getNextOrPrevious(current.getDeclaringClass().getEnumConstants(), current.ordinal(), next);
+    }
+
+    public static <E> E getNextOrPrevious(E @NotNull [] values, E current, boolean next) {
+        return getNextOrPrevious(values, ArrayUtils.indexOf(values, current), next);
     }
 
     public static <E> E getNextOrPrevious(E @NotNull [] values, int currentIndex, boolean next) {

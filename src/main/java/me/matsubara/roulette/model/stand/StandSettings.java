@@ -2,6 +2,7 @@ package me.matsubara.roulette.model.stand;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import me.matsubara.roulette.model.stand.data.ItemSlot;
 import me.matsubara.roulette.model.stand.data.Pose;
 import org.bukkit.inventory.ItemStack;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 @Getter
 @Setter
+@Accessors(chain = true)
 public final class StandSettings implements Cloneable {
 
     // Model data.
@@ -34,6 +36,8 @@ public final class StandSettings implements Cloneable {
     private boolean glow;
     private String customName;
     private boolean customNameVisible;
+    private Vector scale;
+    private int backgroundColor;
 
     // Entity poses.
     private EulerAngle headPose;
@@ -58,6 +62,8 @@ public final class StandSettings implements Cloneable {
         this.partName = null;
         this.customName = null;
         this.customNameVisible = false;
+        this.scale = new Vector(1.0f, 1.0f, 1.0f);
+        this.backgroundColor = 1073741824;
 
         // Default poses.
         for (Pose pose : Pose.values()) {

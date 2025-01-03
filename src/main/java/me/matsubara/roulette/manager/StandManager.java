@@ -139,8 +139,8 @@ public final class StandManager implements Listener, Runnable {
             Hologram join = game.getJoinHologram();
             handleStandRender(player, join.getStands(), show && join.isVisibleTo(player));
 
-            // Show/hide spin hologram stands (only if the player is playing this game).
-            if (game.isPlaying(player)) {
+            // Show/hide spin hologram stands.
+            if (game.isSpinningGlobal() || game.isPlaying(player)) {
                 handleStandRender(player, game.getSpinHologram().getStands(), show);
             }
 

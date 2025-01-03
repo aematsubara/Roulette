@@ -5,10 +5,13 @@ import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
+import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.ParrotUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.WordUtils;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -43,6 +46,16 @@ public class CroupierGUI extends RouletteGUI {
             ParrotUtils.ParrotShoulder.LEFT, "90e0a4d48cd829a6d5868909d643fa4affd39e8ae6caaf6ec79609cf7649b1c",
             ParrotUtils.ParrotShoulder.RIGHT, "865426a33df58b465f0601dd8b9bec3690b2193d1f9503c2caab78f6c2438");
 
+    private static final Map<BlockFace, String> ROTATION_URL = ImmutableMap.of(
+            BlockFace.NORTH, "3040fe836a6c2fbd2c7a9c8ec6be5174fddf1ac20f55e366156fa5f712e10",
+            BlockFace.NORTH_EAST, "90e0a4d48cd829a6d5868909d643fa4affd39e8ae6caaf6ec79609cf7649b1c",
+            BlockFace.EAST, "19bf3292e126a105b54eba713aa1b152d541a1d8938829c56364d178ed22bf",
+            BlockFace.SOUTH_EAST, "35cbdb28991a16eb2c793474ef7d0f458a5d13fffc283c4d74d929941bb1989",
+            BlockFace.SOUTH, "7437346d8bda78d525d19f540a95e4e79daeda795cbc5a13256236312cf",
+            BlockFace.SOUTH_WEST, "354ce8157e71dcd5b6b1674ac5bd55490702027c675e5cdceac55d2fbbd5a",
+            BlockFace.WEST, "bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9",
+            BlockFace.NORTH_WEST, "865426a33df58b465f0601dd8b9bec3690b2193d1f9503c2caab78f6c2438");
+
     public CroupierGUI(@NotNull Game game, @NotNull Player player) {
         super("croupier-menu");
         this.plugin = game.getPlugin();
@@ -53,7 +66,7 @@ public class CroupierGUI extends RouletteGUI {
         String npcName = game.getNPCName(), finalName = npcName != null ? npcName : Config.UNNAMED_CROUPIER.asStringTranslated();
         this.inventory = plugin.getServer().createInventory(
                 this,
-                27,
+                36,
                 Config.CROUPIER_MENU_TITLE.asStringTranslated().replace("%croupier-name%", finalName));
 
         inventory.setItem(10, getItem("croupier-name")
@@ -67,11 +80,13 @@ public class CroupierGUI extends RouletteGUI {
         if (url != null) croupierTexture.setHead(url, true);
 
         inventory.setItem(11, croupierTexture.build());
-        setInviteItem();
+        setCroupierActionItem();
         setParrotItem();
         setParrotSoundsItem();
         setParrotVariantItem();
         setParrotShoulderItem();
+        setCroupierRotationItem();
+        setCroupierDistanceItem();
 
         ItemStack background = new ItemBuilder(Material.GRAY_STAINED_GLASS_PANE)
                 .setDisplayName("&7")
@@ -86,9 +101,11 @@ public class CroupierGUI extends RouletteGUI {
         player.openInventory(inventory);
     }
 
-    public void setInviteItem() {
-        inventory.setItem(12, getItem("invite")
-                .replace("%state%", getState(Game::isInvitePlayers))
+    public void setCroupierActionItem() {
+        NPC.NPCAction action = game.getNpcAction();
+        inventory.setItem(12, getItem("croupier-action")
+                .replace("%state%", getFormattedEnum("action", action))
+                .replace("%fov%", getState(Game::isNpcActionFOV))
                 .build());
     }
 
@@ -111,7 +128,6 @@ public class CroupierGUI extends RouletteGUI {
         String variantName = plugin.getConfig().getString("variable-text.parrot-variant." + tempName, StringUtils.capitalize(tempName));
 
         inventory.setItem(14, getItem("parrot-variant")
-                .setType(Material.PLAYER_HEAD)
                 .setHead(PARROT_SKIN.get(variant), true)
                 .replace("%variant%", variantName)
                 .build());
@@ -124,13 +140,34 @@ public class CroupierGUI extends RouletteGUI {
         String shoulderName = plugin.getConfig().getString("variable-text.parrot-shoulder." + tempName, StringUtils.capitalize(tempName));
 
         inventory.setItem(16, getItem("parrot-shoulder")
-                .setType(Material.PLAYER_HEAD)
                 .setHead(PARROT_SHOULDER.get(shoulder), true)
                 .replace("%shoulder%", shoulderName)
                 .build());
     }
 
+    public void setCroupierRotationItem() {
+        BlockFace rotation = game.getCurrentNPCFace();
+        inventory.setItem(19, getItem("croupier-rotation")
+                .setHead(ROTATION_URL.get(rotation), true)
+                .replace("%rotation%", getFormattedEnum("face", rotation))
+                .build());
+    }
+
+    public void setCroupierDistanceItem() {
+        inventory.setItem(20, getItem("croupier-distance")
+                .replace("%distance%", game.getNpcDistance())
+                .build());
+    }
+
     private @NotNull String getState(@NotNull Function<Game, Boolean> function) {
         return (function.apply(game) ? Config.STATE_ENABLED : Config.STATE_DISABLED).asStringTranslated();
+    }
+
+    @SuppressWarnings("deprecation")
+    private String getFormattedEnum(String parent, @NotNull Enum<?> value) {
+        String name = value.name();
+        return plugin.getConfig().getString(
+                "variable-text." + parent + "." + name.toLowerCase(Locale.ROOT).replace("_", "-"),
+                WordUtils.capitalizeFully(name.replace("_", " ")));
     }
 }

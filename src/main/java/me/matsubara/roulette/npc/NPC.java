@@ -7,6 +7,7 @@ import com.github.retrooper.packetevents.protocol.nbt.NBTString;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
+import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.npc.modifier.*;
@@ -30,7 +31,7 @@ public class NPC {
     private final int entityId;
     private final UserProfile profile;
     private final SpawnCustomizer spawnCustomizer;
-    private final Location location;
+    private @Setter Location location;
     private final Game game;
 
     public NPC(UserProfile profile, SpawnCustomizer spawnCustomizer, @NotNull Location location, int entityId, Game game) {
@@ -123,7 +124,6 @@ public class NPC {
         return new VisibilityModifier(this);
     }
 
-    @SuppressWarnings("unused")
     public TeleportModifier teleport() {
         return new TeleportModifier(this);
     }
@@ -213,6 +213,21 @@ public class NPC {
             NPC npc = new NPC(profile, spawnCustomizer, location, entityId, game);
             pool.takeCareOf(npc);
             return npc;
+        }
+    }
+
+    @Getter
+    public enum NPCAction {
+        LOOK(true, false),
+        INVITE(false, true),
+        LOOK_AND_INVITE(true, true),
+        NONE(false, false);
+
+        private final boolean look, invite;
+
+        NPCAction(boolean look, boolean invite) {
+            this.look = look;
+            this.invite = invite;
         }
     }
 }

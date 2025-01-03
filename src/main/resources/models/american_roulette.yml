@@ -8,12 +8,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -27,12 +22,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -46,12 +36,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -65,12 +50,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -84,12 +64,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -103,12 +78,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -122,12 +92,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -141,12 +106,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -160,12 +120,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -179,12 +134,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -198,12 +148,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -217,12 +162,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -236,12 +176,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -255,12 +190,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -274,12 +204,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -293,12 +218,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -312,12 +232,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -331,12 +246,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -350,12 +260,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -369,12 +274,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -388,12 +288,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -407,12 +302,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -426,12 +316,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -445,12 +330,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -464,12 +344,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: PLAYER_HEAD
@@ -483,12 +358,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -503,12 +373,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -523,12 +388,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -543,12 +403,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -563,12 +418,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -583,12 +433,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -603,12 +448,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -623,12 +463,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -643,12 +478,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -663,12 +493,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -683,12 +508,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -703,12 +523,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -723,12 +538,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -743,12 +553,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -763,12 +568,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -783,12 +583,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -803,12 +598,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -823,12 +613,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -843,12 +628,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -863,12 +643,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -883,12 +658,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -903,12 +673,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -923,12 +688,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -943,12 +703,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -963,12 +718,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -983,12 +733,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -1003,12 +748,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 90.0
@@ -1022,13 +762,8 @@ parts:
       yaw: 90.0
       pitch: 0.0
     settings:
-      invisible: false
       small: true
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   SPINNER_2:
     offset:
       x: -2.668
@@ -1037,13 +772,8 @@ parts:
       yaw: 0.0
       pitch: 0.0
     settings:
-      invisible: false
       small: true
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   FEET_1:
     offset:
       x: -1.779
@@ -1055,10 +785,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   FEET_2:
     offset:
       x: 1.779
@@ -1070,10 +797,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   FEET_3:
     offset:
       x: 1.779
@@ -1085,10 +809,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   FEET_4:
     offset:
       x: -1.779
@@ -1100,10 +821,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   DECO_1:
     offset:
       x: -3.474
@@ -1116,9 +834,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1140,9 +855,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1164,9 +876,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1188,9 +897,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1212,9 +918,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1236,9 +939,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1260,9 +960,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1284,9 +981,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1308,9 +1002,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       left-arm:
         x: 315.0
@@ -1331,10 +1022,6 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     equipment:
       helmet:
         material: TRIPWIRE_HOOK
@@ -1349,10 +1036,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_2:
     offset:
       x: -1.779
@@ -1362,12 +1046,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_3:
     offset:
       x: -1.779
@@ -1377,12 +1055,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_4:
     offset:
       x: -0.593
@@ -1394,10 +1066,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_5:
     offset:
       x: -0.593
@@ -1407,12 +1076,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_6:
     offset:
       x: -0.593
@@ -1422,12 +1085,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_7:
     offset:
       x: 0.593
@@ -1439,10 +1096,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_8:
     offset:
       x: 0.593
@@ -1452,12 +1106,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_9:
     offset:
       x: 0.593
@@ -1467,12 +1115,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_10:
     offset:
       x: 1.779
@@ -1484,10 +1126,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_11:
     offset:
       x: 1.779
@@ -1497,12 +1136,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_12:
     offset:
       x: 1.779
@@ -1512,12 +1145,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_13:
     offset:
       x: 2.965
@@ -1529,10 +1156,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_14:
     offset:
       x: 2.965
@@ -1542,12 +1166,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_15:
     offset:
       x: 2.965
@@ -1557,12 +1175,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_16:
     offset:
       x: 2.965
@@ -1574,10 +1186,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_17:
     offset:
       x: 2.965
@@ -1587,12 +1196,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_18:
     offset:
       x: 2.965
@@ -1602,12 +1205,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_19:
     offset:
       x: 1.779
@@ -1619,10 +1216,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_20:
     offset:
       x: 1.779
@@ -1632,12 +1226,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_21:
     offset:
       x: 1.779
@@ -1647,12 +1235,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_22:
     offset:
       x: 0.593
@@ -1664,10 +1246,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_23:
     offset:
       x: 0.593
@@ -1677,12 +1256,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_24:
     offset:
       x: 0.593
@@ -1692,12 +1265,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_25:
     offset:
       x: -0.593
@@ -1709,10 +1276,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_26:
     offset:
       x: -0.593
@@ -1722,12 +1286,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_27:
     offset:
       x: -0.593
@@ -1737,12 +1295,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_28:
     offset:
       x: -1.779
@@ -1754,10 +1306,7 @@ parts:
       invisible: true
       small: true
       baseplate: false
-      arms: false
-      fire: true
       marker: true
-      glow: false
   CHAIR_29:
     offset:
       x: -1.779
@@ -1767,12 +1316,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   CHAIR_30:
     offset:
       x: -1.779
@@ -1782,12 +1325,6 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
-      baseplate: true
-      arms: false
-      fire: false
-      marker: false
-      glow: false
   SLOT_0:
     offset:
       x: -1.9465
@@ -1800,9 +1337,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1820,9 +1354,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1840,9 +1371,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1860,9 +1388,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1880,9 +1405,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1900,9 +1422,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1920,9 +1439,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1940,9 +1456,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1960,9 +1473,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -1980,9 +1490,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2000,9 +1507,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2020,9 +1524,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2040,9 +1541,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2060,9 +1558,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2080,9 +1575,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2100,9 +1592,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2120,9 +1609,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2140,9 +1626,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2160,9 +1643,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2180,9 +1660,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2200,9 +1677,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2220,9 +1694,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2240,9 +1711,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2260,9 +1728,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2280,9 +1745,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2300,9 +1762,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2320,9 +1779,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2340,9 +1796,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2360,9 +1813,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2380,9 +1830,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2400,9 +1847,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2420,9 +1864,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2440,9 +1881,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2460,9 +1898,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2480,9 +1915,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2500,9 +1932,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2520,9 +1949,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2540,9 +1966,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2560,9 +1983,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2580,9 +2000,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2600,9 +2017,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2620,9 +2034,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2640,9 +2051,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2660,9 +2068,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2680,9 +2085,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2700,9 +2102,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2720,9 +2119,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2740,9 +2136,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2760,9 +2153,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2780,9 +2170,6 @@ parts:
       small: true
       baseplate: false
       arms: true
-      fire: false
-      marker: false
-      glow: false
     pose:
       right-arm:
         x: 315.0
@@ -2797,12 +2184,7 @@ parts:
       pitch: 0.0
     settings:
       invisible: true
-      small: false
       baseplate: false
-      arms: false
-      fire: false
-      marker: false
-      glow: false
     pose:
       head:
         x: 300.0

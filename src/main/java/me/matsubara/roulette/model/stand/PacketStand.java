@@ -1,6 +1,7 @@
 package me.matsubara.roulette.model.stand;
 
 import com.cryptomorin.xseries.reflection.XReflection;
+import com.google.common.base.Strings;
 import io.github.retrooper.packetevents.util.SpigotReflectionUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -16,8 +17,10 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.EulerAngle;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
@@ -30,6 +33,7 @@ public final class PacketStand {
     private final int id;
     private final UUID uniqueId;
     private final StandSettings settings;
+    private final boolean isStand;
     private @Setter Location location;
     private byte yaw, pitch;
     private World world;
@@ -51,6 +55,8 @@ public final class PacketStand {
     private static final Class<?> CRAFT_ITEM_STACK;
     private static final Class<?> ENTITY;
     private static final Class<?> ENTITY_ARMOR_STAND;
+    private static final Class<?> ENTITY_DISPLAY;
+    private static final Class<?> ENTITY_TEXT_DISPLAY;
     private static final Class<?> PACKET_SPAWN_ENTITY_LIVING;
     private static final Class<?> PACKET_ENTITY_TELEPORT;
     private static final Class<?> PACKET_ENTITY_METADATA;
@@ -125,6 +131,9 @@ public final class PacketStand {
     private static final Object DWO_ARMOR_STAND_DATA;
     private static final Object DWO_CUSTOM_NAME;
     private static final Object DWO_CUSTOM_NAME_VISIBLE;
+    private static final Object DWO_SCALE_ID;
+    private static final Object DWO_TEXT_ID;
+    private static final Object DWO_BACKGROUND_COLOR_ID;
 
     public static final Object DWO_HEAD_POSE;
     public static final Object DWO_BODY_POSE;
@@ -135,17 +144,21 @@ public final class PacketStand {
 
     private static final Object ZERO;
     private static final Object ARMOR_STAND;
-    private static final int ENTITY_TYPE_ID;
+    private static final int ARMOR_STAND_TYPE_ID;
+    private static final Object TEXT_DISPLAY;
+    private static final int TEXT_DISPLAY_TYPE_ID;
     private static final Object ITEM;
     private static final Object DATA_COMPONENT_TYPE;
 
     static {
         // Initialize classes.
-
         CRAFT_CHAT_MESSAGE = (MINOR_NUMBER > 12) ? Reflection.getCraftClass("util", "CraftChatMessage") : null;
         CRAFT_ITEM_STACK = Reflection.getCraftClass("inventory", "CraftItemStack");
         ENTITY = Reflection.getNMSClass("world.entity", "Entity");
         ENTITY_ARMOR_STAND = Reflection.getNMSClass("world.entity.decoration", "ArmorStand", "EntityArmorStand");
+        boolean display = XReflection.supports(19, 4);
+        ENTITY_DISPLAY = display ? Reflection.getNMSClass("world.entity", "Display") : null;
+        ENTITY_TEXT_DISPLAY = display ? Reflection.getNMSClass("world.entity", "Display$TextDisplay") : null;
         PACKET_SPAWN_ENTITY_LIVING = Reflection.getNMSClass("network.protocol.game",
                 MINOR_NUMBER > 18 ? "ClientboundAddEntityPacket" : "ClientboundAddMobPacket",
                 MINOR_NUMBER > 18 ? "PacketPlayOutSpawnEntity" : "PacketPlayOutSpawnEntityLiving"); // SpawnEntityLiving is removed since 1.19.
@@ -261,8 +274,22 @@ public final class PacketStand {
         // Initialize fields.
         CONNECTION = Reflection.getField(ENTITY_PLAYER, GAME_PACKET_LISTENER, "connection", true, "f", "c", "b", "playerConnection");
         if (XReflection.supports(18)) {
-            // DATA_SHARED_FLAGS_ID, DATA_CUSTOM_NAME, DATA_CUSTOM_NAME_VISIBLE, DATA_CLIENT_FLAGS, DATA_X_POSE
-            if (XReflection.supports(21, 2)) {
+            // DATA_SHARED_FLAGS_ID, DATA_CUSTOM_NAME, DATA_CUSTOM_NAME_VISIBLE | DATA_CLIENT_FLAGS, DATA_X_POSE
+            if (XReflection.supports(21, 4)) {
+                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "am"));
+                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aO"));
+                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aP"));
+                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
+                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
+                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
+                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
+                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
+                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
+                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bO"));
+                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
+                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aG"));
+                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aI"));
+            } else if (XReflection.supports(21, 2)) {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "am"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aO"));
                 DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aP"));
@@ -273,11 +300,13 @@ public final class PacketStand {
                 DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
                 DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bO"));
                 DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bP"));
+                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
+                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aG"));
+                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aI"));
             } else if (XReflection.supports(21)) {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "ap"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aQ"));
                 DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aR"));
-
                 DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
                 DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
                 DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
@@ -285,6 +314,9 @@ public final class PacketStand {
                 DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
                 DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
                 DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
+                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "u"));
+                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aL"));
+                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aN"));
             } else if (XReflection.supports(20, 6)) {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "ap"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aS"));
@@ -296,6 +328,9 @@ public final class PacketStand {
                 DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
                 DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
                 DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
+                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "u"));
+                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aN"));
+                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aP"));
             } else if (XReflection.supports(20, 2)) {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "ao"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aU"));
@@ -307,6 +342,9 @@ public final class PacketStand {
                 DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
                 DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
                 DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
+                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "u"));
+                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aM"));
+                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aO"));
             } else if (XReflection.supports(20)) {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "an"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aU"));
@@ -318,6 +356,9 @@ public final class PacketStand {
                 DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
                 DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
                 DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
+                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "s"));
+                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aL"));
+                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aN"));
             } else if (XReflection.supports(19, 4)) {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "an"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aR"));
@@ -329,6 +370,9 @@ public final class PacketStand {
                 DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bF"));
                 DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
                 DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
+                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
+                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aK"));
+                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aM"));
             } else if (XReflection.supports(18, 2)) {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "Z"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aM"));
@@ -340,6 +384,9 @@ public final class PacketStand {
                 DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
                 DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
                 DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
+                DWO_SCALE_ID = null;
+                DWO_TEXT_ID = null;
+                DWO_BACKGROUND_COLOR_ID = null;
             } else {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aa"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aL"));
@@ -351,6 +398,9 @@ public final class PacketStand {
                 DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
                 DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
                 DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
+                DWO_SCALE_ID = null;
+                DWO_TEXT_ID = null;
+                DWO_BACKGROUND_COLOR_ID = null;
             }
         } else {
             DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "Z"));
@@ -363,11 +413,16 @@ public final class PacketStand {
             DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
             DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
             DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
+            DWO_SCALE_ID = null;
+            DWO_TEXT_ID = null;
+            DWO_BACKGROUND_COLOR_ID = null;
         }
 
         ZERO = Reflection.getFieldValue(Reflection.getField(VEC_3D, VEC_3D, "a", true, "b", "c", "ZERO"));
-        ARMOR_STAND = getArmorStandType();
-        ENTITY_TYPE_ID = getEntityTypeId();
+        ARMOR_STAND = getType(EntityType.ARMOR_STAND);
+        ARMOR_STAND_TYPE_ID = getTypeId(ARMOR_STAND);
+        TEXT_DISPLAY = display ? getType(EntityType.TEXT_DISPLAY) : null;
+        TEXT_DISPLAY_TYPE_ID = TEXT_DISPLAY != null ? getTypeId(TEXT_DISPLAY) : -1;
         ITEM = XReflection.supports(20, 6) ? Reflection.getFieldValue(Reflection.getField(BUILT_IN_REGISTRIES, DEFAULTED_REGISTRY, "h", true, "ITEM")) : null;
 
         if (XReflection.supports(20, 6)) {
@@ -383,10 +438,15 @@ public final class PacketStand {
     }
 
     public PacketStand(RoulettePlugin plugin, @NotNull Location location, StandSettings settings) {
+        this(plugin, location, settings, true);
+    }
+
+    public PacketStand(RoulettePlugin plugin, @NotNull Location location, StandSettings settings, boolean isStand) {
         this.plugin = plugin;
         this.id = SpigotReflectionUtil.generateEntityId();
         this.uniqueId = UUID.randomUUID();
         this.settings = settings;
+        this.isStand = isStand;
         invalidTeleport(location);
     }
 
@@ -416,7 +476,7 @@ public final class PacketStand {
                     clampXZ(location.getZ()),
                     !Float.isFinite(pitch) ? 0.0f : pitch,
                     !Float.isFinite(yaw) ? 0.0f : yaw,
-                    ARMOR_STAND,
+                    isStand ? ARMOR_STAND : TEXT_DISPLAY,
                     0,
                     ZERO,
                     location.getYaw());
@@ -438,7 +498,7 @@ public final class PacketStand {
             Object packetSerializer = packetDataSerializer.invoke(Unpooled.buffer());
             writeInt.invoke(packetSerializer, id);
             writeUUID.invoke(packetSerializer, uniqueId);
-            writeInt.invoke(packetSerializer, ENTITY_TYPE_ID);
+            writeInt.invoke(packetSerializer, isStand ? ARMOR_STAND_TYPE_ID : TEXT_DISPLAY_TYPE_ID); // Text display won't work here.
             writeDouble.invoke(packetSerializer, location.getX());
             writeDouble.invoke(packetSerializer, location.getY());
             writeDouble.invoke(packetSerializer, location.getZ());
@@ -519,6 +579,7 @@ public final class PacketStand {
     }
 
     private @NotNull List<Object> createEquipment() {
+        if (!isStand) return Collections.emptyList();
         if (equipments != null) return equipments;
 
         List<Object> packets = new ArrayList<>();
@@ -595,26 +656,36 @@ public final class PacketStand {
     private @NotNull List<Object> getDataWatcherItems() {
         try {
             List<Object> dataWatcherItems = new ArrayList<>();
-
-            dataWatcherItems.add(dataWatcherItem.invoke(DWO_ENTITY_DATA, (byte)
-                    ((settings.isFire() ? 0x01 : 0)
-                            | (settings.isInvisible() ? 0x20 : 0)
-                            | (settings.isGlow() ? 0x40 : 0))));
-
-            dataWatcherItems.add(dataWatcherItem.invoke(DWO_ARMOR_STAND_DATA, (byte)
-                    ((settings.isSmall() ? 0x01 : 0)
-                            | (settings.isArms() ? 0x04 : 0)
-                            | (settings.isBasePlate() ? 0 : 0x08)
-                            | (settings.isMarker() ? 0x10 : 0))));
-
-            for (Pose pose : Pose.values()) {
-                addPoses(dataWatcherItems, pose.getDwo(), pose.get(settings));
-            }
-
             String name = settings.getCustomName();
-            Optional<Object> optionalName = Optional.ofNullable(name != null && !name.isEmpty() ? fromStringOrNull.invoke(name) : null);
-            dataWatcherItems.add(dataWatcherItem.invoke(DWO_CUSTOM_NAME, optionalName));
-            dataWatcherItems.add(dataWatcherItem.invoke(DWO_CUSTOM_NAME_VISIBLE, settings.isCustomNameVisible()));
+
+            if (isStand) {
+                dataWatcherItems.add(dataWatcherItem.invoke(DWO_ENTITY_DATA, (byte)
+                        ((settings.isFire() ? 0x01 : 0)
+                                | (settings.isInvisible() ? 0x20 : 0)
+                                | (settings.isGlow() ? 0x40 : 0))));
+
+                dataWatcherItems.add(dataWatcherItem.invoke(DWO_ARMOR_STAND_DATA, (byte)
+                        ((settings.isSmall() ? 0x01 : 0)
+                                | (settings.isArms() ? 0x04 : 0)
+                                | (settings.isBasePlate() ? 0 : 0x08)
+                                | (settings.isMarker() ? 0x10 : 0))));
+
+                for (Pose pose : Pose.values()) {
+                    addPoses(dataWatcherItems, pose.getDwo(), pose.get(settings));
+                }
+
+                Optional<Object> optionalName = Optional.ofNullable(name != null && !name.isEmpty() ? fromStringOrNull.invoke(name) : null);
+                dataWatcherItems.add(dataWatcherItem.invoke(DWO_CUSTOM_NAME, optionalName));
+                dataWatcherItems.add(dataWatcherItem.invoke(DWO_CUSTOM_NAME_VISIBLE, settings.isCustomNameVisible()));
+            } else {
+                Vector scale = settings.getScale();
+                dataWatcherItems.add(dataWatcherItem.invoke(DWO_SCALE_ID, new Vector3f(
+                        (float) scale.getX(),
+                        (float) scale.getY(),
+                        (float) scale.getZ())));
+                dataWatcherItems.add(dataWatcherItem.invoke(DWO_TEXT_ID, fromStringOrNull.invoke(Strings.nullToEmpty(name))));
+                dataWatcherItems.add(dataWatcherItem.invoke(DWO_BACKGROUND_COLOR_ID, settings.getBackgroundColor()));
+            }
 
             return dataWatcherItems;
         } catch (Throwable throwable) {
@@ -695,9 +766,9 @@ public final class PacketStand {
         }
     }
 
-    private static @Nullable Object getArmorStandType() {
+    private static @Nullable Object getType(EntityType type) {
         try {
-            @SuppressWarnings("deprecation") Optional<?> optional = (Optional<?>) byString.invoke(EntityType.ARMOR_STAND.getName());
+            @SuppressWarnings("deprecation") Optional<?> optional = (Optional<?>) byString.invoke(type.getName());
             return optional.orElse(null);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
@@ -705,7 +776,7 @@ public final class PacketStand {
         }
     }
 
-    private static int getEntityTypeId() {
+    private static int getTypeId(Object type) {
         Object ENTITY_TYPE;
         if (XReflection.supports(18)) {
             if (XReflection.supports(21)) {
@@ -742,7 +813,7 @@ public final class PacketStand {
         if (getId == null) return -1;
 
         try {
-            return (int) getId.invoke(ENTITY_TYPE, ARMOR_STAND);
+            return (int) getId.invoke(ENTITY_TYPE, type);
         } catch (Throwable throwable) {
             return -1;
         }
