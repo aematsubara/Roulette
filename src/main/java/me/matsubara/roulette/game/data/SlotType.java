@@ -1,5 +1,6 @@
 package me.matsubara.roulette.game.data;
 
+import lombok.Getter;
 import me.matsubara.roulette.game.Game;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.entity.Player;
@@ -7,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
+@Getter
 public enum SlotType {
     COLOR(Slot.SLOT_RED, Slot.SLOT_BLACK),
     ODD_EVEN(Slot.SLOT_EVEN, Slot.SLOT_ODD),
@@ -20,7 +22,7 @@ public enum SlotType {
         this.slots = slots;
     }
 
-    public static @Nullable SlotType hasConflict(Game game, Player player, Slot slot) {
+    public static @Nullable SlotType hasConflict(Game game, Player player, Slot slot, boolean ignoreCurrent) {
         for (SlotType type : values()) {
             if (!ArrayUtils.contains(type.slots, slot)) continue;
 
@@ -30,7 +32,7 @@ public enum SlotType {
             for (Bet bet : bets) {
                 if (!bet.hasSlot()) continue;
                 if (!ArrayUtils.contains(type.slots, bet.getSlot())) continue;
-                if (bet.equals(game.getSelectedBet(player))) continue;
+                if (!ignoreCurrent && bet.equals(game.getSelectedBet(player))) continue;
                 return type;
             }
         }

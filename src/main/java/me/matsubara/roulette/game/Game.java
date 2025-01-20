@@ -160,6 +160,9 @@ public final class Game {
     // If bet-all is allowed in this game.
     private boolean betAllEnabled;
 
+    // Maximum amount of bets that can be made in this game (per player).
+    private int maxBets;
+
     // Whether the croupier invites/look at nearby players.
     private NPC.NPCAction npcAction;
     private boolean npcActionFOV;
@@ -265,6 +268,7 @@ public final class Game {
             UUID owner,
             int startTime,
             boolean betAllEnabled,
+            int maxBets,
             NPC.NPCAction npcAction,
             boolean npcActionFOV,
             BlockFace currentNPCFace,
@@ -285,7 +289,7 @@ public final class Game {
         this.npcAction = npcAction != null ? npcAction : NPC.NPCAction.NONE;
         this.npcActionFOV = npcActionFOV;
         this.currentNPCFace = currentNPCFace;
-        this.npcDistance = npcDistance;
+        setNpcDistance(npcDistance);
         this.parrotEnabled = parrotEnabled;
         this.parrotSounds = parrotSounds;
         this.parrotVariant = parrotVariant != null ? parrotVariant : PluginUtils.getRandomFromEnum(Parrot.Variant.class);
@@ -304,8 +308,9 @@ public final class Game {
 
         this.type = type;
         this.state = GameState.IDLE;
-        this.startTime = startTime;
+        setStartTime(startTime);
         this.betAllEnabled = betAllEnabled;
+        setMaxBets(maxBets == 0 ? getMaxBetsByType() : maxBets);
         this.accountGiveTo = accountGiveTo;
         this.ball = model.getStandByName("BALL");
 
@@ -328,6 +333,11 @@ public final class Game {
 
         // Spawn chairs.
         handleChairs();
+    }
+
+    private int getMaxBetsByType() {
+        // NOTE: We'll have to modify this when we add more slots.
+        return (int) (Arrays.stream(Slot.values(this)).filter(Slot::isSingleInclusive).count() + SlotType.values().length);
     }
 
     private void addTableNumbers() {
@@ -906,7 +916,9 @@ public final class Game {
             for (int i = 0; i < bets.size(); i++) {
                 Bet bet = bets.get(i);
 
+                // Ignore invalid bets.
                 Slot slot = bet.getSlot();
+                if (slot == null || !bet.hasChip()) continue;
 
                 // Check for single numbers or slots with more than 1 number.
                 if (slot == winner || slot.contains(winner)) {
@@ -1442,18 +1454,26 @@ public final class Game {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isSlotAvailable(Player player) {
+        return isSlotAvailable(player, false);
+    }
+
+    public boolean isSlotAvailable(Player player, boolean ignoreCurrent) {
         for (Slot slot : Slot.values(this)) {
-            if (alreadySelected(player, slot)) continue;
+            if (alreadySelected(player, slot, ignoreCurrent)) continue;
             return true;
         }
         return false;
     }
 
     public boolean alreadySelected(Player player, Slot slot) {
+        return alreadySelected(player, slot, false);
+    }
+
+    public boolean alreadySelected(Player player, Slot slot, boolean ignoreCurrent) {
         // Outside have some limitations; you can't make a bet in (RED/BLACK) at the same time,
         // the same goes for (EVEN/ODD), (LOW/HIGH), all COLUMN and all DOZENS.
         // Also, you can't make more than 1 bet on the same slot.
-        SlotType conflictType = SlotType.hasConflict(this, player, slot);
+        SlotType conflictType = SlotType.hasConflict(this, player, slot, ignoreCurrent);
         if (conflictType != null) {
             return true;
         }
@@ -1532,11 +1552,6 @@ public final class Game {
 
     public boolean isRuleEnabled(GameRule rule) {
         return rules.getOrDefault(rule, false);
-    }
-
-    public void setLimitPlayers(int minPlayers, int maxPlayers) {
-        this.minPlayers = minPlayers < 1 ? 1 : minPlayers > maxPlayers ? Math.min(Math.max(1, maxPlayers), 10) : minPlayers;
-        this.maxPlayers = maxPlayers > 10 ? 10 : Math.max(maxPlayers, this.minPlayers);
     }
 
     public void changeGlowColor(Player player, boolean next) {
@@ -1730,5 +1745,23 @@ public final class Game {
                 stand.addEquipmentLock(slot, type);
             }
         }
+    }
+
+    public void setLimitPlayers(int minPlayers, int maxPlayers) {
+        this.minPlayers = minPlayers < 1 ? 1 : minPlayers > maxPlayers ? Math.min(Math.max(1, maxPlayers), 10) : minPlayers;
+        this.maxPlayers = maxPlayers > 10 ? 10 : Math.max(maxPlayers, this.minPlayers);
+    }
+
+    public void setStartTime(int startTime) {
+        this.startTime = Math.max(5, Math.min(60, startTime));
+    }
+
+    public void setNpcDistance(double npcDistance) {
+        double limit = Math.sqrt(plugin.getStandManager().getRenderDistance());
+        this.npcDistance = Math.round(Math.max(10.0d, Math.min(limit, npcDistance)));
+    }
+
+    public void setMaxBets(int maxBets) {
+        this.maxBets = Math.max(1, Math.min(getMaxBetsByType(), maxBets));
     }
 }

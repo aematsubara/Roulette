@@ -93,6 +93,7 @@ public final class GameChipGUI extends RouletteGUI {
         }
 
         if (current > 0) inventory.setItem(28, getItem("previous").build());
+        setMaxBetsItem();
         if (current < pages - 1) inventory.setItem(34, getItem("next").build());
 
         Map<Integer, Integer> slotIndex = new HashMap<>();
@@ -122,6 +123,12 @@ public final class GameChipGUI extends RouletteGUI {
     public void setChipStatusItem(int slot, Chip chip) {
         inventory.setItem(slot, new ItemBuilder(game.isChipDisabled(chip) ? disabled : enabled)
                 .setData(plugin.getChipNameKey(), PersistentDataType.STRING, chip.name())
+                .build());
+    }
+
+    public void setMaxBetsItem() {
+        inventory.setItem(31, getItem("max-bets")
+                .replace("%max-bets%", game.getMaxBets())
                 .build());
     }
 

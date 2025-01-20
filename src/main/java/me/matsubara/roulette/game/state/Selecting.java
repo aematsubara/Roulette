@@ -123,7 +123,7 @@ public final class Selecting extends BukkitRunnable {
         ticks--;
     }
 
-    public void showCurrentBetNumbers(Player player) {
+    private void showCurrentBetNumbers(Player player) {
         Bet bet = game.getSelectedBet(player);
         if (bet == null || !bet.hasChip()) return;
 

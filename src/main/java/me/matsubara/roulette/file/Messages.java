@@ -110,6 +110,7 @@ public final class Messages {
         SESSION_EMPTY("session.empty"),
         NO_ECONOMY_PROVIDER("game.no-economy-provider"),
         STARTING("game.starting"),
+        NO_MORE_SLOTS("game.no-more-slots"),
         SELECT_BET("game.select-bet"),
         BET_IN_PRISON("game.bet-in-prison"),
         BET_SELECTED("game.bet-selected"),

@@ -130,7 +130,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
     }
 
     public void addFreshGame(String name, int minPlayers, int maxPlayers, GameType type, UUID modelId, Location location, UUID owner, int startTime) {
-        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, null, true, null, 20.0d, null, null, false, false, null, null, null, null, null, null);
+        add(name, null, null, null, minPlayers, maxPlayers, type, modelId, location, owner, startTime, true, 0, null, true, null, 20.0d, null, null, false, false, null, null, null, null, null, null);
     }
 
     public void add(
@@ -146,6 +146,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
             UUID owner,
             int startTime,
             boolean betAll,
+            int maxBets,
             @Nullable NPC.NPCAction npcAction,
             boolean npcActionFOV,
             BlockFace currentNPCFace,
@@ -173,6 +174,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
                 owner,
                 startTime,
                 betAll,
+                maxBets,
                 npcAction,
                 npcActionFOV,
                 currentNPCFace,
@@ -223,6 +225,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
 
         // Save settings.
         configuration.set("games." + name + ".settings.bet-all", game.isBetAllEnabled());
+        configuration.set("games." + name + ".settings.max-bets", game.getMaxBets());
         configuration.set("games." + name + ".settings.start-time", game.getStartTime());
         configuration.set("games." + name + ".settings.min-players", game.getMinPlayers());
         configuration.set("games." + name + ".settings.max-players", game.getMaxPlayers());
@@ -290,6 +293,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
 
             // Load settings.
             boolean betAll = configuration.getBoolean("games." + path + ".settings.bet-all", true);
+            int maxBets = configuration.getInt("games." + path + ".settings.max-bets", 0);
             int startTime = configuration.getInt("games." + path + ".settings.start-time");
             int minPlayers = configuration.getInt("games." + path + ".settings.min-players");
             int maxPlayers = configuration.getInt("games." + path + ".settings.max-players");
@@ -326,6 +330,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
                     owner,
                     startTime,
                     betAll,
+                    maxBets,
                     npcAction,
                     npcActionFOV,
                     currentNPCFace,

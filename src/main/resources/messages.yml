@@ -66,6 +66,7 @@ game:
   no-economy-provider: "&cNo economy provider found! Contact an administrator."
   # %seconds% - the countdown time involved.
   starting: "&6Starting the game in &e%seconds% &6seconds..."
+  no-more-slots: "&cYou have reached the betting limit!"
   select-bet: "&6Please, select your bet."
   bet-in-prison: "&cThis bet is in prison, you can't interact with it!"
   # %bet% - the number of the bet.

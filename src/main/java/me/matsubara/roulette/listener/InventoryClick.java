@@ -258,7 +258,21 @@ public final class InventoryClick implements Listener {
         ItemMeta meta = current.getItemMeta();
         if (meta == null) return;
 
-        if (isCustomItem(current, "previous")) {
+        Game game = gui.getGame();
+
+        if (isCustomItem(current, "max-bets")) {
+            ClickType click = event.getClick();
+            boolean left = click.isLeftClick(), right = click.isRightClick();
+            if (!left && !right) return;
+
+            int step = click.isShiftClick() ? 5 : 1;
+            game.setMaxBets(game.getMaxBets() + (left ? -step : step));
+
+            gui.setMaxBetsItem();
+
+            // Save data.
+            plugin.getGameManager().save(game);
+        } else if (isCustomItem(current, "previous")) {
             gui.previousPage(event.isShiftClick());
         } else if (isCustomItem(current, "next")) {
             gui.nextPage(event.isShiftClick());
@@ -269,8 +283,6 @@ public final class InventoryClick implements Listener {
 
         Chip chip = plugin.getChipManager().getByName(chipName);
         if (chip == null) return;
-
-        Game game = gui.getGame();
 
         if (game.isChipDisabled(chip)) {
             game.enableChip(chip);
@@ -346,6 +358,8 @@ public final class InventoryClick implements Listener {
         boolean left = click.isLeftClick(), right = click.isRightClick();
         if (!left && !right) return;
 
+        Messages messages = plugin.getMessages();
+
         if (isCustomItem(current, "glow-color")) {
             // Change glow color and update it for the existing bets.
             game.changeGlowColor(player, right);
@@ -359,6 +373,14 @@ public final class InventoryClick implements Listener {
         } else if (isCustomItem(current, "new-bet")) {
             // At this point, the player shouldn't have access to this inventory.
             if (game.isDone(player)) {
+                closeInventory(player);
+                return;
+            }
+
+            // The player reached the betting limit.
+            if (game.getBets(player).size() == game.getMaxBets()
+                    || !game.isSlotAvailable(player, true)) {
+                messages.send(player, Messages.Message.NO_MORE_SLOTS);
                 closeInventory(player);
                 return;
             }
@@ -393,8 +415,6 @@ public final class InventoryClick implements Listener {
 
         Bet bet = bets.get(betIndex);
         if (bet == null) return;
-
-        Messages messages = plugin.getMessages();
 
         if (left) {
             // We don't want players to interact with prison bets.
@@ -567,9 +587,7 @@ public final class InventoryClick implements Listener {
             game.lookAtFace(game.getCurrentNPCFace());
             return;
         } else if (isCustomItem(current, "croupier-distance")) {
-            double limit = Math.sqrt(plugin.getStandManager().getRenderDistance());
-            double distance = Math.max(10.0d, Math.min(limit, game.getNpcDistance() + (right ? 5.0d : -5.0d)));
-            game.setNpcDistance(Math.round(distance));
+            game.setNpcDistance(game.getNpcDistance() + (right ? 5.0d : -5.0d));
             gui.setCroupierDistanceItem();
             plugin.getGameManager().save(game);
             return;
@@ -890,7 +908,7 @@ public final class InventoryClick implements Listener {
 
         // Minimum time = 5s | Maximum time = 60s
         int adjustment = (event.getClick() == ClickType.LEFT) ? -5 : 5;
-        game.setStartTime(Math.max(5, Math.min(60, game.getStartTime() + adjustment)));
+        game.setStartTime(game.getStartTime() + adjustment);
 
         ItemStack current = event.getCurrentItem();
         if (current != null && current.getAmount() != game.getStartTime()) {

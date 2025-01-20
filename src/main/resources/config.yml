@@ -634,6 +634,12 @@ game-chip-menu:
       display-name: "&aNext"
       lore:
         - "&7Click to go to the next page."
+    max-bets:
+      url: 8a084d0a1c6fc2163de30d8b148ab4d363220d5c972d5f88eb8dc86176ccdb3e
+      material: PLAYER_HEAD
+      display-name: "&aMaximum bets: &e%max-bets%"
+      lore:
+        - "&7Click to change the betting limit."
 
 # In this menu, you can manage your bets.
 # You can't change the material of @bet, as this will use a head with the chip skin, defined in @chips.yml.
