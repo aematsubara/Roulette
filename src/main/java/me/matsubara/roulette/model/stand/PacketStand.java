@@ -275,7 +275,21 @@ public final class PacketStand {
         CONNECTION = Reflection.getField(ENTITY_PLAYER, GAME_PACKET_LISTENER, "connection", true, "f", "c", "b", "playerConnection");
         if (XReflection.supports(18)) {
             // DATA_SHARED_FLAGS_ID, DATA_CUSTOM_NAME, DATA_CUSTOM_NAME_VISIBLE | DATA_CLIENT_FLAGS, DATA_X_POSE
-            if (XReflection.supports(21, 4)) {
+            if (XReflection.supports(21, 5)) {
+                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "am"));
+                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aR"));
+                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aS"));
+                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bw"));
+                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bx"));
+                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "by"));
+                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bz"));
+                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bA"));
+                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bB"));
+                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bC"));
+                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
+                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aH"));
+                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aJ"));
+            } else if (XReflection.supports(21, 4)) {
                 DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "am"));
                 DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aO"));
                 DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aP"));
