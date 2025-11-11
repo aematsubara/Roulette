@@ -39,15 +39,17 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
     private static final List<String> TABLE_NAME_ARG = List.of("<name>");
     private static final List<String> TYPES = List.of("american", "european");
     private static final List<String> HELP = Stream.of(
-            "&8&m--------------------------------------------------",
-            "&6&lRoulette &f&oCommands &c<required> | [optional]",
-            "&e/roulette create <name> <type> &f- &7Create a new roulette.",
-            "&e/roulette delete <name> &f- &7Delete a game.",
-            "&e/roulette sessions &f- &7Open the sessions menu.",
-            "&e/roulette reload &f- &7Reload configuration files.",
-            "&e/roulette map &f- &7Gives a win voucher.",
-            "&e/roulette force <slot> &f- &7Force the winning slot.",
-            "&8&m--------------------------------------------------").map(PluginUtils::translate).toList();
+                    "&8&m--------------------------------------------------",
+                    "&6&lRoulette &f&oCommands &c<required> | [optional]",
+                    "&e/roulette create <name> <type> &f- &7Create a new game.",
+                    "&e/roulette delete <name> &f- &7Delete a game.",
+                    "&e/roulette sessions &f- &7Open the sessions menu.",
+                    "&e/roulette reload &f- &7Reload configuration files.",
+                    "&e/roulette map &f- &7Gives a win voucher.",
+                    "&e/roulette force <slot> &f- &7Force the winning slot.",
+                    "&8&m--------------------------------------------------")
+            .map(PluginUtils::translate)
+            .toList();
 
     public MainCommand(RoulettePlugin plugin) {
         this.plugin = plugin;
@@ -128,6 +130,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
                             "Roulette",
                             new ArrayList<>(),
                             Slot.SLOT_0,
+                            GameType.AMERICAN,
                             System.currentTimeMillis());
 
                     // Dummy result.
@@ -198,12 +201,13 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             }
 
             Slot slot = PluginUtils.getOrNull(Slot.class, args[1]);
-            if (!ArrayUtils.contains(Slot.values(game), slot)) {
+            if (!ArrayUtils.contains(Slot.singleValues(game).toArray(), slot)) {
                 messages.send(player, Messages.Message.FORCE_UNKNOWN_SLOT);
                 return true;
             }
 
             spinning.setForce(slot);
+            spinning.setForcedBy(player);
 
             messages.send(player, Messages.Message.FORCE_SLOT_CHANGED, message -> message.replace("%slot%", PluginUtils.getSlotName(slot)));
             return true;
@@ -220,7 +224,7 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
         // If the player doesn't have permission to create games, send (@no-permission) message.
         if (!hasPermission(player, "roulette.create")) return true;
 
-        // "." cannot be used in the name as it creates conflicts with yaml.
+        // "." cannot be used in the name as it creates conflicts with YAML.
         String name = args[1];
         if (name.contains(".")) {
             messages.send(player, Messages.Message.INVALID_NAME);
@@ -233,13 +237,6 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // The model was created looking to the opposite side, so removing BlockFace#getOppositeFace() will work.
-        Location location = player
-                .getTargetBlock(null, 15)
-                .getLocation()
-                .add(0.5d, 1.0d, 0.5d)
-                .setDirection(PluginUtils.getDirection(PluginUtils.getFace(player.getLocation().getYaw())));
-
         // Get the type of the roulette, or AMERICAN by default.
         GameType type;
         try {
@@ -248,6 +245,13 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             messages.send(player, Messages.Message.INVALID_TYPE);
             return true;
         }
+
+        // The model was created looking to the opposite side, so removing BlockFace#getOppositeFace() will work.
+        Location location = player
+                .getTargetBlock(null, 15)
+                .getLocation()
+                .add(0.5d, 1.0d, 0.5d)
+                .setDirection(PluginUtils.getDirection(PluginUtils.getFace(player.getLocation().getYaw())));
 
         manager.addFreshGame(
                 name,
@@ -279,18 +283,20 @@ public final class MainCommand implements CommandExecutor, TabCompleter {
             return StringUtil.copyPartialMatches(args[1], TABLE_NAME_ARG, new ArrayList<>());
         }
 
+        GameManager manager = plugin.getGameManager();
+
         if (args.length == 2 && args[0].equalsIgnoreCase("force") && sender instanceof Player player) {
-            Game game = plugin.getGameManager().getGameByPlayer(player);
-            if (game != null) {
-                List<String> slots = Arrays.stream(Slot.values(game)).map(Enum::name).toList();
-                return StringUtil.copyPartialMatches(args[1], slots, new ArrayList<>());
-            }
+            Game game = manager.getGameByPlayer(player);
+            if (game == null) return Collections.emptyList();
+
+            List<String> slots = Slot.singleValues(game).map(Enum::name).toList();
+            return StringUtil.copyPartialMatches(args[1], slots, new ArrayList<>());
         }
 
         if (args.length == 2 && args[0].equalsIgnoreCase("delete")) {
             return StringUtil.copyPartialMatches(
                     args[1],
-                    plugin.getGameManager().getGames().stream()
+                    manager.getGames().stream()
                             .map(Game::getName)
                             .collect(Collectors.toList()),
                     new ArrayList<>());

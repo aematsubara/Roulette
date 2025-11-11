@@ -29,10 +29,11 @@ public enum ItemSlot {
 
     private @Nullable Object initNMSObject() {
         try {
+            char[] alphabet = "abcdefghijklmnopqrstuvwxyz".toCharArray();
             MethodHandle field = Reflection.getField(
                     PacketStand.ENUM_ITEM_SLOT,
                     PacketStand.ENUM_ITEM_SLOT,
-                    String.valueOf(PacketStand.ALPHABET[ordinal()]),
+                    String.valueOf(alphabet[ordinal()]),
                     true,
                     name());
 

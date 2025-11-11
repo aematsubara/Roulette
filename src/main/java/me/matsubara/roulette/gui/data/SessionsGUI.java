@@ -14,23 +14,19 @@ import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Getter
 public final class SessionsGUI extends RouletteGUI {
-
-    // The instance of the plugin.
-    private final RoulettePlugin plugin;
 
     // The player viewing this inventory.
     private final Player player;
@@ -40,12 +36,6 @@ public final class SessionsGUI extends RouletteGUI {
 
     // Format to use in dates.
     private final SimpleDateFormat format;
-
-    // The current page.
-    private int currentPage;
-
-    // The max number of pages.
-    private int pages;
 
     // The slots to show the content.
     private static final int[] SLOTS = {10, 11, 12, 13, 14, 15, 16};
@@ -58,8 +48,7 @@ public final class SessionsGUI extends RouletteGUI {
     }
 
     public SessionsGUI(@NotNull RoulettePlugin plugin, @NotNull Player player, int currentPage) {
-        super("sessions-menu");
-        this.plugin = plugin;
+        super(plugin, "sessions-menu", true);
         this.player = player;
         this.inventory = plugin.getServer().createInventory(this, 36);
         this.format = new SimpleDateFormat(Config.DATE_FORMAT.asString());
@@ -69,6 +58,7 @@ public final class SessionsGUI extends RouletteGUI {
         updateInventory();
     }
 
+    @Override
     public void updateInventory() {
         inventory.clear();
 
@@ -132,19 +122,31 @@ public final class SessionsGUI extends RouletteGUI {
                 .replace("%max%", String.valueOf(pages)));
     }
 
-    public void previousPage(boolean isShiftClick) {
-        currentPage = isShiftClick ? 0 : currentPage - 1;
-        updateInventory();
-    }
-
-    public void nextPage(boolean isShiftClick) {
-        currentPage = isShiftClick ? pages - 1 : currentPage + 1;
-        updateInventory();
-    }
-
     @Contract(pure = true)
     @Override
     public @Nullable Game getGame() {
         return null;
+    }
+
+    @Override
+    public void handle(@NotNull InventoryClickEvent event) {
+        super.handle(event);
+
+        Player player = (Player) event.getWhoClicked();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        UUID sessionUUID = meta.getPersistentDataContainer().get(plugin.getSessionKey(), PluginUtils.UUID_TYPE);
+        if (sessionUUID == null) return;
+
+        RouletteSession session = plugin.getDataManager().getSessionByUUID(sessionUUID);
+        if (session == null) return;
+
+        // Open results.
+        runTask(() -> new SessionResultGUI(plugin, player, session));
     }
 }

@@ -16,6 +16,7 @@ import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.gui.ChipGUI;
 import me.matsubara.roulette.model.stand.ModelLocation;
 import me.matsubara.roulette.util.PluginUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -63,9 +64,11 @@ public final class Selecting extends BukkitRunnable {
         // Hide the join hologram for every player.
         game.getJoinHologram().setVisibleByDefault(false);
 
-        Messages messages = plugin.getMessages();
+        // Close the tip menu, some players may not be playing.
+        Bukkit.getOnlinePlayers().forEach(game::closeOpenMenu);
 
         // Open chips GUI if necessary.
+        Messages messages = plugin.getMessages();
         for (Player player : game.getPlayers()) {
             List<Bet> bets = game.getBets(player);
 
@@ -137,7 +140,7 @@ public final class Selecting extends BukkitRunnable {
             default -> MIXED_COLOR;
         };
 
-        if (parent.isSingleInclusive()) {
+        if (parent.isSingle()) {
             handleParticles(player, parent, color);
             return;
         }

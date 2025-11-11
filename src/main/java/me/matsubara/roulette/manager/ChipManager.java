@@ -33,6 +33,8 @@ public final class ChipManager {
     private File file;
     private FileConfiguration configuration;
 
+    private static final String BET_ALL_SKIN = "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852";
+
     public ChipManager(RoulettePlugin plugin) {
         this.plugin = plugin;
         this.chips = new ArrayList<>();
@@ -108,6 +110,17 @@ public final class ChipManager {
             if (money == chip.price()) return chip;
         }
         return null;
+    }
+
+    public @NotNull Chip getExistingOrBetAll(Game game, double money) {
+        // If the bet-all money is the same of one chip from chips.yml, use that chip.
+        Chip chip = plugin.getChipManager().getChipByPrice(game, money);
+        if (chip != null) return chip;
+
+        // If the @bet-all item has URL, use it. Otherwise, use a default one.
+        String skin = plugin.getConfig().getString("chip-menu.items.bet-all.url", BET_ALL_SKIN);
+
+        return new Chip("bet-all", skin, money);
     }
 
     public Double getMinAmount(Game game) {

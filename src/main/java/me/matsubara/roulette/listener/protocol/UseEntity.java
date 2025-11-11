@@ -67,7 +67,7 @@ public final class UseEntity extends SimplePacketListenerAbstract {
         // Joining while shifting will remove the player from the chair.
         if (player.isSneaking()) return true;
 
-        // If there is no economy provider then we won't be able to play.
+        // If there is no economy provider, then we won't be able to play.
         if (!plugin.getEconomyExtension().isEnabled()) {
             messages.send(player, Messages.Message.NO_ECONOMY_PROVIDER);
             return true;
@@ -76,6 +76,18 @@ public final class UseEntity extends SimplePacketListenerAbstract {
         // Can happen when the player is already in the game.
         if (game.isPlaying(player) && game.isSittingOn(player)) {
             messages.send(player, Messages.Message.ALREADY_INGAME);
+            return true;
+        }
+
+        // The player is on another game.
+        if (plugin.getGameManager().isPlaying(player)) {
+            messages.send(player, Messages.Message.ALREADY_PLAYING);
+            return true;
+        }
+
+        // This will prevent issues with other plugins dismounting the chairs.
+        if (player.isInsideVehicle()) {
+            messages.send(player, Messages.Message.INSIDE_VEHICLE);
             return true;
         }
 

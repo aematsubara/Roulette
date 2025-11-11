@@ -1,8 +1,8 @@
 package me.matsubara.roulette.gui;
 
 import lombok.Getter;
-import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.manager.ChipManager;
@@ -12,8 +12,11 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,9 +27,6 @@ import java.util.Map;
 @Getter
 public final class GameChipGUI extends RouletteGUI {
 
-    // The instance of the plugin.
-    private final RoulettePlugin plugin;
-
     // The instance of the game.
     private final Game game;
 
@@ -35,12 +35,6 @@ public final class GameChipGUI extends RouletteGUI {
 
     // The inventory being used.
     private final Inventory inventory;
-
-    // The current page.
-    private int current;
-
-    // The max number of pages.
-    private int pages;
 
     // We'll keep these here, so we can swap them when clicking on them.
     private final ItemStack enabled;
@@ -56,8 +50,7 @@ public final class GameChipGUI extends RouletteGUI {
     private static final int[] HOTBAR = {28, 29, 30, 31, 32, 33, 34};
 
     public GameChipGUI(@NotNull Game game, @NotNull Player player) {
-        super("game-chip-menu");
-        this.plugin = game.getPlugin();
+        super(game.getPlugin(), "game-chip-menu", true);
         this.game = game;
         this.player = player;
         this.inventory = Bukkit.createInventory(this, 45);
@@ -69,6 +62,7 @@ public final class GameChipGUI extends RouletteGUI {
         updateInventory();
     }
 
+    @Override
     public void updateInventory() {
         inventory.clear();
 
@@ -92,17 +86,17 @@ public final class GameChipGUI extends RouletteGUI {
             inventory.setItem(i, background);
         }
 
-        if (current > 0) inventory.setItem(28, getItem("previous").build());
+        if (currentPage > 0) inventory.setItem(28, getItem("previous").build());
         setMaxBetsItem();
-        if (current < pages - 1) inventory.setItem(34, getItem("next").build());
+        if (currentPage < pages - 1) inventory.setItem(34, getItem("next").build());
 
         Map<Integer, Integer> slotIndex = new HashMap<>();
         for (int i : SLOTS) {
             slotIndex.put(ArrayUtils.indexOf(SLOTS, i), i);
         }
 
-        int startFrom = current * SLOTS.length;
-        boolean isLastPage = current == pages - 1;
+        int startFrom = currentPage * SLOTS.length;
+        boolean isLastPage = currentPage == pages - 1;
 
         for (int index = 0, aux = startFrom; isLastPage ? (index < chips.size() - startFrom) : (index < SLOTS.length); index++, aux++) {
             Chip chip = chips.get(aux);
@@ -116,7 +110,7 @@ public final class GameChipGUI extends RouletteGUI {
 
         // Update inventory title to show the current page.
         InventoryUpdate.updateInventory(player, Config.GAME_CHIP_MENU_TITLE.asStringTranslated()
-                .replace("%page%", String.valueOf(current + 1))
+                .replace("%page%", String.valueOf(currentPage + 1))
                 .replace("%max%", String.valueOf(pages)));
     }
 
@@ -132,15 +126,55 @@ public final class GameChipGUI extends RouletteGUI {
                 .build());
     }
 
-    public void previousPage(boolean isShiftClick) {
-        // If shift clicking, go to the first page; otherwise, go to the previous page.
-        current = isShiftClick ? 0 : current - 1;
-        updateInventory();
-    }
+    @Override
+    public void handle(@NotNull InventoryClickEvent event) {
+        super.handle(event);
 
-    public void nextPage(boolean isShiftClick) {
-        // If shift clicking, go to the last page; otherwise, go to the next page.
-        current = isShiftClick ? pages - 1 : current + 1;
-        updateInventory();
+        Player player = (Player) event.getWhoClicked();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        if (isCustomItem(current, "max-bets")) {
+            ClickType click = event.getClick();
+            boolean left = click.isLeftClick(), right = click.isRightClick();
+            if (!left && !right) return;
+
+            int step = click.isShiftClick() ? 5 : 1;
+            game.setMaxBets(game.getMaxBets() + (left ? -step : step));
+
+            setMaxBetsItem();
+
+            // Save data.
+            plugin.getGameManager().save(game);
+            return;
+        }
+
+        String chipName = meta.getPersistentDataContainer().get(plugin.getChipNameKey(), PersistentDataType.STRING);
+        if (chipName == null) return;
+
+        Chip chip = plugin.getChipManager().getByName(chipName);
+        if (chip == null) return;
+
+        if (game.isChipDisabled(chip)) {
+            game.enableChip(chip);
+        } else {
+            if (plugin.getChipManager().getChipsByGame(game).size() == 1) {
+                plugin.getMessages().send(player, Messages.Message.AT_LEAST_ONE_CHIP_REQUIRED);
+                closeInventory(player);
+                return;
+            }
+            game.disableChip(chip);
+        }
+
+        int slot = event.getRawSlot() + (isCustomItem(current, "chip") ? 9 : 0);
+        setChipStatusItem(slot, chip);
+
+        // Update join hologram and save data.
+        game.updateJoinHologram(false);
+        plugin.getGameManager().save(game);
     }
 }

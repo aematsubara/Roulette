@@ -4,12 +4,9 @@ import com.cryptomorin.xseries.reflection.XReflection;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
-import me.matsubara.roulette.file.Config;
-import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.util.PluginUtils;
 import net.md_5.bungee.api.ChatColor;
-import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -23,9 +20,8 @@ import org.jetbrains.annotations.Nullable;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.text.Normalizer;
-import java.text.SimpleDateFormat;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,27 +42,6 @@ public final class MapBuilder extends MapRenderer {
     private boolean rendered;
 
     private static final Pattern ACCENT_PATTERN = Pattern.compile("\\p{M}");
-    public static TriFunction<RoulettePlugin, PlayerResult, String, String> MAP_REPLACER = new TriFunction<>() {
-        @Override
-        public @NotNull String apply(@NotNull RoulettePlugin plugin, @NotNull PlayerResult result, @NotNull String string) {
-            RouletteSession session = result.session();
-            if (session == null) return string;
-
-            String playerName = Objects.requireNonNullElse(Bukkit.getOfflinePlayer(result.playerUUID()).getName(), "???");
-            String moneyFormatted = PluginUtils.format(plugin.getExpectedMoney(result));
-            String originalFormatted = PluginUtils.format(result.money());
-            String date = new SimpleDateFormat(Config.DATE_FORMAT.asString()).format(new Date(session.timestamp()));
-            String selected = PluginUtils.getSlotName(result.slot());
-            String winner = PluginUtils.getSlotName(session.slot());
-            return string.replace("%player%", playerName)
-                    .replace("%money%", moneyFormatted)
-                    .replace("%original-money%", originalFormatted)
-                    .replace("%date%", date)
-                    .replace("%selected-slot%", org.bukkit.ChatColor.stripColor(selected))
-                    .replace("%winner-slot%", org.bukkit.ChatColor.stripColor(winner))
-                    .replace("%table%", session.name());
-        }
-    };
 
     public MapBuilder(RoulettePlugin plugin, UUID playerUUID, RouletteSession session) {
         this.plugin = plugin;

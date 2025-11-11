@@ -145,10 +145,10 @@ public final class StandManager implements Listener, Runnable {
             }
 
             // Show/hide selected stands.
-            PacketStand selectedOne = game.getSelectedOne();
-            PacketStand selectedTwo = game.getSelectedTwo();
-            if (selectedOne != null) handleStandRender(player, selectedOne, show);
-            if (selectedTwo != null) handleStandRender(player, selectedTwo, show);
+            PacketStand markerDollyOne = game.getMarkerDollyOne();
+            PacketStand markerDollyTwo = game.getMarkerDollyTwo();
+            if (markerDollyOne != null) handleStandRender(player, markerDollyOne, show);
+            if (markerDollyTwo != null) handleStandRender(player, markerDollyTwo, show);
 
             // Show/hide money animation stands.
             MoneyAnimation money = game.getMoneyAnimation();

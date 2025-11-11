@@ -29,11 +29,9 @@ public final class InventoryClose implements Listener {
 
         Inventory inventory = event.getInventory();
 
-        if (inventory.getHolder() instanceof GameGUI) {
-            int taskId = ((GameGUI) inventory.getHolder()).getTaskId();
-            if (taskId != -1) {
-                plugin.getServer().getScheduler().cancelTask(taskId);
-            }
+        if (inventory.getHolder() instanceof GameGUI gui) {
+            int taskId = gui.getTaskId();
+            if (taskId != -1) plugin.getServer().getScheduler().cancelTask(taskId);
             return;
         }
 
@@ -44,6 +42,7 @@ public final class InventoryClose implements Listener {
         if (bet == null) return;
 
         if (inventory.getHolder() instanceof ChipGUI chip) {
+            // The player already selected a chip.
             if (bet.hasChip()) return;
 
             // We only want to force the first bet.
@@ -58,8 +57,9 @@ public final class InventoryClose implements Listener {
                     if (confirm.getType() == ConfirmGUI.ConfirmType.BET_ALL) return;
                 }
 
-                int page = chip.getCurrentPage();
-                runTask(() -> new ChipGUI(game, player, page, false));
+                // The player closed the chip menu but didn't select a chip, re-open menu.
+                player.openInventory(chip.getInventory());
+                chip.updateInventory();
             }, 2L);
             return;
         }
@@ -83,7 +83,12 @@ public final class InventoryClose implements Listener {
         // The player selected a chip, no need to re-open the chip GUI.
         if (bet.hasChip()) return;
 
-        runTask(() -> new ChipGUI(game, player, gui.getPreviousPage(), gui.getSourceGUI().isNewBet()));
+        // The player closed the confirm bet-all menu but didn't confirmed, re-open the chip menu.
+        runTask(() -> {
+            ChipGUI chip = gui.getSourceGUI();
+            player.openInventory(chip.getInventory());
+            chip.updateInventory();
+        });
     }
 
     private void runTask(Runnable runnable) {

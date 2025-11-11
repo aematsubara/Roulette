@@ -1,9 +1,5 @@
 package me.matsubara.roulette.npc;
 
-import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
-import com.github.retrooper.packetevents.protocol.nbt.NBTInt;
-import com.github.retrooper.packetevents.protocol.nbt.NBTIntArray;
-import com.github.retrooper.packetevents.protocol.nbt.NBTString;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
@@ -14,7 +10,7 @@ import me.matsubara.roulette.npc.modifier.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -130,32 +126,8 @@ public class NPC {
 
     public void toggleParrotVisibility(@NotNull MetadataModifier metadata) {
         boolean left = game.getParrotShoulder().isLeft();
-
-        NBTCompound parrot = new NBTCompound();
-        if (game.isParrotEnabled()) {
-            parrot.setTag("id", new NBTString(EntityType.PARROT.getKey().toString()));
-            parrot.setTag("UUID", new NBTIntArray(randomUUID()));
-            parrot.setTag("Variant", new NBTInt(game.getParrotVariant().ordinal()));
-        }
-
-        metadata.queue(left ?
-                MetadataModifier.EntityMetadata.SHOULDER_ENTITY_LEFT :
-                MetadataModifier.EntityMetadata.SHOULDER_ENTITY_RIGHT, parrot);
-    }
-
-    private int[] randomUUID() {
-        UUID uuid = UUID.randomUUID();
-
-        long most = uuid.getMostSignificantBits();
-        long least = uuid.getLeastSignificantBits();
-
-        int[] array = new int[4];
-        array[0] = (int) (most >>> 32);
-        array[1] = (int) most;
-        array[2] = (int) (least >>> 32);
-        array[3] = (int) least;
-
-        return array;
+        Parrot.Variant variant = game.isParrotEnabled() ? game.getParrotVariant() : null;
+        metadata.queueShoulderEntity(left, variant);
     }
 
     public static class Builder {

@@ -25,6 +25,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 public final class Spinning extends BukkitRunnable {
@@ -32,13 +33,13 @@ public final class Spinning extends BukkitRunnable {
     private final RoulettePlugin plugin;
     private final Game game;
     private final PacketStand ball;
-    private final boolean isEuropean;
     private final Slot[] slots;
     private final int totalTime;
 
     private int time;
     private boolean shouldStart;
     private @Setter Slot force;
+    private @Setter Player forcedBy;
 
     private final String hologramSpinning = Config.SPINNING.asStringTranslated();
     private final String hologramWinningNumber = Config.WINNING_NUMBER.asStringTranslated();
@@ -48,13 +49,10 @@ public final class Spinning extends BukkitRunnable {
         this.plugin = plugin;
         this.game = game;
         this.ball = game.getBall();
-        this.isEuropean = game.getType().isEuropean();
-        this.slots = new Slot[isEuropean ? 37 : 38];
+        this.slots = Slot.singleValues(game).toArray(Slot[]::new);
         this.totalTime = Config.COUNTDOWN_SORTING.asInt() * 20;
         this.time = totalTime;
         this.shouldStart = true;
-
-        System.arraycopy(Slot.values(game), 0, slots, 0, isEuropean ? 37 : 38);
 
         game.setState(GameState.SPINNING);
         game.removeSleepingPlayers();
@@ -120,18 +118,14 @@ public final class Spinning extends BukkitRunnable {
         ball.teleport(game.getSeeingPlayers(), location);
 
         // Select a random number.
-        int which = PluginUtils.RANDOM.nextInt(0, isEuropean ? 37 : 38);
+        int which = PluginUtils.RANDOM.nextInt(slots.length);
         game.setWinner(slots[which]);
 
         if (time == 1) {
-            if (force != null) {
-                game.setWinner(force);
-            } else {
-                LastRouletteSpinEvent lastSpinEvent = new LastRouletteSpinEvent(game, game.getWinner());
-                plugin.getServer().getPluginManager().callEvent(lastSpinEvent);
-
-                game.setWinner(lastSpinEvent.getWinnerSlot());
-            }
+            Slot winner = Optional.ofNullable(force).orElse(game.getWinner());
+            LastRouletteSpinEvent event = new LastRouletteSpinEvent(game, winner, forcedBy);
+            plugin.getServer().getPluginManager().callEvent(event);
+            game.setWinner(event.getWinnerSlot());
         }
 
         String slotName = PluginUtils.getSlotName(game.getWinner());

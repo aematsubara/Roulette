@@ -25,7 +25,7 @@ public class NPCModifier {
     }
 
     protected void queueInstantly(@NotNull LazyPacket packet) {
-        PacketWrapper<? extends PacketWrapper<?>> container = packet.provide(npc, null);
+        PacketWrapper<? extends @NotNull PacketWrapper<?>> container = packet.provide(npc, null);
         packetContainers.add((npc, player) -> container);
     }
 
@@ -49,6 +49,6 @@ public class NPCModifier {
 
     public interface LazyPacket {
 
-        PacketWrapper<? extends PacketWrapper<?>> provide(NPC npc, Player player);
+        PacketWrapper<? extends @NotNull PacketWrapper<?>> provide(NPC npc, Player player);
     }
 }

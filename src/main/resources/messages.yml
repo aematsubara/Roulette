@@ -172,6 +172,8 @@ game:
 # Other messages.
 other:
   already-ingame: "&c¡You're already in game!"
+  already-playing: "&cYou are already in another game!"
+  inside-vehicle: "&cYou can't join this game while you're inside a vehicle!"
   already-started: "&cThe game is already started."
   seat-taken: "&cThis seat is already taken!"
   game-stopped: "&cThe game you were playing was stopped or deleted!"

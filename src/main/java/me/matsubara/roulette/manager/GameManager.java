@@ -123,7 +123,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
         configuration = new YamlConfiguration();
         try {
             configuration.load(file);
-            update();
+            loadGames();
         } catch (IOException | InvalidConfigurationException exception) {
             exception.printStackTrace();
         }
@@ -259,7 +259,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
         saveConfig();
     }
 
-    private void update() {
+    private void loadGames() {
         games.forEach(Game::remove);
         games.clear();
 
@@ -437,7 +437,7 @@ public final class GameManager extends BukkitRunnable implements Listener {
         try {
             configuration = new YamlConfiguration();
             configuration.load(file);
-            update();
+            loadGames();
         } catch (IOException | InvalidConfigurationException exception) {
             exception.printStackTrace();
         }

@@ -58,7 +58,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.*;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -78,6 +77,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -131,7 +131,7 @@ public final class Game {
     private final List<Slot> disabledSlots;
 
     // Rules applied in this game.
-    private final Map<GameRule, Boolean> rules = new EnumMap<>(GameRule.class);
+    private final EnumMap<GameRule, Boolean> rules = new EnumMap<>(GameRule.class);
 
     // Chairs of the game.
     private final Map<String, ArmorStand> chairs = new ConcurrentHashMap<>();
@@ -160,7 +160,7 @@ public final class Game {
     // If bet-all is allowed in this game.
     private boolean betAllEnabled;
 
-    // Maximum amount of bets that can be made in this game (per player).
+    // Maximum bets that can be made in this game (per player).
     private int maxBets;
 
     // Whether the croupier invites/look at nearby players.
@@ -191,8 +191,8 @@ public final class Game {
 
     // Armor stands from the table.
     private final PacketStand ball;
-    private PacketStand selectedOne;
-    private PacketStand selectedTwo;
+    private PacketStand markerDollyOne;
+    private PacketStand markerDollyTwo;
 
     // Players being tranfered to another chair.
     private final Set<UUID> transfers = new HashSet<>();
@@ -231,8 +231,6 @@ public final class Game {
         Chip chip = bet.getChip();
         Slot slot = bet.getSlot();
 
-        String numbers = slot.isDoubleZero() ? "[00]" : Arrays.toString(slot.getChilds());
-
         double price = chip.price();
         WinData winData = bet.getWinData();
         WinData.WinType winType = winData != null ?
@@ -241,14 +239,15 @@ public final class Game {
                 WinData.WinType.NORMAL;
 
         RoulettePlugin plugin = game.getPlugin();
+        GameType type = game.getType();
 
         return line
                 .replace("%bet%", PluginUtils.getSlotName(slot))
-                .replace("%numbers%", numbers.substring(1, numbers.length() - 1)) // Remove brackets.
-                .replace("%chance%", slot.getChance(game.getType().isEuropean()))
-                .replace("%multiplier%", String.valueOf(slot.getMultiplier(plugin)))
+                .replace("%numbers%", slot.getNumbersAsString(type))
+                .replace("%chance%", slot.getChance(type.isEuropean()))
+                .replace("%multiplier%", String.valueOf(slot.getMultiplier(type, plugin)))
                 .replace("%money%", PluginUtils.format(price))
-                .replace("%win-money%", PluginUtils.format(plugin.getExpectedMoney(price, slot, winType)))
+                .replace("%win-money%", PluginUtils.format(plugin.getExpectedMoney(type, price, slot, winType)))
                 .replace("%rule%", plugin.formatWinType(winType));
     };
 
@@ -336,15 +335,16 @@ public final class Game {
     }
 
     private int getMaxBetsByType() {
-        // NOTE: We'll have to modify this when we add more slots.
-        return (int) (Arrays.stream(Slot.values(this)).filter(Slot::isSingleInclusive).count() + SlotType.values().length);
+        long singles = Slot.singleValues(this).count();
+        long others = Arrays.stream(SlotType.values()).filter(SlotType::isConflict).count();
+        return (int) (singles + others);
     }
 
     private void addTableNumbers() {
         if (!experimental || !XReflection.supports(19, 4)) return;
 
         for (Slot slot : Slot.values(this)) {
-            if (!slot.isSingleInclusive()) continue;
+            if (!slot.isSingle()) continue;
 
             ModelLocation temp = model.getLocationByName(slot.name());
             if (temp == null) continue;
@@ -441,7 +441,7 @@ public final class Game {
             lockSlots(bukkit);
             LISTEN_MODE_IGNORE.accept(plugin, bukkit);
 
-            // For these armor stands, we don't want the tick (if possible).
+            // For these armorstands, we don't want the tick (if possible).
             setTick(bukkit, false);
         });
     }
@@ -458,7 +458,7 @@ public final class Game {
         return texture != null && !texture.equals(ADAM_TEXTURES.getValue()) && signature != null && !signature.equals(ADAM_TEXTURES.getSignature());
     }
 
-    public @Nullable String getNPCTexture() {
+    public String getNPCTexture() {
         return npc.getProfile().getTextureProperties().stream()
                 .findFirst()
                 .map(TextureProperty::getValue)
@@ -692,22 +692,26 @@ public final class Game {
         if (!spinningGlobal) spinHologram.hideTo(player);
     }
 
-    public void updateJoinHologram(boolean isReload) {
-        // Fill join hologram.
-        if (isReload || joinHologramLines.size() != joinHologram.size()) {
+    public void updateHologram(Hologram hologram, List<String> lines, UnaryOperator<String> replacer, boolean reload) {
+        // Fill hologram.
+        if (reload || lines.size() != hologram.size()) {
             // Remove lines (if any).
-            joinHologram.destroy();
+            hologram.destroy();
 
-            for (String line : joinHologramLines) {
-                joinHologram.addLines(replaceJoinHologramLines(line));
+            for (String line : lines) {
+                hologram.addLines(replacer.apply(line));
             }
             return;
         }
 
         // Update hologram lines.
-        for (int i = 0; i < joinHologramLines.size(); i++) {
-            joinHologram.setLine(i, replaceJoinHologramLines(joinHologramLines.get(i)));
+        for (int i = 0; i < lines.size(); i++) {
+            hologram.setLine(i, replacer.apply(lines.get(i)));
         }
+    }
+
+    public void updateJoinHologram(boolean reload) {
+        updateHologram(joinHologram, joinHologramLines, this::replaceJoinHologramLines, reload);
     }
 
     private @NotNull String replaceJoinHologramLines(@NotNull String line) {
@@ -874,14 +878,17 @@ public final class Game {
         Bet bet = getSelectedBet(player);
         if (bet == null || !bet.hasChip() || bet.hasSlot()) return;
 
+        // Spawn hologram and chip.
+        Slot slot = getAvailableSlot(player);
+        bet.handle(slot);
+    }
+
+    private Slot getAvailableSlot(Player player) {
         Slot[] slots = Slot.values(this);
 
         // Find an available slot to the right or left from the first slot.
         // We use the last slot as the current since we want to start checking from the first slot.
-        Slot slot = getAvailableSlot(player, slots[slots.length - 1]);
-
-        // Spawn hologram and chip.
-        bet.handle(slot);
+        return getAvailableSlot(player, slots[slots.length - 1]);
     }
 
     private ArmorStand getAvailableChair(Player player, int currentChair, boolean right) {
@@ -907,7 +914,7 @@ public final class Game {
     }
 
     public void checkWinner() {
-        spawnBottle();
+        spawnMarkerDolly();
 
         for (Player player : getPlayers()) {
             List<Bet> bets = getBets(player);
@@ -951,12 +958,18 @@ public final class Game {
         RouletteEndEvent endEvent = new RouletteEndEvent(this, winners, winner);
         plugin.getServer().getPluginManager().callEvent(endEvent);
 
-        // Set all winner bets as winner (a check is inside of Bet#setWon).
+        // Set all winner bets as winner (a check is inside Bet#setWon).
         getAllBets().forEach(Bet::setWon);
 
         // Save session to the database.
         DataManager dataManager = plugin.getDataManager();
-        CompletableFuture<RouletteSession> session = dataManager.saveSession(UUID.randomUUID(), name, players.entries(), winner, System.currentTimeMillis());
+        CompletableFuture<RouletteSession> session = dataManager.saveSession(
+                UUID.randomUUID(),
+                name,
+                players.entries(),
+                winner,
+                type,
+                System.currentTimeMillis());
 
         // Create and save maps to the database (if enabled).
         if (mapImageEnabled) {
@@ -973,7 +986,7 @@ public final class Game {
                 // Don't take money from the same player.
                 if (giveTo.getUniqueId().equals(player.getUniqueId())) continue;
 
-                // Sum the money from all the bets.
+                // Sum the money from all the losing bets.
                 double price = getBets(player).stream()
                         .filter(bet -> bet.hasChip() && bet.getWinData() == null) // Don't take money from winning bets.
                         .mapToDouble(bet -> bet.getChip().price())
@@ -1089,7 +1102,7 @@ public final class Game {
 
         // Start dab animation for the player who won more money and was a single bet.
         Optional<Bet> max = getAllBets().stream()
-                .filter(bet -> bet.isWon() && bet.getSlot().isSingleInclusive())
+                .filter(bet -> bet.isWon() && bet.getSlot().isSingle())
                 .max((first, second) -> Double.compare(
                         plugin.getExpectedMoney(first),
                         plugin.getExpectedMoney(second)));
@@ -1201,7 +1214,7 @@ public final class Game {
                 .forEach(player -> plugin.getMessages().send(player, Messages.Message.PRISON_REMINDER));
     }
 
-    private void spawnBottle() {
+    private void spawnMarkerDolly() {
         Set<Player> to = getSeeingPlayers();
 
         // Where to spawn the bottle.
@@ -1216,7 +1229,7 @@ public final class Game {
         oneSettings.setRightArmPose(new EulerAngle(angle, 0.0f, 0.0f));
 
         // First part.
-        to.forEach((selectedOne = new PacketStand(plugin, baseLocation, oneSettings))::spawn);
+        to.forEach((markerDollyOne = new PacketStand(plugin, baseLocation, oneSettings))::spawn);
 
         Location modelLocation = getLocation();
         float yaw = modelLocation.getYaw(), pitch = modelLocation.getPitch();
@@ -1228,7 +1241,7 @@ public final class Game {
         twoSettings.setRightArmPose(new EulerAngle(angle, angle, 0.0f));
 
         // Second part.
-        to.forEach((selectedTwo = new PacketStand(plugin, baseLocation.clone().add(offset), twoSettings))::spawn);
+        to.forEach((markerDollyTwo = new PacketStand(plugin, baseLocation.clone().add(offset), twoSettings))::spawn);
 
         // Where to teleport the bottle.
         ModelLocation temp = model.getLocationByName(winner.name());
@@ -1248,8 +1261,8 @@ public final class Game {
 
         // Teleport.
         for (Player player : to) {
-            selectedOne.teleport(player, bottleLocation);
-            selectedTwo.teleport(player, bottleLocation.add(offset));
+            markerDollyOne.teleport(player, bottleLocation);
+            markerDollyTwo.teleport(player, bottleLocation.add(offset));
         }
     }
 
@@ -1286,11 +1299,30 @@ public final class Game {
         }.runTaskTimer(plugin, 20L, 20L);
     }
 
-    private void spawnFirework(@NotNull Location location) {
+    public void spawnFirework(@NotNull Location location) {
+        Random random = PluginUtils.RANDOM;
+        spawnFirework(
+                location,
+                true,
+                true,
+                PluginUtils.getRandomColor(),
+                PluginUtils.getRandomColor(),
+                random.nextInt(1, 5),
+                PluginUtils.getRandomFromEnum(FireworkEffect.Type.class),
+                instantExplode);
+    }
+
+    public void spawnFirework(
+            @NotNull Location location,
+            boolean flicker,
+            boolean trail,
+            Color color,
+            Color fade,
+            int power,
+            FireworkEffect.Type type,
+            boolean instantExplode) {
         World world = location.getWorld();
         Preconditions.checkNotNull(world);
-
-        Random random = PluginUtils.RANDOM;
 
         // We want the fireworks to have the same yaw as the NPC,
         // so firework effects like creeper have the right rotation.
@@ -1302,20 +1334,18 @@ public final class Game {
                 location,
                 Firework.class,
                 temp -> LISTEN_MODE_IGNORE.accept(plugin, temp));
-        FireworkMeta meta = firework.getFireworkMeta();
-
         firework.setMetadata("isRoulette", new FixedMetadataValue(plugin, true));
 
-        FireworkEffect.Builder builder = FireworkEffect.builder()
-                .flicker(true)
-                .trail(true)
-                .withColor(PluginUtils.getRandomColor())
-                .withFade(PluginUtils.getRandomColor());
+        FireworkMeta meta = firework.getFireworkMeta();
+        meta.setPower(power);
+        meta.addEffect(FireworkEffect.builder()
+                .flicker(flicker)
+                .trail(trail)
+                .withColor(color)
+                .withFade(fade)
+                .with(type)
+                .build());
 
-        builder.with(PluginUtils.getRandomFromEnum(FireworkEffect.Type.class));
-
-        meta.addEffect(builder.build());
-        meta.setPower(random.nextInt(1, 5));
         firework.setFireworkMeta(meta);
 
         if (instantExplode) {
@@ -1344,14 +1374,14 @@ public final class Game {
         // Show the ball in the NPC hand.
         npc.equipment().queue(EquipmentSlot.MAIN_HAND, plugin.getBall()).send();
 
-        if (selectedOne != null) {
-            selectedOne.destroy();
-            selectedOne = null;
+        if (markerDollyOne != null) {
+            markerDollyOne.destroy();
+            markerDollyOne = null;
         }
 
-        if (selectedTwo != null) {
-            selectedTwo.destroy();
-            selectedTwo = null;
+        if (markerDollyTwo != null) {
+            markerDollyTwo.destroy();
+            markerDollyTwo = null;
         }
 
         Set<Player> reAdd = new LinkedHashSet<>();
@@ -1505,11 +1535,7 @@ public final class Game {
         restart(true);
 
         // Close GUIs related to this game.
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            Inventory inventory = player.getOpenInventory().getTopInventory();
-            if (!(inventory.getHolder() instanceof RouletteGUI gui)) continue;
-            if (equals(gui.getGame())) player.closeInventory();
-        }
+        Bukkit.getOnlinePlayers().forEach(this::closeOpenMenu);
 
         // Remove model.
         model.kill();
@@ -1517,10 +1543,8 @@ public final class Game {
         chairs.values().forEach(Entity::remove);
         chairs.clear();
 
-        // Remove join hologram.
+        // Remove hologram.
         joinHologram.destroy();
-
-        // Remove spin hologram.
         spinHologram.destroy();
 
         // Play parrot death sound.
@@ -1649,7 +1673,9 @@ public final class Game {
 
     public void closeOpenMenu(@NotNull Player player) {
         InventoryHolder holder = player.getOpenInventory().getTopInventory().getHolder();
-        if (holder instanceof RouletteGUI) player.closeInventory();
+        if (holder instanceof RouletteGUI gui && equals(gui.getGame())) {
+            player.closeInventory();
+        }
     }
 
     public boolean isDone(Player player) {
@@ -1763,5 +1789,117 @@ public final class Game {
 
     public void setMaxBets(int maxBets) {
         this.maxBets = Math.max(1, Math.min(getMaxBetsByType(), maxBets));
+    }
+
+    public void handlePlayerBetHolograms(Player player) {
+        List<Bet> bets = getBets(player);
+        for (int i = 0; i < bets.size(); i++) {
+            Bet bet = bets.get(i);
+
+            Hologram hologram = bet.getHologram();
+            if (hologram == null) continue;
+
+            if (i == getSelectedBetIndex(player)) {
+                // Show hologram.
+                hologram.showTo(player);
+
+                // Update hologram lines.
+                List<String> lines = hologram.getLines();
+                for (int j = 0; j < lines.size(); j++) {
+                    hologram.setLine(j, lines.get(j));
+                }
+
+                // Add glow.
+                bet.updateStandGlow(player);
+            } else {
+                // Hide hologram and remove glow.
+                hologram.hideTo(player);
+                bet.removeStandGlow(player);
+            }
+        }
+    }
+
+    public boolean newBet(Player player, @NotNull Chip chip, boolean isNewBet) {
+        // Check if the player has the required money for this chip.
+        if (!plugin.getEconomyExtension().has(player, chip.price())) return false;
+
+        takeMoneyAndPlaceBet(player, chip, isNewBet);
+        return true;
+    }
+
+    public void takeMoneyAndPlaceBet(Player player, @NotNull Chip chip, boolean isNewBet) {
+        double money = chip.price();
+
+        // Take money from player.
+        EconomyExtension<?> economyExtension = plugin.getEconomyExtension();
+        if (!economyExtension.withdraw(player, money)) return;
+
+        Messages messages = plugin.getMessages();
+
+        messages.send(player, Messages.Message.SELECTED_AMOUNT, message -> message
+                .replace("%money%", PluginUtils.format(money))
+                .replace("%money-left%", PluginUtils.format(economyExtension.getBalance(player))));
+
+        if (!isNewBet) messages.send(player, Messages.Message.CONTROL);
+
+        playerBet(player, chip, isNewBet);
+    }
+
+    private void playerBet(Player player, Chip chip, boolean isNewBet) {
+        // Handle the new bet (if needed).
+        if (isNewBet) {
+            addEmptyBetAndSelect(player);
+            addExtraTimeFor(player);
+        }
+
+        // Set the chip of the bet.
+        Bet bet = getSelectedBet(player);
+        if (bet != null) bet.setChip(chip);
+
+        // After adding a new bet, we only want to show the hologram of the SELECTED bet.
+        handlePlayerBetHolograms(player);
+
+        // Place the bet on the first empty slot.
+        firstChipMove(player);
+
+        // If the money animation isn't running, run now.
+        if (moneyAnimation == null) {
+            new MoneyAnimation(this);
+        }
+    }
+
+    public void addExtraTimeFor(Player player) {
+        if (selecting == null || selecting.isCancelled()) return;
+
+        int extra = Config.COUNTDOWN_SELECTING_EXTRA.asInt();
+        int max = Config.COUNTDOWN_SELECTING_MAX.asInt();
+
+        selecting.setTicks(Math.min(selecting.getTicks() + extra * 20, max * 20 - 20));
+
+        broadcast(Messages.Message.EXTRA_TIME_ADDED, line -> line
+                .replace("%extra%", String.valueOf(extra))
+                .replace("%player-name%", player.getName()), player);
+    }
+
+    public <T extends RouletteGUI> void handleGameChange(
+            @NotNull T gui,
+            @NotNull Consumer<Game> gameChange,
+            @NotNull Consumer<T> guiChange,
+            boolean refreshParrot) {
+        gameChange.accept(this);
+
+        guiChange.accept(gui);
+        plugin.getGameManager().save(this);
+
+        if (refreshParrot) {
+            World world = npc.getLocation().getWorld();
+            if (world != null) refreshParrotChange();
+        }
+    }
+
+    private void refreshParrotChange() {
+        MetadataModifier metadata = npc.metadata();
+        npc.toggleParrotVisibility(metadata);
+        metadata.send();
     }
 }

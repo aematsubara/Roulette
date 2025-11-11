@@ -2,6 +2,7 @@ package me.matsubara.roulette.game.data;
 
 import com.cryptomorin.xseries.XSound;
 import com.cryptomorin.xseries.reflection.minecraft.NMSExtras;
+import fr.skytasul.glowingentities.GlowingEntities;
 import lombok.Getter;
 import lombok.Setter;
 import me.matsubara.roulette.RoulettePlugin;
@@ -13,7 +14,6 @@ import me.matsubara.roulette.model.stand.ModelLocation;
 import me.matsubara.roulette.model.stand.PacketStand;
 import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.model.stand.data.ItemSlot;
-import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -41,7 +41,7 @@ public final class Bet {
     // The owner of this bet.
     private final Player owner;
 
-    // Hologram for displaying bet.
+    // Hologram for displaying the bet.
     private Hologram hologram;
 
     // Chip selected.
@@ -75,14 +75,14 @@ public final class Bet {
     private static final BiFunction<String, Bet, String> FORMAT_HOLOGRAM = new BiFunction<>() {
         @Override
         public @NotNull String apply(@NotNull String line, @NotNull Bet bet) {
+            Game game = bet.getGame();
             Chip chip = bet.getChip();
             Slot slot = bet.getSlot();
 
             double originalMoney = chip.price();
-            double expectedMoney = bet.getPlugin().getExpectedMoney(
+            double expectedMoney = bet.getPlugin().getExpectedMoney(game.getType(),
                     originalMoney,
-                    slot,
-                    WinData.WinType.NORMAL);
+                    slot, WinData.WinType.NORMAL);
 
             return line
                     .replace("%player%", bet.getOwner().getName())
@@ -147,7 +147,10 @@ public final class Bet {
         Model model = game.getModel();
 
         ModelLocation temp = model.getLocationByName(slot.name());
-        if (temp == null) return;
+        if (temp == null) {
+            plugin.getLogger().warning("Couln't find the location for " + slot.name() + "!");
+            return;
+        }
 
         Location modelLocation = model.getLocation();
         Location where = temp.getLocation().clone().add(PluginUtils.offsetVector(
@@ -165,7 +168,7 @@ public final class Bet {
     private void setHologram(Slot slot, @NotNull Location where) {
         this.slot = slot;
 
-        // Where to spawn/teleport this hologram (with an offset, centered at the top of the chip).
+        // Where to send this hologram (with an offset, centered at the top of the chip).
         Location modelLocation = game.getModel().getLocation();
         Location finalWhere = where.clone().add(PluginUtils.offsetVector(
                 new Vector(
@@ -237,7 +240,7 @@ public final class Bet {
                     player,
                     game.getGlowColor(player));
 
-            // After sending the metadata to the player we have to disable the glow in the settings.
+            // After sending the metadata to the player, we have to disable the glow in the settings.
             StandSettings settings = stand.getSettings();
             settings.setGlow(true);
             stand.sendMetadata(player);

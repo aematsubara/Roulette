@@ -10,6 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,7 +64,16 @@ public final class Messages {
             return;
         }
 
-        ActionBar.sendActionBar(plugin, player, newMessage, 50L);
+        new BukkitRunnable() {
+            long repeater = 50L;
+
+            @Override
+            public void run() {
+                ActionBar.sendActionBar(player, newMessage);
+                repeater -= 40L;
+                if (repeater - 40L < -20L) cancel();
+            }
+        }.runTaskTimerAsynchronously(plugin, 0L, 40L);
     }
 
     private String getNPCMessage(@NotNull Game game, @NotNull Message message) {
@@ -137,6 +147,8 @@ public final class Messages {
         PRISON_REMINDER("game.prison-reminder"),
         LEAVE_PLAYER("game.leave-player"),
         ALREADY_INGAME("other.already-ingame"),
+        ALREADY_PLAYING("other.already-playing"),
+        INSIDE_VEHICLE("other.inside-vehicle"),
         ALREADY_STARTED("other.already-started"),
         SEAT_TAKEN("other.seat-taken"),
         GAME_STOPPED("other.game-stopped"),

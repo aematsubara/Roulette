@@ -1,8 +1,8 @@
 package me.matsubara.roulette.gui;
 
 import lombok.Getter;
-import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.manager.ChipManager;
@@ -12,8 +12,11 @@ import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -22,9 +25,6 @@ import java.util.Map;
 
 @Getter
 public final class ChipGUI extends RouletteGUI {
-
-    // The instance of the plugin.
-    private final RoulettePlugin plugin;
 
     // The instance of the game.
     private final Game game;
@@ -35,12 +35,6 @@ public final class ChipGUI extends RouletteGUI {
     // The inventory being used.
     private final Inventory inventory;
 
-    // The current page.
-    private int currentPage;
-
-    // The max number of pages.
-    private int pages;
-
     // Whether the chip being selected is for a new bet.
     private final boolean isNewBet;
 
@@ -50,23 +44,18 @@ public final class ChipGUI extends RouletteGUI {
     // The slot to put page navigator items and other stuff.
     private static final int[] HOTBAR = {19, 20, 21, 22, 23, 24, 25};
 
-    public ChipGUI(Game game, Player player, boolean isNewBet) {
-        this(game, player, 0, isNewBet);
-    }
-
-    public ChipGUI(@NotNull Game game, @NotNull Player player, int currentPage, boolean isNewBet) {
-        super("chip-menu");
-        this.plugin = game.getPlugin();
+    public ChipGUI(@NotNull Game game, @NotNull Player player, boolean isNewBet) {
+        super(game.getPlugin(), "chip-menu", true);
         this.game = game;
         this.player = player;
         this.isNewBet = isNewBet;
         this.inventory = plugin.getServer().createInventory(this, 36);
-        this.currentPage = currentPage;
 
         player.openInventory(inventory);
         updateInventory();
     }
 
+    @Override
     public void updateInventory() {
         inventory.clear();
 
@@ -126,13 +115,49 @@ public final class ChipGUI extends RouletteGUI {
                 .replace("%max%", String.valueOf(pages)));
     }
 
-    public void previousPage(boolean isShiftClick) {
-        currentPage = isShiftClick ? 0 : currentPage - 1;
-        updateInventory();
-    }
+    @Override
+    public void handle(@NotNull InventoryClickEvent event) {
+        super.handle(event);
 
-    public void nextPage(boolean isShiftClick) {
-        currentPage = isShiftClick ? pages - 1 : currentPage + 1;
-        updateInventory();
+        Player player = (Player) event.getWhoClicked();
+        Messages messages = plugin.getMessages();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        if (isCustomItem(current, "bet-all")) {
+            // Open confirm gui.
+            runTask(() -> {
+                ConfirmGUI gui = new ConfirmGUI(game, player, ConfirmGUI.ConfirmType.BET_ALL);
+                gui.setSourceGUI(this);
+                gui.setPreviousPage(currentPage);
+            });
+            return;
+        }
+
+        if (isCustomItem(current, "exit")) {
+            // Remove player from game.
+            messages.send(player, Messages.Message.LEAVE_PLAYER);
+            game.removeCompletely(player);
+            closeInventory(player);
+            return;
+        }
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        String chipName = meta.getPersistentDataContainer().get(plugin.getChipNameKey(), PersistentDataType.STRING);
+        if (chipName == null) return;
+
+        Chip chip = plugin.getChipManager().getByName(chipName);
+        if (chip == null) return;
+
+        if (!game.newBet(player, chip, isNewBet)) {
+            // Not enough money.
+            event.setCurrentItem(plugin.getItem("not-enough-money").build());
+            return;
+        }
+
+        closeInventory(player);
     }
 }

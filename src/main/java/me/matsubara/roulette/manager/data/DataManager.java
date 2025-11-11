@@ -4,6 +4,7 @@ import com.google.common.base.Predicates;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
@@ -21,12 +22,14 @@ import java.util.concurrent.Executors;
 
 public class DataManager {
 
+    private final RoulettePlugin plugin;
     private final File databaseFile;
     private final @Getter List<RouletteSession> sessions = new ArrayList<>();
     private final @Getter List<MapRecord> maps = new ArrayList<>();
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
     public DataManager(@NotNull RoulettePlugin plugin) {
+        this.plugin = plugin;
         this.databaseFile = new File(plugin.getDataFolder(), "data.db");
         // Create tables and fill sessions.
         CompletableFuture.runAsync(() -> {
@@ -51,8 +54,12 @@ public class DataManager {
                     "roulette_session_uuid BLOB PRIMARY KEY," +
                     "roulette_table_name TEXT NOT NULL," +
                     "winning_slot TEXT NOT NULL," +
+                    "game_type TEXT NOT NULL," +
                     "session_date BIGINT NOT NULL" +
                     ");");
+
+            // Add new columns since the creation of the database.
+            ensureColumn(connection, "roulette_sessions", "game_type", "AMERICAN");
 
             // Create a table of player results.
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS player_results (" +
@@ -76,8 +83,20 @@ public class DataManager {
         }
     }
 
-    public CompletableFuture<RouletteSession> saveSession(@NotNull UUID sessionUUID, String name, Collection<Map.Entry<Player, Bet>> bets, @NotNull Slot slot, long timestamp) {
-        RouletteSession session = new RouletteSession(sessionUUID, name, slot, timestamp, bets);
+    @SuppressWarnings("SameParameterValue")
+    private void ensureColumn(Connection connection, String table, String column, String defaultValue) throws SQLException {
+        try (ResultSet result = connection.getMetaData().getColumns(null, null, table, column)) {
+            if (result.next()) return;
+
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("ALTER TABLE " + table + " ADD COLUMN " + column + " TEXT NOT NULL DEFAULT '" + defaultValue + "'");
+                plugin.getLogger().info("Column '" + column + "' not found on table {" + table + "}, creating it!");
+            }
+        }
+    }
+
+    public CompletableFuture<RouletteSession> saveSession(@NotNull UUID sessionUUID, String name, Collection<Map.Entry<Player, Bet>> bets, @NotNull Slot slot, GameType type, long timestamp) {
+        RouletteSession session = new RouletteSession(sessionUUID, name, slot, type, timestamp, bets);
         sessions.add(session);
         sort();
 
@@ -119,12 +138,13 @@ public class DataManager {
     }
 
     private void saveSession(@NotNull RouletteSession session) {
-        String sql = "INSERT INTO roulette_sessions (roulette_session_uuid, roulette_table_name, winning_slot, session_date) VALUES (?, ?, ?, ?);";
+        String sql = "INSERT INTO roulette_sessions (roulette_session_uuid, roulette_table_name, winning_slot, game_type, session_date) VALUES (?, ?, ?, ?, ?);";
         try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setBytes(1, PluginUtils.toBytes(session.sessionUUID()));
             statement.setString(2, session.name());
             statement.setString(3, session.slot().name());
-            statement.setLong(4, session.timestamp());
+            statement.setString(4, session.type().name());
+            statement.setLong(5, session.timestamp());
             statement.executeUpdate();
 
             // After saving session, save results.
@@ -160,15 +180,10 @@ public class DataManager {
         // Remove result async.
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> removePlayerResult(result), executor);
         if (!results.isEmpty()) {
-            if (!Config.MAP_IMAGE_ENABLED.asBool()) return;
-
-            List<PlayerResult> left = results.stream()
+            if (results.stream()
                     .filter(temp -> temp.playerUUID().equals(result.playerUUID()))
-                    .toList();
-
-            if (left.stream().noneMatch(PlayerResult::won)) {
-                removeMap(new MapRecord(0, result.playerUUID(), result.sessionUUID()));
-            }
+                    .anyMatch(PlayerResult::won)) return;
+            removeMap(new MapRecord(0, result.playerUUID(), result.sessionUUID()));
             return;
         }
 
@@ -218,7 +233,8 @@ public class DataManager {
                 RouletteSession session = new RouletteSession(
                         PluginUtils.toUUID(set.getBytes("roulette_session_uuid")),
                         set.getString("roulette_table_name"),
-                        PluginUtils.getOrNull(Slot.class, set.getString("winning_slot")),
+                        PluginUtils.getOrDefault(Slot.class, set.getString("winning_slot"), Slot.SLOT_0),
+                        PluginUtils.getOrDefault(GameType.class, set.getString("game_type"), GameType.AMERICAN),
                         set.getLong("session_date"));
                 session.results().addAll(getPlayerResultsBySession(session, connection));
                 sessions.add(session);
@@ -267,23 +283,23 @@ public class DataManager {
         CompletableFuture.runAsync(() -> maps.forEach(this::saveMap), executor);
     }
 
-    private void removeMap(@NotNull MapRecord record) {
-        String sql = "DELETE FROM roulette_maps WHERE player_uuid = ? AND roulette_session_uuid = ?;";
-        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setBytes(1, PluginUtils.toBytes(record.playerUUID()));
-            statement.setBytes(2, PluginUtils.toBytes(record.sessionUUID()));
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            exception.printStackTrace();
-        }
-    }
-
     private void saveMap(@NotNull MapRecord map) {
         String sql = "INSERT INTO roulette_maps (map_id, player_uuid, roulette_session_uuid) VALUES (?, ?, ?)";
         try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, map.mapId());
             statement.setBytes(2, PluginUtils.toBytes(map.playerUUID()));
             statement.setBytes(3, PluginUtils.toBytes(map.sessionUUID()));
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    private void removeMap(@NotNull MapRecord map) {
+        String sql = "DELETE FROM roulette_maps WHERE player_uuid = ? AND roulette_session_uuid = ?;";
+        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setBytes(1, PluginUtils.toBytes(map.playerUUID()));
+            statement.setBytes(2, PluginUtils.toBytes(map.sessionUUID()));
             statement.executeUpdate();
         } catch (SQLException exception) {
             exception.printStackTrace();

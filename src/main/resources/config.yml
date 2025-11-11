@@ -179,7 +179,8 @@ variable-text:
     disabled: "&cDisabled"
   # The types of rules.
   rules:
-    none: "None"
+    # 'Normal' isn't a rule, it's only used to indicate that a bet won without rules.
+    normal: "Normal"
     partage: "La Partage"
     prison: "En Prison"
     surrender: "Surrender"
@@ -259,7 +260,7 @@ sounds:
 
 # Here you can disable the slots of the table that you want.
 # https://github.com/aematsubara/Roulette/blob/master/src/main/java/me/matsubara/roulette/game/data/Slot.java
-disabled-slots: [ ]
+disabled-slots: []
 
 # Whether to give a map (or "casino voucher") to the winner of a game.
 # The image must be named "background.png" and must be 128x128 (otherwise will be resized).
@@ -302,13 +303,13 @@ slots:
     red: "&c&l%number% &c(Red)"
     black: "&0&l%number% &0(Black)"
   column:
-    1: "&6&l1st &6(column)"
-    2: "&6&l2nd &6(column)"
-    3: "&6&l3rd &6(column)"
+    1: "&6&l1st &6(Column)"
+    2: "&6&l2nd &6(Column)"
+    3: "&6&l3rd &6(Column)"
   dozen:
-    1: "&6&l1st &6(dozen)"
-    2: "&6&l2nd &6(dozen)"
-    3: "&6&l3rd &6(dozen)"
+    1: "&6&l1st &6(Dozen)"
+    2: "&6&l2nd &6(Dozen)"
+    3: "&6&l3rd &6(Dozen)"
   other:
     low: "&6&l1-18 &6(Low)"
     high: "&6&l19-36 &6(High)"
@@ -590,7 +591,7 @@ chip-menu:
       url: "6e7e3e8ab060e64d0256b3688e62d433eab341a157f2a733ed43450fee4e7264"
       material: PLAYER_HEAD
       display-name: "&6Your wallet: &e%money%"
-      lore: [ ]
+      lore: []
     bet-all:
       url: "e36e94f6c34a35465fce4a90f2e25976389eb9709a12273574ff70fd4daa6852"
       material: PLAYER_HEAD
@@ -680,7 +681,7 @@ bets-menu:
       url: "6e7e3e8ab060e64d0256b3688e62d433eab341a157f2a733ed43450fee4e7264"
       material: PLAYER_HEAD
       display-name: "&6Your wallet: &e%money%"
-      lore: [ ]
+      lore: []
     previous:
       url: "bd69e06e5dadfd84e5f3d1c21063f2553b2fa945ee1d4d7152fdc5425bc12a9"
       material: PLAYER_HEAD

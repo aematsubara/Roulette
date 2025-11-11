@@ -1,5 +1,6 @@
 package me.matsubara.roulette.animation;
 
+import fr.skytasul.glowingentities.GlowingEntities;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
@@ -9,7 +10,6 @@ import me.matsubara.roulette.model.stand.StandSettings;
 import me.matsubara.roulette.model.stand.animator.ArmorStandAnimator;
 import me.matsubara.roulette.model.stand.data.ItemSlot;
 import me.matsubara.roulette.util.ColorUtils;
-import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
 import org.bukkit.*;

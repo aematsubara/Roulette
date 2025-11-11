@@ -1,16 +1,26 @@
 package me.matsubara.roulette.game.data;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
 import me.matsubara.roulette.game.Game;
+import me.matsubara.roulette.game.GameType;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Axis;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Slots of the table, from 0 (including 00 for american table) to 36.
+ * NOTE: 3 zeros (0, 0, 0) means 0 & 00. One for 0, 2 for 00.
  */
 @SuppressWarnings("unused")
 @Getter
@@ -66,22 +76,34 @@ public enum Slot {
     SLOT_DOZEN_3(25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36),
 
     // Low numbers (1 to 18) and evens.
-    SLOT_LOW(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18),
-    SLOT_EVEN(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36),
+    SLOT_LOW("d4affa455b7f58217de8acbbd9201c9ea87c134aa35625494f5d3f65ce946",
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18),
+    SLOT_EVEN("1aeef88e2c928b466c6ed5deaa4e1975a9436c2b1b498f9f7cbf92a9b599a6",
+            2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36),
 
     // Colors.
-    SLOT_RED(1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36),
-    SLOT_BLACK(2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35),
+    SLOT_RED("35f45c875eff538fcec98f6acc1df2aecae28f4860aecd24e2dbdf13924b327",
+            1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36),
+    SLOT_BLACK("9eca98befd0d7efca9b11ebf4b2da459cc19a378114b3cdde67d4067afb896",
+            2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35),
 
     // Odds and high numbers (19 to 36).
-    SLOT_ODD(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35),
-    SLOT_HIGH(19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36);
+    SLOT_ODD("cbb1d17cebc5f0ecc987b80efc03e32ecb1cb40dbc5bce2faf3e60542a40",
+            1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35),
+    SLOT_HIGH("7ba9c33a95fa1e519f85a41ca56799384db41fe7e1d7a791751ece9bbae5d27f",
+            19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36);
 
-    private final String url;
+    private final @Getter(AccessLevel.NONE) String url;
     private final int[] childs;
 
     private static final double[] OFFSET_FOR_7 = {0.0d, -0.15d, 0.15d, -0.3d, 0.3d, -0.45d, 0.45d};
     private static final double[] OFFSET_FOR_3 = {0.0d, -0.15d, 0.15d};
+    private static final double[] OFFSET_FOR_1 = {0.0d};
+
+    // The colors are the same as the ones on our table (https://excalidraw.com/#json=YGFFqm_cxWBomeg1mEy8d,BF3eBgysCfVt7iCq43tCjA).
+    private static final Map<SlotType, String> SLOT_TYPE_URL = Map.of(
+            SlotType.COLUMN, "62a5876113322f39aa2bbef4bd6b79ec6b52a97bb6fab674bddbd7b6eab3ba", // WHITE C
+            SlotType.DOZEN, "fa661419de49ff4a2c97b27f868014fbdaeb8dd7f4392777830b2714caafd1f"); // WHITE D
 
     Slot(String url, int... childs) {
         this.url = url;
@@ -92,17 +114,20 @@ public enum Slot {
         this(null, childs);
     }
 
-    public int getMaxBets(boolean isEuropean) {
-        return getOffsets(isEuropean).getRight().length;
+    public int getMaxBets(boolean european) {
+        return getOffsets(european).getRight().length;
     }
 
-    public Pair<Axis, double[]> getOffsets(boolean isEuropean) {
+    public Pair<Axis, double[]> getOffsets(boolean european) {
         return switch (this) {
             case SLOT_DOZEN_1, SLOT_DOZEN_2, SLOT_DOZEN_3 -> Pair.of(Axis.X, OFFSET_FOR_7);
-            case SLOT_0 -> Pair.of(Axis.Z, isEuropean ? OFFSET_FOR_7 : OFFSET_FOR_3);
-            case SLOT_00 -> Pair.of(Axis.Z, isEuropean ? new double[]{} : OFFSET_FOR_3);
+            case SLOT_0 -> Pair.of(Axis.Z, european ? OFFSET_FOR_7 : OFFSET_FOR_3);
+            case SLOT_00 -> Pair.of(Axis.Z, european ? new double[]{} : OFFSET_FOR_3);
             case SLOT_LOW, SLOT_EVEN, SLOT_RED, SLOT_BLACK, SLOT_ODD, SLOT_HIGH -> Pair.of(Axis.X, OFFSET_FOR_3);
-            default -> Pair.of(Axis.Z, OFFSET_FOR_3);
+            default -> {
+                if (isSingle()) yield Pair.of(Axis.Z, OFFSET_FOR_3);
+                yield Pair.of(Axis.X, OFFSET_FOR_1);
+            }
         };
     }
 
@@ -129,26 +154,68 @@ public enum Slot {
                  SLOT_36 -> SlotColor.RED;
             case SLOT_BLACK -> SlotColor.BLACK;
             case SLOT_0, SLOT_00 -> SlotColor.GREEN;
-            default -> childs.length > 1 ? SlotColor.MIXED : SlotColor.BLACK;
+            default -> amountOfNumbers() > 1 ? SlotColor.MIXED : SlotColor.BLACK;
         };
     }
 
-    private double getMultiplier() {
-        if (isSingleInclusive()) return 36.0d;
-        if (applyForRules()) return 2.0d;
-        return 3.0d;
+    public String getNumbersAsString(@NotNull GameType type) {
+        String numbers = Arrays.stream(childs)
+                .filter(value -> value != 0)
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining(", "));
+
+        boolean european = type.isEuropean();
+
+        long zeros = amountOfZeros();
+
+        if (zeros >= 2 && !european) {
+            numbers = "00" + (numbers.isBlank() ? "" : ", " + numbers);
+        }
+
+        if (zeros == 1 || zeros == 3) {
+            numbers = "0" + (numbers.isBlank() ? "" : ", " + numbers);
+        }
+
+        return numbers;
     }
 
-    public double getMultiplier(RoulettePlugin plugin) {
-        double defaultValue = getMultiplier();
+    private double getDefaultMultiplier(GameType type) {
+        if (isSingle()) {
+            return 36.0d;
+        }
+
+        if (applyForRules()) {
+            return 2.0d;
+        }
+
+        if (isColumn() || isDozen()) {
+            return 3.0d;
+        }
+
+        // This won't happen.
+        return 0.0d;
+    }
+
+    public double getMultiplier(GameType type, RoulettePlugin plugin) {
+        double defaultValue = getDefaultMultiplier(type);
         if (!Config.CUSTOM_WIN_MULTIPLIER_ENABLED.asBool()) return defaultValue;
         return plugin.getConfig().getDouble("custom-win-multiplier.slots." + name(), defaultValue);
     }
 
-    public @NotNull String getChance(boolean isEuropean) {
-        if (isSingleInclusive()) return isEuropean ? "1/37 (2.7%)" : "1/38 (2.6%)";
-        if (applyForRules()) return isEuropean ? "18/37 (48%)" : "18/38 (47%)";
-        return isEuropean ? "12/37 (32%)" : "12/38 (31%)";
+    public @NotNull String getChance(boolean european) {
+        int numbers = amountOfNumbers();
+        for (SlotType type : SlotType.values()) {
+            Slot[] gameType = type.getSlots(european ? GameType.EUROPEAN : GameType.AMERICAN);
+            if (!ArrayUtils.contains(gameType, this)) continue;
+            return getChance(numbers, european);
+        }
+        return getChance(numbers, european);
+    }
+
+    @Contract(pure = true)
+    private @NotNull String getChance(int amount, boolean european) {
+        int max = european ? 37 : 38;
+        return "%d/%d (%.1f%%)".formatted(amount, max, (amount * 100.0f) / max);
     }
 
     public boolean isZero() {
@@ -164,11 +231,18 @@ public enum Slot {
     }
 
     public boolean isSingle() {
-        return childs.length == 1;
+        return amountOfNumbers() == 1;
     }
 
-    public boolean isSingleInclusive() {
-        return isSingle() || this == SLOT_00;
+    public long amountOfZeros() {
+        return Arrays.stream(childs)
+                .filter(number -> number == 0)
+                .count();
+    }
+
+    public int amountOfNumbers() {
+        int length = childs.length;
+        return amountOfZeros() <= 1 ? length : length - 1;
     }
 
     public boolean contains(@NotNull Slot slot) {
@@ -192,11 +266,11 @@ public enum Slot {
     }
 
     public boolean isColumn() {
-        return name().contains("COLUMN");
+        return name().contains("_COLUMN_");
     }
 
     public boolean isDozen() {
-        return name().contains("DOZEN");
+        return name().contains("_DOZEN_");
     }
 
     public boolean isLow() {
@@ -221,18 +295,15 @@ public enum Slot {
     }
 
     public boolean isRed() {
-        return getColor() == SlotColor.RED;
+        return this == SLOT_RED;
     }
 
     public boolean isBlack() {
-        return getColor() == SlotColor.BLACK;
+        return this == SLOT_BLACK;
     }
 
-    /**
-     * Return slots values based on the game type (american/european) and remove disabled ones.
-     */
     public static Slot[] values(@NotNull Game game) {
-        Slot[] values = game.getType().isEuropean() ? ArrayUtils.remove(values(), 1) : values();
+        Slot[] values = values(game.getType());
 
         for (Slot slot : game.getDisabledSlots()) {
             values = ArrayUtils.removeElement(values, slot);
@@ -241,10 +312,30 @@ public enum Slot {
         return values;
     }
 
+    public static Slot[] values(@NotNull GameType type) {
+        return type.isEuropean() ? ArrayUtils.removeElements(values(), SLOT_00) : values();
+    }
+
+    public static Stream<Slot> singleValues(@NotNull Game game) {
+        return Arrays.stream(values(game)).filter(Slot::isSingle);
+    }
+
+    public @Nullable String getUrl(GameType gameType) {
+        if (url != null) return url;
+
+        for (SlotType type : SlotType.values()) {
+            if (!ArrayUtils.contains(type.getSlots(gameType), this)) continue;
+            return SLOT_TYPE_URL.get(type);
+        }
+
+        // Shouldn't be null.
+        return null;
+    }
+
     public enum SlotColor {
         RED,
         BLACK,
         GREEN,
-        MIXED // For columns, dozens, lows, evens, etc...
+        MIXED
     }
 }

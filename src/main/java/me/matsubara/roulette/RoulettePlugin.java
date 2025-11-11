@@ -6,6 +6,7 @@ import com.github.retrooper.packetevents.event.EventManager;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import fr.skytasul.glowingentities.GlowingEntities;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import lombok.Getter;
 import me.matsubara.roulette.command.MainCommand;
@@ -33,7 +34,6 @@ import me.matsubara.roulette.manager.*;
 import me.matsubara.roulette.manager.data.DataManager;
 import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.npc.NPCPool;
-import me.matsubara.roulette.util.GlowingEntities;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.PluginUtils;
 import me.matsubara.roulette.util.config.ConfigFileUtils;
@@ -58,11 +58,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 @Getter
 public final class RoulettePlugin extends JavaPlugin {
@@ -132,26 +135,13 @@ public final class RoulettePlugin extends JavaPlugin {
         updateConfigs();
     }
 
-    public @NotNull ItemStack getBall() {
-        Material material = PluginUtils.getOrNull(Material.class, Config.CROUPIER_BALL.asString());
-        return material != null ? new ItemStack(material) : EMPTY_ITEM;
-    }
-
-    public long getRestartPeriod() {
-        return (long) (((double) Config.RESTART_TIME.asInt() / Config.RESTART_FIREWORKS.asInt()) * 20L);
-    }
-
-    public @NotNull String getColumnOrDozen(String type, int index) {
-        return PluginUtils.translate(getConfig().getString("slots." + type + "." + index));
-    }
-
     @Override
     public void onEnable() {
         PluginManager pluginManager = getServer().getPluginManager();
 
         // Disable the plugin if the server version is older than 1.17.
         if (XReflection.MINOR_NUMBER < 17) {
-            getLogger().info("This plugin only works from 1.13 and up (except 1.16), disabling...");
+            getLogger().info("This plugin only works from 1.17 and up, disabling...");
             pluginManager.disablePlugin(this);
             return;
         }
@@ -289,19 +279,19 @@ public final class RoulettePlugin extends JavaPlugin {
     }
 
     public double getExpectedMoney(@NotNull Bet bet) {
-        return getExpectedMoney(bet.getChip().price(), bet.getSlot(), bet.getWinData().winType());
+        return getExpectedMoney(bet.getGame().getType(), bet.getChip().price(), bet.getSlot(), bet.getWinData().winType());
     }
 
     public double getExpectedMoney(@NotNull PlayerResult result) {
-        return getExpectedMoney(result.money(), result.slot(), result.win());
+        return getExpectedMoney(result.session().type(), result.money(), result.slot(), result.win());
     }
 
-    public double getExpectedMoney(double price, Slot slot, @Nullable WinData.WinType winType) {
+    public double getExpectedMoney(GameType type, double price, Slot slot, @Nullable WinData.WinType winType) {
         if (winType == null) return price;
 
         double money;
         if (winType.isNormalWin()) {
-            money = price * slot.getMultiplier(this);
+            money = price * slot.getMultiplier(type, this);
         } else if (winType.isLaPartageWin() || winType.isSurrenderWin()) {
             // Half-money if is partage.
             money = price / 2;
@@ -314,11 +304,11 @@ public final class RoulettePlugin extends JavaPlugin {
 
     private void fillIgnoredSections(FileConfiguration config) {
         for (String guiType : GUI_TYPES) {
-            ConfigurationSection section = config.getConfigurationSection(guiType);
+            ConfigurationSection section = config.getConfigurationSection("gui." + guiType + ".items");
             if (section == null) continue;
 
             for (String key : section.getKeys(false)) {
-                SPECIAL_SECTIONS.add(guiType + "." + key);
+                SPECIAL_SECTIONS.add("gui." + guiType + ".items." + key);
             }
         }
     }
@@ -373,12 +363,28 @@ public final class RoulettePlugin extends JavaPlugin {
         }
     }
 
-    private void saveModels(GameType... types) {
+    private void saveModels(GameType @NotNull ... types) {
         for (GameType type : types) {
             String name = type.getFileName();
 
             File file = new File(getModelFolder(), name);
-            if (file.exists()) continue;
+            if (file.exists()) {
+                // Check if the model file is updated.
+                YamlConfiguration configuration = YamlConfiguration.loadConfiguration(file);
+                if (Arrays.stream(Slot.values(type))
+                        .allMatch(slot -> configuration.contains("parts." + slot.name()))) {
+                    continue;
+                }
+
+                Logger logger = getLogger();
+                try {
+                    Files.delete(file.toPath());
+                    logger.info("The model file {" + name + "} has been updated!");
+                } catch (IOException exception) {
+                    logger.warning("The model file {" + name + "} is not up to date and could not be deleted. " +
+                            "You will have to do this manually, otherwise the plugin will not work properly.");
+                }
+            }
 
             saveResource("models" + File.separator + name, false);
         }
@@ -558,15 +564,10 @@ public final class RoulettePlugin extends JavaPlugin {
         return builder;
     }
 
-    public String formatWinType(WinData.@NotNull WinType winType) {
-        String shortName = winType.getShortName();
-        String defaultName = Optional.ofNullable(winType.getRule())
-                .map(Enum::name)
-                .orElse("none")
-                .replace("_", " ");
-
+    public String formatWinType(@NotNull WinData.WinType winType) {
+        String defaultName = winType.name().replace("_", " ");
         return getConfig().getString(
-                "variable-text.rules." + (shortName != null ? shortName : "none"),
+                "variable-text.rules." + winType.getShortName(),
                 StringUtils.capitalize(defaultName));
     }
 
@@ -577,5 +578,18 @@ public final class RoulettePlugin extends JavaPlugin {
             if (color != null) colors.add(color);
         }
         return colors;
+    }
+
+    public @NotNull ItemStack getBall() {
+        Material material = PluginUtils.getOrNull(Material.class, Config.CROUPIER_BALL.asString());
+        return material != null ? new ItemStack(material) : EMPTY_ITEM;
+    }
+
+    public long getRestartPeriod() {
+        return (long) (((double) Config.RESTART_TIME.asInt() / Config.RESTART_FIREWORKS.asInt()) * 20L);
+    }
+
+    public @NotNull String getColumnOrDozen(String type, int index) {
+        return PluginUtils.translate(getConfig().getString("slots." + type + "." + index));
     }
 }

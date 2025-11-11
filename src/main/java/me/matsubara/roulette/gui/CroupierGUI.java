@@ -2,18 +2,22 @@ package me.matsubara.roulette.gui;
 
 import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
-import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
+import me.matsubara.roulette.manager.InputManager;
 import me.matsubara.roulette.npc.NPC;
 import me.matsubara.roulette.util.ItemBuilder;
 import me.matsubara.roulette.util.ParrotUtils;
+import me.matsubara.roulette.util.PluginUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -24,9 +28,6 @@ import java.util.function.Function;
 
 @Getter
 public class CroupierGUI extends RouletteGUI {
-
-    // Instance of the plugin.
-    private final RoulettePlugin plugin;
 
     // The game related to this GUI.
     private final Game game;
@@ -57,11 +58,8 @@ public class CroupierGUI extends RouletteGUI {
             BlockFace.NORTH_WEST, "865426a33df58b465f0601dd8b9bec3690b2193d1f9503c2caab78f6c2438");
 
     public CroupierGUI(@NotNull Game game, @NotNull Player player) {
-        super("croupier-menu");
-        this.plugin = game.getPlugin();
+        super(game.getPlugin(), "croupier-menu");
         this.game = game;
-
-        RoulettePlugin plugin = game.getPlugin();
 
         String npcName = game.getNPCName(), finalName = npcName != null ? npcName : Config.UNNAMED_CROUPIER.asStringTranslated();
         this.inventory = plugin.getServer().createInventory(
@@ -169,5 +167,120 @@ public class CroupierGUI extends RouletteGUI {
         return plugin.getConfig().getString(
                 "variable-text." + parent + "." + name.toLowerCase(Locale.ROOT).replace("_", "-"),
                 WordUtils.capitalizeFully(name.replace("_", " ")));
+    }
+
+    @Override
+    public void handle(@NotNull InventoryClickEvent event) {
+        Player player = (Player) event.getWhoClicked();
+        Messages messages = plugin.getMessages();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        ClickType click = event.getClick();
+        boolean left = click.isLeftClick(), right = click.isRightClick();
+
+        if (isCustomItem(current, "croupier-name")) {
+            if (left) {
+                // Change name.
+                plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_NAME, game);
+                messages.send(player, Messages.Message.NPC_NAME);
+            } else if (right) {
+                // Reset name.
+                String npcName = game.getNPCName();
+                if (npcName != null && !npcName.isEmpty() && !npcName.equals(Config.UNNAMED_CROUPIER.asStringTranslated())) {
+                    messages.send(player, Messages.Message.NPC_RENAMED);
+                    game.setNPC(null, game.getNPCTexture(), game.getNPCSignature());
+                    plugin.getGameManager().save(game);
+                } else {
+                    messages.send(player, Messages.Message.NPC_ALREADY_RENAMED);
+                }
+            }
+        } else if (isCustomItem(current, "croupier-texture")) {
+            if (left) {
+                // Change texture.
+                plugin.getInputManager().newInput(player, InputManager.InputType.CROUPIER_TEXTURE, game);
+                messages.send(player, Messages.Message.NPC_TEXTURE);
+            } else if (right) {
+                // Reset texture.
+                if (game.hasNPCTexture()) {
+                    messages.send(player, Messages.Message.NPC_TEXTURIZED);
+                    game.setNPC(game.getNPCName(), null, null);
+                    plugin.getGameManager().save(game);
+                } else {
+                    messages.send(player, Messages.Message.NPC_ALREADY_TEXTURIZED);
+                }
+            }
+        } else if (isCustomItem(current, "croupier-action")) {
+            if (click == ClickType.MIDDLE) {
+                game.handleGameChange(
+                        this,
+                        temp -> temp.setNpcActionFOV(!temp.isNpcActionFOV()),
+                        CroupierGUI::setCroupierActionItem,
+                        false);
+                return;
+            }
+
+            game.handleGameChange(
+                    this,
+                    temp -> temp.setNpcAction(PluginUtils.getNextOrPreviousEnum(temp.getNpcAction(), right)),
+                    CroupierGUI::setCroupierActionItem,
+                    false);
+
+            if (game.getNpcAction() != NPC.NPCAction.INVITE) return;
+
+            NPC npc = game.getNpc();
+            npc.getSeeingPlayers().forEach(npc::lookAtDefaultLocation);
+            return;
+        } else if (isCustomItem(current, "parrot")) {
+            game.handleGameChange(
+                    this,
+                    temp -> temp.setParrotEnabled(!temp.isParrotEnabled()),
+                    CroupierGUI::setParrotItem,
+                    true);
+            return;
+        } else if (isCustomItem(current, "parrot-sounds")) {
+            game.handleGameChange(
+                    this,
+                    temp -> temp.setParrotSounds(!temp.isParrotSounds()),
+                    CroupierGUI::setParrotSoundsItem,
+                    false);
+            return;
+        } else if (isCustomItem(current, "parrot-variant")) {
+            game.handleGameChange(
+                    this,
+                    temp -> temp.setParrotVariant(PluginUtils.getNextOrPreviousEnum(temp.getParrotVariant(), right)),
+                    CroupierGUI::setParrotVariantItem,
+                    true);
+            return;
+        } else if (isCustomItem(current, "parrot-shoulder")) {
+            game.handleGameChange(
+                    this,
+                    temp -> temp.setParrotShoulder(PluginUtils.getNextOrPreviousEnum(temp.getParrotShoulder(), right)),
+                    CroupierGUI::setParrotShoulderItem,
+                    true);
+
+            // Send another metadata packet but for the other shoulder.
+            game.getNpc().metadata().queueShoulderEntity(!game.getParrotShoulder().isLeft(), null).send();
+            return;
+        } else if (isCustomItem(current, "croupier-rotation")) {
+            game.handleGameChange(
+                    this,
+                    temp -> temp.setCurrentNPCFace(PluginUtils.getNextOrPrevious(PluginUtils.RADIAL,
+                            temp.getCurrentNPCFace(),
+                            right)),
+                    CroupierGUI::setCroupierRotationItem,
+                    false);
+
+            game.lookAtFace(game.getCurrentNPCFace());
+            return;
+        } else if (isCustomItem(current, "croupier-distance")) {
+            game.setNpcDistance(game.getNpcDistance() + (right ? 5.0d : -5.0d));
+            this.setCroupierDistanceItem();
+            plugin.getGameManager().save(game);
+            return;
+        } else return;
+
+        closeInventory(player);
     }
 }

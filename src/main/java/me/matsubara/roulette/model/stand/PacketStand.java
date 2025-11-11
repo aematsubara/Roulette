@@ -48,7 +48,6 @@ public final class PacketStand {
 
     private static int PROTOCOL = -1;
     private static final int MINOR_NUMBER = XReflection.MINOR_NUMBER;
-    public static final char[] ALPHABET = "abcdefghijklmnopqrstuvwxyz".toCharArray();
 
     // Classes.
     private static final Class<?> CRAFT_CHAT_MESSAGE;
@@ -273,179 +272,20 @@ public final class PacketStand {
 
         // Initialize fields.
         CONNECTION = Reflection.getField(ENTITY_PLAYER, GAME_PACKET_LISTENER, "connection", true, "f", "c", "b", "playerConnection");
-        if (XReflection.supports(18)) {
-            // DATA_SHARED_FLAGS_ID, DATA_CUSTOM_NAME, DATA_CUSTOM_NAME_VISIBLE | DATA_CLIENT_FLAGS, DATA_X_POSE
-            if (XReflection.supports(21, 6)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "az"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "bl"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "bm"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bS"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bT"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bU"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bV"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bW"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bX"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bY"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aV"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aX"));
-            } else if (XReflection.supports(21, 5)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "am"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aR"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aS"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bw"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bx"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "by"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bz"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bA"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bB"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bC"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aH"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aJ"));
-            } else if (XReflection.supports(21, 4)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "am"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aO"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aP"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bO"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aG"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aI"));
-            } else if (XReflection.supports(21, 2)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "am"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aO"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aP"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bO"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bP"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aG"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aI"));
-            } else if (XReflection.supports(21)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "ap"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aQ"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aR"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "u"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aL"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aN"));
-            } else if (XReflection.supports(20, 6)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "ap"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aS"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aT"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "u"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aN"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aP"));
-            } else if (XReflection.supports(20, 2)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "ao"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aU"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aV"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bC"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bD"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bE"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bF"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "u"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aM"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aO"));
-            } else if (XReflection.supports(20)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "an"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aU"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aV"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bC"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bD"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bE"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bF"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "s"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aL"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aN"));
-            } else if (XReflection.supports(19, 4)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "an"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aR"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aS"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bB"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bC"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bD"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bE"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bF"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
-                DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, "t"));
-                DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aK"));
-                DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, "aM"));
-            } else if (XReflection.supports(18, 2)) {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "Z"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aM"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aN"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
-                DWO_SCALE_ID = null;
-                DWO_TEXT_ID = null;
-                DWO_BACKGROUND_COLOR_ID = null;
-            } else {
-                DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aa"));
-                DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aL"));
-                DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aM"));
-                DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
-                DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
-                DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
-                DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
-                DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
-                DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
-                DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bN"));
-                DWO_SCALE_ID = null;
-                DWO_TEXT_ID = null;
-                DWO_BACKGROUND_COLOR_ID = null;
-            }
-        } else {
-            DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "Z"));
-            DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aJ"));
-            DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, "aK"));
-            DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bG"));
-            DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bH"));
-            DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bI"));
-            DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bJ"));
-            DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bK"));
-            DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bL"));
-            DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, "bM"));
-            DWO_SCALE_ID = null;
-            DWO_TEXT_ID = null;
-            DWO_BACKGROUND_COLOR_ID = null;
-        }
-
+        DWOData dwoData = DWOData.getByVersion();
+        DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, dwoData.entityData));
+        DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, dwoData.customName));
+        DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, dwoData.customNameVisible));
+        DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.armorStandData));
+        DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.headPose));
+        DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.bodyPose));
+        DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.leftArmPose));
+        DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.rightArmPose));
+        DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.leftLegPose));
+        DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.rightLegPose));
+        DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, dwoData.displayScale));
+        DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, dwoData.displayText));
+        DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, dwoData.displayBackgroundColor));
         ZERO = Reflection.getFieldValue(Reflection.getField(VEC_3D, VEC_3D, "a", true, "b", "c", "ZERO"));
         ARMOR_STAND = getType(EntityType.ARMOR_STAND);
         ARMOR_STAND_TYPE_ID = getTypeId(ARMOR_STAND);
@@ -844,6 +684,82 @@ public final class PacketStand {
             return (int) getId.invoke(ENTITY_TYPE, type);
         } catch (Throwable throwable) {
             return -1;
+        }
+    }
+
+    @Getter
+    public enum DWOData {
+        V_21_9(21, 9, "aA", "bm", "bn", "n", "o", "p", "q", "r", "s", "t", "t", "aW", "aY"), // 21_10
+        V_21_6(21, 6, "az", "bl", "bm", "bS", "bT", "bU", "bV", "bW", "bX", "bY", "t", "aV", "aX"), // 21_7, 21_8
+        V_21_5(21, 5, "am", "aR", "aS", "bw", "bx", "by", "bz", "bA", "bB", "bC", "t", "aH", "aJ"),
+        V_21_4(21, 4, "am", "aO", "aP", "bI", "bJ", "bK", "bL", "bM", "bN", "bO", "t", "aG", "aI"),
+        V_21_2(22, 2, "am", "aO", "aP", "bJ", "bK", "bL", "bM", "bN", "bO", "bP", "t", "aG", "aI"),
+        V_21(21, 0, "ap", "aQ", "aR", "bH", "bI", "bJ", "bK", "bL", "bM", "bN", "u", "aL", "aN"),
+        V_20_6(20, 6, "ap", "aS", "aT", "bG", "bH", "bI", "bJ", "bK", "bL", "bM", "u", "aN", "aP"),
+        V_20_2(20, 2, "ao", "aU", "aV", "bC", "bD", "bE", "bF", "bG", "bH", "bI", "u", "aM", "aO"),
+        V_20(20, 0, "an", "aU", "aV", "bC", "bD", "bE", "bF", "bG", "bH", "bI", "s", "aL", "aN"),
+        V_19_4(19, 4, "an", "aR", "aS", "bB", "bC", "bD", "bE", "bF", "bG", "bH", "t", "aK", "aM"),
+        V_18_2(18, 2, "Z", "aM", "aN", "bG", "bH", "bI", "bJ", "bK", "bL", "bM", null, null, null),
+        V_18(18, 0, "aa", "aL", "aM", "bH", "bI", "bJ", "bK", "bL", "bM", "bN", null, null, null),
+        V_MIXED(-1, -1, "Z", "aJ", "aK", "bG", "bH", "bI", "bJ", "bK", "bL", "bM", null, null, null);
+
+        private final int minor;
+        private final int patch;
+
+        // Entity = DATA_SHARED_FLAGS_ID, DATA_CUSTOM_NAME, DATA_CUSTOM_NAME_VISIBLE
+        // ArmorStand = DATA_CLIENT_FLAGS, DATA_X_POSE
+        // Display = DATA_SCALE_ID
+        // TextDisplay = DATA_TEXT_ID, DATA_BACKGROUND_COLOR_ID
+
+        private final String entityData;
+        private final String customName;
+        private final String customNameVisible;
+        private final String armorStandData;
+        private final String headPose;
+        private final String bodyPose;
+        private final String leftArmPose;
+        private final String rightArmPose;
+        private final String leftLegPose;
+        private final String rightLegPose;
+        private final String displayScale;
+        private final String displayText;
+        private final String displayBackgroundColor;
+
+        DWOData(int minor,
+                int patch,
+                String entityData,
+                String customName,
+                String customNameVisible,
+                String armorStandData,
+                String headPose,
+                String bodyPose,
+                String leftArmPose,
+                String rightArmPose,
+                String leftLegPose,
+                String rightLegPose, String displayScale, String displayText, String displayBackgroundColor) {
+            this.minor = minor;
+            this.patch = patch;
+            this.entityData = entityData;
+            this.customName = customName;
+            this.customNameVisible = customNameVisible;
+            this.armorStandData = armorStandData;
+            this.headPose = headPose;
+            this.bodyPose = bodyPose;
+            this.leftArmPose = leftArmPose;
+            this.rightArmPose = rightArmPose;
+            this.leftLegPose = leftLegPose;
+            this.rightLegPose = rightLegPose;
+            this.displayScale = displayScale;
+            this.displayText = displayText;
+            this.displayBackgroundColor = displayBackgroundColor;
+        }
+
+        public static DWOData getByVersion() {
+            for (DWOData data : values()) {
+                if (data != DWOData.V_MIXED
+                        && XReflection.supports(data.minor, data.patch)) return data;
+            }
+            return DWOData.V_MIXED;
         }
     }
 }

@@ -1,9 +1,11 @@
 package me.matsubara.roulette.gui;
 
+import com.google.common.base.Predicates;
 import lombok.Getter;
-import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
+import me.matsubara.roulette.game.GameType;
 import me.matsubara.roulette.game.data.Bet;
 import me.matsubara.roulette.game.data.Chip;
 import me.matsubara.roulette.game.data.Slot;
@@ -17,8 +19,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,9 +35,6 @@ import java.util.Map;
 @Getter
 public final class BetsGUI extends RouletteGUI {
 
-    // The instance of the plugin.
-    private final RoulettePlugin plugin;
-
     // The instance of the game.
     private final Game game;
 
@@ -41,12 +43,6 @@ public final class BetsGUI extends RouletteGUI {
 
     // The inventory being used.
     private final Inventory inventory;
-
-    // The current page.
-    private int currentPage;
-
-    // The max number of pages.
-    private int pages;
 
     // The slots to show the content.
     private static final int[] SLOTS = {10, 11, 12, 13, 14, 15, 16};
@@ -59,8 +55,7 @@ public final class BetsGUI extends RouletteGUI {
     }
 
     public BetsGUI(@NotNull Game game, @NotNull Player player, int currentPage) {
-        super("bets-menu");
-        this.plugin = game.getPlugin();
+        super(game.getPlugin(), "bets-menu", true);
         this.game = game;
         this.player = player;
         this.inventory = plugin.getServer().createInventory(this, 36);
@@ -70,6 +65,7 @@ public final class BetsGUI extends RouletteGUI {
         updateInventory();
     }
 
+    @Override
     public void updateInventory() {
         inventory.clear();
 
@@ -110,6 +106,8 @@ public final class BetsGUI extends RouletteGUI {
         // Set done item.
         inventory.setItem(35, getItem("done").build());
 
+        GameType type = game.getType();
+
         // Assigning slots.
         Map<Integer, Integer> slotIndex = new HashMap<>();
         for (int i : SLOTS) {
@@ -138,9 +136,9 @@ public final class BetsGUI extends RouletteGUI {
                     .replace("%bet%", aux + 1)
                     .replace("%slot%", PluginUtils.getSlotName(slot))
                     .replace("%money%", PluginUtils.format(price))
-                    .replace("%chance%", slot.getChance(game.getType().isEuropean()))
-                    .replace("%multiplier%", String.valueOf(slot.getMultiplier(plugin)))
-                    .replace("%win-money%", PluginUtils.format(plugin.getExpectedMoney(price, slot, winType)))
+                    .replace("%chance%", slot.getChance(type.isEuropean()))
+                    .replace("%multiplier%", String.valueOf(slot.getMultiplier(type, plugin)))
+                    .replace("%win-money%", PluginUtils.format(plugin.getExpectedMoney(type, price, slot, winType)))
                     .setData(plugin.getChipNameKey(), PersistentDataType.STRING, chip.name())
                     .setData(plugin.getBetIndexKey(), PersistentDataType.INTEGER, aux)
                     .build());
@@ -164,13 +162,133 @@ public final class BetsGUI extends RouletteGUI {
                 .build());
     }
 
-    public void previousPage(boolean isShiftClick) {
-        currentPage = isShiftClick ? 0 : currentPage - 1;
-        updateInventory();
-    }
+    @Override
+    public void handle(@NotNull InventoryClickEvent event) {
+        super.handle(event);
 
-    public void nextPage(boolean isShiftClick) {
-        currentPage = isShiftClick ? pages - 1 : currentPage + 1;
-        updateInventory();
+        Player player = (Player) event.getWhoClicked();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        List<Bet> bets = game.getBets(player);
+
+        ClickType click = event.getClick();
+        boolean left = click.isLeftClick(), right = click.isRightClick();
+        if (!left && !right) return;
+
+        Messages messages = plugin.getMessages();
+
+        if (isCustomItem(current, "glow-color")) {
+            // Change glow color and update it for the existing bets.
+            game.changeGlowColor(player, right);
+
+            // Update the glow for the selected bet.
+            Bet bet = game.getSelectedBet(player);
+            if (bet != null) bet.updateStandGlow(player);
+
+            setGlowColorItem();
+            return;
+        }
+
+        if (isCustomItem(current, "new-bet")) {
+            // At this point, the player shouldn't have access to this inventory.
+            if (game.isDone(player)) {
+                closeInventory(player);
+                return;
+            }
+
+            // The player reached the betting limit.
+            if (game.getBets(player).size() == game.getMaxBets()
+                    || !game.isSlotAvailable(player, true)) {
+                messages.send(player, Messages.Message.NO_MORE_SLOTS);
+                closeInventory(player);
+                return;
+            }
+
+            if (plugin.getChipManager().hasEnoughMoney(game, player)) {
+                // Open a new chip menu for a new bet.
+                runTask(() -> new ChipGUI(game, player, true));
+                return;
+            }
+
+            closeInventory(player);
+            return;
+        }
+
+        if (isCustomItem(current, "done")) {
+            runTask(() -> {
+                ConfirmGUI confirm = new ConfirmGUI(game, player, ConfirmGUI.ConfirmType.DONE);
+                confirm.setPreviousPage(currentPage);
+            });
+            return;
+        }
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        Integer betIndex = meta.getPersistentDataContainer().get(plugin.getBetIndexKey(), PersistentDataType.INTEGER);
+        if (betIndex == null) return;
+
+        Bet bet = bets.get(betIndex);
+        if (bet == null) return;
+
+        if (left) {
+            // We don't want players to interact with prison bets.
+            if (bet.isEnPrison()) {
+                messages.send(player, Messages.Message.BET_IN_PRISON);
+                return;
+            }
+
+            // This bet is already selected.
+            if (betIndex.equals(game.getSelectedBetIndex(player))) {
+                messages.send(player, Messages.Message.BET_ALREADY_SELECTED);
+                closeInventory(player);
+                return;
+            }
+
+            // Select bet.
+            game.selectBet(player, betIndex);
+
+            // Handle holograms and close inventory.
+            game.handlePlayerBetHolograms(player);
+            closeInventory(player);
+
+            messages.send(player, Messages.Message.BET_SELECTED,
+                    line -> line.replace("%bet%", String.valueOf(betIndex + 1)));
+            return;
+        }
+
+        // We don't want players to interact with prison bets.
+        if (bet.isEnPrison()) {
+            messages.send(player, Messages.Message.BET_IN_PRISON);
+            closeInventory(player);
+            return;
+        }
+
+        if (bets.stream()
+                .filter(Predicates.not(Bet::isEnPrison))
+                .count() == 1) {
+            messages.send(player, Messages.Message.AT_LEAST_ONE_BET_REQUIRED);
+            closeInventory(player);
+            return;
+        }
+
+        // First try to return the money, then remove the bet.
+        game.tryToReturnMoney(player, bet);
+        game.removeBet(player, betIndex);
+
+        // Remove hologram and chip.
+        bet.remove();
+
+        // Select the last bet.
+        game.selectLast(player);
+
+        // Handle holograms and close inventory.
+        game.handlePlayerBetHolograms(player);
+        closeInventory(player);
+
+        messages.send(player, Messages.Message.BET_REMOVED,
+                line -> line.replace("%bet%", String.valueOf(betIndex + 1)));
     }
 }

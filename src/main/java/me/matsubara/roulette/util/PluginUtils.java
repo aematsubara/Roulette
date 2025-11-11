@@ -174,13 +174,10 @@ public final class PluginUtils {
     }
 
     public static String getURLFromTexture(String texture) {
-        // String decoded = new String(Base64.getDecoder().decode(texture));
-        // return new URL(decoded.substring("{\"textures\":{\"SKIN\":{\"url\":\"".length(), decoded.length() - "\"}}}".length()));
-
-        // Decode B64.
+        // Decode Base64.
         String decoded = new String(Base64.getDecoder().decode(texture));
 
-        // Get url from json.
+        // Get url from JSON.
         return JsonParser.parseString(decoded).getAsJsonObject()
                 .getAsJsonObject("textures")
                 .getAsJsonObject("SKIN")
@@ -210,7 +207,7 @@ public final class PluginUtils {
     }
 
     public static String getSlotName(@NotNull Slot slot) {
-        if (slot.isSingleInclusive()) {
+        if (slot.isSingle()) {
             String number = slot.isDoubleZero() ? "00" : String.valueOf(slot.getChilds()[0]);
             return switch (slot.getColor()) {
                 case RED -> Config.SINGLE_RED.asStringTranslated().replace("%number%", number);
@@ -237,7 +234,7 @@ public final class PluginUtils {
         return format(value, Config.MONEY_ABBREVIATION_FORMAT_ENABLED.asBool());
     }
 
-    public static String format(double value, boolean abbreviation) {
+    private static String format(double value, boolean abbreviation) {
         return abbreviation ? format(value, PLUGIN.getAbbreviations()) : PLUGIN.getEconomyExtension().format(value);
     }
 
@@ -441,7 +438,7 @@ public final class PluginUtils {
 
                 if (!european) {
                     // We are at 0 (2x0), go to 00 (0x0).
-                    if (zero) return SlotHolder.of(grid[0][0]);
+                    if (zero) return SlotHolder.of(Slot.SLOT_00);
 
                     // We are at 00 (0x0), can't go up.
                     if (doubleZero) return null;
@@ -498,7 +495,7 @@ public final class PluginUtils {
                 // We are at 0 (2x0), can't go down.
                 if (zero) return null;
                 // We are at 00 (0x0), go to 0 (2x0).
-                if (doubleZero) return SlotHolder.of(grid[2][0]);
+                if (doubleZero) return SlotHolder.of(Slot.SLOT_0);
             }
 
             // If the current row has a zero, we want to reduce a column, otherwise increase one.
@@ -544,6 +541,21 @@ public final class PluginUtils {
         // Move to the side.
         int goToColumn = column + (right ? 1 : -1);
         return grid[row][goToColumn];
+    }
+
+    public static int[] randomUUIDArray() {
+        UUID uuid = UUID.randomUUID();
+
+        long most = uuid.getMostSignificantBits();
+        long least = uuid.getLeastSignificantBits();
+
+        int[] array = new int[4];
+        array[0] = (int) (most >>> 32);
+        array[1] = (int) most;
+        array[2] = (int) (least >>> 32);
+        array[3] = (int) least;
+
+        return array;
     }
 
     private static class UUIDTagType implements PersistentDataType<byte[], UUID> {

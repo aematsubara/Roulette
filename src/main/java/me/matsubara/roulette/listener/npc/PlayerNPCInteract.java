@@ -51,19 +51,21 @@ public final class PlayerNPCInteract extends SimplePacketListenerAbstract {
             return;
         }
 
-        // If, for some reason, the game is null, or the player is playing, return.
+        // If, for some reason, the game is null, return.
         Game game = plugin.getGameManager().getGameByNPC(npc);
-        if (game == null || game.isPlaying(player)) return;
+        if (game == null) return;
 
-        // Check if player has permission to edit this game.
-        if (!player.hasPermission("roulette.edit")) return;
-        if (!game.getOwner().equals(player.getUniqueId()) && !player.hasPermission("roulette.edit.others")) {
-            return;
-        }
+        // If the player is playing or not sneaking, return.
+        if (game.isPlaying(player) || !player.isSneaking() || !canEdit(game, player)) return;
 
         // For some reason, the event gets called 4 times when right cliking an NPC.
         if (!(player.getOpenInventory().getTopInventory().getHolder() instanceof GameGUI)) {
             plugin.getServer().getScheduler().runTask(plugin, () -> new GameGUI(game, player));
         }
+    }
+
+    private boolean canEdit(Game game, @NotNull Player player) {
+        if (!player.hasPermission("roulette.edit")) return false;
+        return game.getOwner().equals(player.getUniqueId()) || player.hasPermission("roulette.edit.others");
     }
 }

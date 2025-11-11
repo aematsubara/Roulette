@@ -3,10 +3,13 @@ package me.matsubara.roulette.gui.data;
 import lombok.Getter;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.file.Config;
+import me.matsubara.roulette.file.Messages;
 import me.matsubara.roulette.game.Game;
 import me.matsubara.roulette.game.data.Slot;
 import me.matsubara.roulette.game.data.WinData;
 import me.matsubara.roulette.gui.RouletteGUI;
+import me.matsubara.roulette.hook.economy.EconomyExtension;
+import me.matsubara.roulette.manager.data.DataManager;
 import me.matsubara.roulette.manager.data.PlayerResult;
 import me.matsubara.roulette.manager.data.RouletteSession;
 import me.matsubara.roulette.util.InventoryUpdate;
@@ -17,23 +20,20 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
 public final class SessionResultGUI extends RouletteGUI {
-
-    // The instance of the plugin.
-    private final RoulettePlugin plugin;
 
     // The player viewing this inventory.
     private final Player player;
@@ -43,12 +43,6 @@ public final class SessionResultGUI extends RouletteGUI {
 
     // The inventory being used.
     private final Inventory inventory;
-
-    // The current page.
-    private int currentPage;
-
-    // The max number of pages.
-    private int pages;
 
     // The slots to show the content.
     private static final int[] SLOTS = {10, 11, 12, 13, 14, 15, 16};
@@ -61,8 +55,7 @@ public final class SessionResultGUI extends RouletteGUI {
     }
 
     public SessionResultGUI(@NotNull RoulettePlugin plugin, @NotNull Player player, RouletteSession session, int currentPage) {
-        super("session-result-menu");
-        this.plugin = plugin;
+        super(plugin, "session-result-menu", true);
         this.player = player;
         this.session = session;
         this.inventory = plugin.getServer().createInventory(this, 36);
@@ -72,6 +65,7 @@ public final class SessionResultGUI extends RouletteGUI {
         updateInventory();
     }
 
+    @Override
     public void updateInventory() {
         inventory.clear();
 
@@ -117,7 +111,7 @@ public final class SessionResultGUI extends RouletteGUI {
             Slot slot = result.slot();
 
             double originalMoney = result.money();
-            double expectedMoney = plugin.getExpectedMoney(originalMoney, slot, win);
+            double expectedMoney = plugin.getExpectedMoney(session.type(), originalMoney, slot, win);
 
             String originalFormat = PluginUtils.format(originalMoney);
             String expectedFormat = PluginUtils.format(expectedMoney);
@@ -139,19 +133,102 @@ public final class SessionResultGUI extends RouletteGUI {
                 .replace("%max%", String.valueOf(pages)));
     }
 
-    public void previousPage(boolean isShiftClick) {
-        currentPage = isShiftClick ? 0 : currentPage - 1;
-        updateInventory();
-    }
-
-    public void nextPage(boolean isShiftClick) {
-        currentPage = isShiftClick ? pages - 1 : currentPage + 1;
-        updateInventory();
-    }
-
     @Contract(pure = true)
     @Override
     public @Nullable Game getGame() {
         return null;
+    }
+
+    @Override
+    public void handle(@NotNull InventoryClickEvent event) {
+        super.handle(event);
+
+        Player player = (Player) event.getWhoClicked();
+
+        ItemStack current = event.getCurrentItem();
+        if (current == null) return;
+
+        ItemMeta meta = current.getItemMeta();
+        if (meta == null) return;
+
+        Integer resultIndex = meta.getPersistentDataContainer().get(plugin.getPlayerResultIndexKey(), PersistentDataType.INTEGER);
+        if (resultIndex == null) return;
+
+        PlayerResult result = session.results().get(resultIndex);
+        if (result == null) return;
+
+        ClickType click = event.getClick();
+        boolean left = click.isLeftClick(), right = click.isRightClick();
+        if (!left && !right) return;
+
+        DataManager dataManager = plugin.getDataManager();
+        Messages messages = plugin.getMessages();
+
+        if (right) {
+            dataManager.remove(result);
+            messages.send(player, Messages.Message.SESSION_RESULT_REMOVED);
+            closeInventory(player);
+            return;
+        }
+
+        // If there is no economy provider, then we won't be able to deposit/withdraw money.
+        EconomyExtension<?> economyExtension = plugin.getEconomyExtension();
+        if (!economyExtension.isEnabled()) {
+            messages.send(player, Messages.Message.NO_ECONOMY_PROVIDER);
+            closeInventory(player);
+            return;
+        }
+
+        WinData.WinType win = result.win();
+
+        OfflinePlayer winner = Bukkit.getOfflinePlayer(result.playerUUID());
+
+        double originalMoney = result.money();
+        double expectedMoney = plugin.getExpectedMoney(session.type(), originalMoney, result.slot(), win);
+
+        // Player lost. We want to refund the original money.
+        if (win == null) {
+            if (!economyExtension.deposit(winner, originalMoney)) return;
+
+            Optional.ofNullable(winner.getPlayer())
+                    .ifPresent(temp -> messages.send(temp,
+                            Messages.Message.SESSION_LOST_RECOVERED,
+                            line -> line.replace("%money%", PluginUtils.format(originalMoney))));
+
+            messages.send(player, Messages.Message.SESSION_TRANSACTION_COMPLETED);
+            dataManager.remove(result);
+            closeInventory(player);
+            return;
+        }
+
+        // Player won in prison, the player already recovered his original money.
+        if (win.isEnPrisonWin()) {
+            messages.send(player, Messages.Message.SESSION_BET_IN_PRISON);
+            dataManager.remove(result);
+            closeInventory(player);
+            return;
+        }
+
+        if (economyExtension.has(winner, expectedMoney)) {
+            // Remove the money that the player won.
+            if (!economyExtension.withdraw(winner, expectedMoney)) return;
+
+            // Deposit the original money.
+            if (!economyExtension.deposit(winner, originalMoney)) return;
+
+            Optional.ofNullable(winner.getPlayer())
+                    .ifPresent(temp -> messages.send(temp,
+                            Messages.Message.SESSION_BET_REVERTED,
+                            line -> line
+                                    .replace("%win-money%", PluginUtils.format(expectedMoney))
+                                    .replace("%money%", PluginUtils.format(originalMoney))));
+
+            dataManager.remove(result);
+            messages.send(player, Messages.Message.SESSION_TRANSACTION_COMPLETED);
+        } else {
+            messages.send(player, Messages.Message.SESSION_TRANSACTION_FAILED);
+        }
+
+        closeInventory(player);
     }
 }
