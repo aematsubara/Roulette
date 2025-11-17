@@ -17,6 +17,7 @@ import java.io.File;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -27,6 +28,7 @@ public class DataManager {
     private final @Getter List<RouletteSession> sessions = new ArrayList<>();
     private final @Getter List<MapRecord> maps = new ArrayList<>();
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
+    private final Map<UUID, PlayerStats> stats = new ConcurrentHashMap<>();
 
     public DataManager(@NotNull RoulettePlugin plugin) {
         this.plugin = plugin;
@@ -319,5 +321,12 @@ public class DataManager {
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
+    }
+
+    public PlayerStats getStats(@NotNull Player player) {
+        PlayerStats stats = this.stats.computeIfAbsent(player.getUniqueId(), uuid ->
+                new PlayerStats(plugin, player));
+        if (stats.isExpired()) stats.resetStats();
+        return stats;
     }
 }

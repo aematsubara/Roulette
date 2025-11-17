@@ -3,25 +3,17 @@ package me.matsubara.roulette.hook;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.matsubara.roulette.RoulettePlugin;
 import me.matsubara.roulette.game.data.WinData;
-import me.matsubara.roulette.manager.data.PlayerResult;
-import me.matsubara.roulette.manager.data.RouletteSession;
+import me.matsubara.roulette.manager.data.PlayerStats;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
-import java.util.function.BiPredicate;
-import java.util.stream.DoubleStream;
 
 public final class PAPIExtension extends PlaceholderExpansion {
 
     private final RoulettePlugin plugin;
 
     private static final String NULL = "null";
-    private static final List<String> WIN_TYPE = List.of("partage", "prison", "surrender");
-    private static final BiPredicate<Player, PlayerResult> WIN_RESULT = (player, result) -> result.playerUUID().equals(player.getUniqueId())
-            && result.won();
 
     public PAPIExtension(RoulettePlugin plugin) {
         this.plugin = plugin;
@@ -66,56 +58,27 @@ public final class PAPIExtension extends PlaceholderExpansion {
         // We only need 1 or 2 parameters.
         if (values.length == 0 || values.length > 2) return NULL;
 
-        List<RouletteSession> sessions = plugin.getDataManager().getSessions();
+        PlayerStats stats = plugin.getDataManager().getStats(player);
 
         // if parameter doesn't contain underscores.
         if (values.length == 1) {
-            switch (params.toLowerCase(Locale.ROOT)) {
+            return switch (params.toLowerCase(Locale.ROOT)) {
                 // %roulette_win% → returns the number of wins.
-                case "win" -> {
-                    return String.valueOf(sessions.stream()
-                            .mapToInt(session -> (int) session.results().stream()
-                                    .filter(result -> WIN_RESULT.test(player, result))
-                                    .count())
-                            .sum());
-                }
+                case "win" -> stats.getWins(null);
                 // %roulette_total% → returns the total amount of money earned.
-                case "total" -> {
-                    return String.valueOf(sessions.stream()
-                            .mapToDouble(session -> mapToWinningDouble(player, session).sum())
-                            .sum());
-                }
+                case "total" -> stats.getTotalMoney();
                 // %roulette_max% → returns the highest amount of money earned.
-                case "max" -> {
-                    return String.valueOf(sessions.stream()
-                            .mapToDouble(session -> mapToWinningDouble(player, session).max().orElse(0.0d))
-                            .max()
-                            .orElse(0.0d));
-                }
-            }
-        } else if (values[0].equalsIgnoreCase("win")) {
-            String type = values[1].toLowerCase(Locale.ROOT);
-            if (!WIN_TYPE.contains(type)) return NULL;
+                case "max" -> stats.getMaxMoney();
+                default -> NULL;
+            } + "";
+        }
 
-            // %roulette_win_{X=partage/prison/surrender}% → returns the number of @X wins.
-            return String.valueOf(sessions.stream()
-                    .mapToInt(session -> (int) session.results().stream()
-                            .filter(result -> WIN_RESULT.test(player, result)
-                                    && type.equals(Objects.requireNonNullElse(result.win(), WinData.WinType.NORMAL).getShortName()))
-                            .count())
-                    .sum());
+        // %roulette_win_{X=partage/prison/surrender}% → returns the number of @X wins.
+        if (values[0].equals("win")) {
+            WinData.WinType type = WinData.WinType.getByShortName(values[1].toLowerCase(Locale.ROOT));
+            return type != null ? stats.getWins(type) + "" : NULL;
         }
 
         return NULL;
-    }
-
-    private DoubleStream mapToWinningDouble(Player player, @NotNull RouletteSession session) {
-        return mapToWinningDouble(player, session, (temp, result) -> true);
-    }
-
-    private DoubleStream mapToWinningDouble(Player player, @NotNull RouletteSession session, BiPredicate<Player, PlayerResult> and) {
-        return session.results().stream()
-                .filter(result -> WIN_RESULT.and(and).test(player, result))
-                .mapToDouble(plugin::getExpectedMoney);
     }
 }

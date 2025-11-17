@@ -2,6 +2,7 @@ package me.matsubara.roulette.game.data;
 
 import lombok.Getter;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 public record WinData(Player player, int betIndex, WinType winType) {
 
@@ -32,6 +33,13 @@ public record WinData(Player player, int betIndex, WinType winType) {
 
         public boolean isSurrenderWin() {
             return this == SURRENDER;
+        }
+
+        public static @Nullable WinType getByShortName(String shortName) {
+            for (WinType type : values()) {
+                if (type.getShortName().equals(shortName)) return type;
+            }
+            return null;
         }
     }
 }
