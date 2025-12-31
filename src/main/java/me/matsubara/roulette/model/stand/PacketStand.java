@@ -205,17 +205,17 @@ public final class PacketStand {
             writeInt = Reflection.getMethod(PACKET_DATA_SERIALIZER, "d", int.class);
         }
         writeByte = Reflection.getMethod(PACKET_DATA_SERIALIZER, "writeByte", int.class);
-        writeUUID = Reflection.getMethod(PACKET_DATA_SERIALIZER, "a", UUID.class);
+        writeUUID = Reflection.getMethod(PACKET_DATA_SERIALIZER, "a", MethodType.methodType(PACKET_DATA_SERIALIZER, UUID.class), "writeUUID");
         writeDouble = Reflection.getMethod(PACKET_DATA_SERIALIZER, "writeDouble", double.class);
         writeShort = Reflection.getMethod(PACKET_DATA_SERIALIZER, "writeShort", int.class);
         writeBoolean = Reflection.getMethod(PACKET_DATA_SERIALIZER, "writeBoolean", boolean.class);
-        getObject = Reflection.getMethod(DATA_WATCHER_ITEM, "a");
-        getValue = Reflection.getMethod(DATA_WATCHER_ITEM, "b");
-        getSerializer = Reflection.getMethod(DATA_WATCHER_OBJECT, "b");
-        getIndex = Reflection.getMethod(DATA_WATCHER_OBJECT, "a");
-        getTypeId = Reflection.getMethod(DATA_WATCHER_REGISTRY, "b", MethodType.methodType(int.class, DATA_WATCHER_SERIALIZER), true, true);
+        getObject = Reflection.getMethod(DATA_WATCHER_ITEM, "a", MethodType.methodType(DATA_WATCHER_OBJECT), "getAccessor");
+        getValue = Reflection.getMethod(DATA_WATCHER_ITEM, "b", MethodType.methodType(Object.class), "getValue");
+        getSerializer = Reflection.getMethod(DATA_WATCHER_OBJECT, "b", MethodType.methodType(DATA_WATCHER_SERIALIZER), "serializer");
+        getIndex = Reflection.getMethod(DATA_WATCHER_OBJECT, "a", MethodType.methodType(int.class), "id");
+        getTypeId = Reflection.getMethod(DATA_WATCHER_REGISTRY, "b", MethodType.methodType(int.class, DATA_WATCHER_SERIALIZER), true, true, "getSerializedId");
         serialize = XReflection.supports(20, 6) ? null : Reflection.getMethod(DATA_WATCHER_SERIALIZER, "a", PACKET_DATA_SERIALIZER, Object.class);
-        byString = Reflection.getMethod(ENTITY_TYPES, "a", MethodType.methodType(Optional.class, String.class), true, true);
+        byString = Reflection.getMethod(ENTITY_TYPES, "a", MethodType.methodType(Optional.class, String.class), true, true, "byString");
         codec = XReflection.supports(20, 6) ? Reflection.getMethod(DATA_WATCHER_SERIALIZER, "codec") : null;
         encode = STREAM_ENCODER != null ? Reflection.getMethod(STREAM_ENCODER, "encode", Object.class, Object.class) : null;
         getHandle = Reflection.getMethod(CRAFT_PLAYER, "getHandle");
@@ -273,19 +273,19 @@ public final class PacketStand {
         // Initialize fields.
         CONNECTION = Reflection.getField(ENTITY_PLAYER, GAME_PACKET_LISTENER, "connection", true, "f", "c", "b", "g", "playerConnection");
         DWOData dwoData = DWOData.getByVersion();
-        DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, dwoData.entityData));
-        DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, dwoData.customName));
-        DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY, dwoData.customNameVisible));
-        DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.armorStandData));
-        DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.headPose));
-        DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.bodyPose));
-        DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.leftArmPose));
-        DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.rightArmPose));
-        DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.leftLegPose));
-        DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_ARMOR_STAND, dwoData.rightLegPose));
-        DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_DISPLAY, dwoData.displayScale));
-        DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, dwoData.displayText));
-        DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getFieldGetter(ENTITY_TEXT_DISPLAY, dwoData.displayBackgroundColor));
+        DWO_ENTITY_DATA = Reflection.getFieldValue(Reflection.getField(ENTITY, DATA_WATCHER_OBJECT, dwoData.entityData, true, "DATA_SHARED_FLAGS_ID"));
+        DWO_CUSTOM_NAME = Reflection.getFieldValue(Reflection.getField(ENTITY, DATA_WATCHER_OBJECT, dwoData.customName, true, "DATA_CUSTOM_NAME"));
+        DWO_CUSTOM_NAME_VISIBLE = Reflection.getFieldValue(Reflection.getField(ENTITY, DATA_WATCHER_OBJECT, dwoData.customNameVisible, true, "DATA_CUSTOM_NAME_VISIBLE"));
+        DWO_ARMOR_STAND_DATA = Reflection.getFieldValue(Reflection.getField(ENTITY_ARMOR_STAND, DATA_WATCHER_OBJECT, dwoData.armorStandData, true, "DATA_CLIENT_FLAGS"));
+        DWO_HEAD_POSE = Reflection.getFieldValue(Reflection.getField(ENTITY_ARMOR_STAND, DATA_WATCHER_OBJECT, dwoData.headPose, true, "DATA_HEAD_POSE"));
+        DWO_BODY_POSE = Reflection.getFieldValue(Reflection.getField(ENTITY_ARMOR_STAND, DATA_WATCHER_OBJECT, dwoData.bodyPose, true, "DATA_BODY_POSE"));
+        DWO_LEFT_ARM_POSE = Reflection.getFieldValue(Reflection.getField(ENTITY_ARMOR_STAND, DATA_WATCHER_OBJECT, dwoData.leftArmPose, true, "DATA_LEFT_ARM_POSE"));
+        DWO_RIGHT_ARM_POSE = Reflection.getFieldValue(Reflection.getField(ENTITY_ARMOR_STAND, DATA_WATCHER_OBJECT, dwoData.rightArmPose, true, "DATA_RIGHT_ARM_POSE"));
+        DWO_LEFT_LEG_POSE = Reflection.getFieldValue(Reflection.getField(ENTITY_ARMOR_STAND, DATA_WATCHER_OBJECT, dwoData.leftLegPose, true, "DATA_LEFT_LEG_POSE"));
+        DWO_RIGHT_LEG_POSE = Reflection.getFieldValue(Reflection.getField(ENTITY_ARMOR_STAND, DATA_WATCHER_OBJECT, dwoData.rightLegPose, true, "DATA_RIGHT_LEG_POSE"));
+        DWO_SCALE_ID = Reflection.getFieldValue(Reflection.getField(ENTITY_DISPLAY, DATA_WATCHER_OBJECT, dwoData.displayScale, true, "DATA_SCALE_ID"));
+        DWO_TEXT_ID = Reflection.getFieldValue(Reflection.getField(ENTITY_TEXT_DISPLAY, DATA_WATCHER_OBJECT, dwoData.displayText, true, "DATA_TEXT_ID"));
+        DWO_BACKGROUND_COLOR_ID = Reflection.getFieldValue(Reflection.getField(ENTITY_TEXT_DISPLAY, DATA_WATCHER_OBJECT, dwoData.displayBackgroundColor, true, "DATA_BACKGROUND_COLOR_ID"));
         ZERO = Reflection.getFieldValue(Reflection.getField(VEC_3D, VEC_3D, "a", true, "b", "c", "ZERO"));
         ARMOR_STAND = getType(EntityType.ARMOR_STAND);
         ARMOR_STAND_TYPE_ID = getTypeId(ARMOR_STAND);
@@ -646,35 +646,33 @@ public final class PacketStand {
 
     private static int getTypeId(Object type) {
         Object ENTITY_TYPE;
-        if (XReflection.supports(18)) {
-            if (XReflection.supports(21)) {
-                Class<?> REGISTRIES = Reflection.getNMSClass("core.registries", "BuiltInRegistries");
-                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRIES, "f"));
-            } else if (XReflection.supports(20, 3)) {
-                Class<?> REGISTRIES = Reflection.getNMSClass("core.registries", "BuiltInRegistries");
-                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRIES, "g"));
-            } else if (XReflection.supports(19, 3)) {
-                Class<?> REGISTRIES = Reflection.getNMSClass("core.registries", "BuiltInRegistries");
-                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRIES, "h"));
-            } else if (XReflection.supports(19)) {
-                Class<?> REGISTRY = Reflection.getNMSClass("core", "IRegistry");
-                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, "X"));
-            } else if (MINOR_NUMBER == 18 && XReflection.PATCH_NUMBER == 2) {
-                Class<?> REGISTRY = Reflection.getNMSClass("core", "IRegistry");
-                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, "W"));
-            } else {
-                Class<?> REGISTRY = Reflection.getNMSClass("core", "IRegistry");
-                ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, "Z"));
-            }
+
+        if (XReflection.supports(19, 3)) {
+            Class<?> REGISTRIES = Reflection.getNMSClass("core.registries", "BuiltInRegistries");
+
+            String field;
+            if (XReflection.supports(21, 11)) field = "g";
+            else if (XReflection.supports(21)) field = "f";
+            else if (XReflection.supports(20, 3)) field = "g";
+            else field = "h";
+
+            ENTITY_TYPE = Reflection.getFieldValue(Reflection.getField(REGISTRIES, DEFAULTED_REGISTRY, field, true, "ENTITY_TYPE"));
         } else {
             Class<?> REGISTRY = Reflection.getNMSClass("core", "IRegistry");
-            ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, "Y"));
+
+            String field;
+            if (XReflection.supports(19)) field = "X";
+            else if (MINOR_NUMBER == 18 && XReflection.PATCH_NUMBER == 2) field = "W";
+            else if (XReflection.supports(18)) field = "Z";
+            else field = "Y";
+
+            ENTITY_TYPE = Reflection.getFieldValue(Reflection.getFieldGetter(REGISTRY, field));
         }
 
         MethodHandle getId;
         Class<?> REGISTRY = Reflection.getNMSClass("core", "Registry");
         if (XReflection.supports(18)) {
-            getId = Reflection.getMethod(REGISTRY, "a", Object.class);
+            getId = Reflection.getMethod(REGISTRY, "a", MethodType.methodType(int.class, Object.class), "getId");
         } else {
             getId = Reflection.getMethod(REGISTRY, "getId", Object.class);
         }
@@ -689,7 +687,7 @@ public final class PacketStand {
 
     @Getter
     public enum DWOData {
-        V_21_9(21, 9, "aA", "bm", "bn", "n", "o", "p", "q", "r", "s", "t", "t", "aW", "aY"), // 21_10
+        V_21_9(21, 9, "aA", "bm", "bn", "n", "o", "p", "q", "r", "s", "t", "t", "aW", "aY"), // 21_10, 21_11
         V_21_6(21, 6, "az", "bl", "bm", "bS", "bT", "bU", "bV", "bW", "bX", "bY", "t", "aV", "aX"), // 21_7, 21_8
         V_21_5(21, 5, "am", "aR", "aS", "bw", "bx", "by", "bz", "bA", "bB", "bC", "t", "aH", "aJ"),
         V_21_4(21, 4, "am", "aO", "aP", "bI", "bJ", "bK", "bL", "bM", "bN", "bO", "t", "aG", "aI"),
